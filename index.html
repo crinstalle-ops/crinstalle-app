@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F5F5F7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Crinstalle IA">
+<title>Crinstalle IA</title>
+<meta name="description" content="Crinstalle IA — ton CA de technicien fibre, calculé en temps réel sur ta grille. Saisie en 20 s, relevé PDF mensuel.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: #F5F5F7; }
+  body { font-family: -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #1D1D1F; }
+  .screen { display: none; min-height: 100dvh; flex-direction: column; padding: max(24px, env(safe-area-inset-top)) 24px max(28px, env(safe-area-inset-bottom)); max-width: 480px; margin: 0 auto; gap: 20px; }
+  .screen.on { display: flex; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; min-height: 28px; }
+  .back { width: 44px; height: 44px; margin: -8px 0 -8px -10px; border: none; background: none; padding: 0; cursor: pointer; color: #1D1D1F; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+  .step { font-size: 14px; font-weight: 600; color: #6E6E73; }
+  .ttl { font-size: 17px; font-weight: 700; }
+  .bar { display: flex; gap: 6px; }
+  .bar i { flex: 1; height: 4px; border-radius: 2px; background: #E5E5EA; }
+  .bar i.f { background: #E8590C; }
+  h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.4px; margin: 0; line-height: 1.2; }
+  .sub { font-size: 16px; color: #6E6E73; line-height: 1.4; margin: 0; }
+  .card { background: #FFF; border-radius: 16px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .btn { width: 100%; height: 52px; background: #E8590C; border: none; border-radius: 26px; font-size: 19px; font-weight: 700; color: #FFF; box-shadow: 0 4px 14px rgba(232,89,12,0.35); cursor: pointer; font-family: inherit; transition: transform .15s, box-shadow .15s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; box-shadow: none; cursor: default; }
+  .btn.ghost { background: #FFF; color: #1D1D1F; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .btn.danger { background: #FFF; color: #D22D2D; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .lab { font-size: 13px; font-weight: 600; color: #6E6E73; text-transform: uppercase; letter-spacing: 0.4px; }
+  input[type=text], input[type=tel], input[type=date] { height: 52px; background: #FFF; border: 1.5px solid transparent; border-radius: 14px; padding: 0 16px; font-size: 17px; font-family: inherit; color: #1D1D1F; box-shadow: 0 1px 3px rgba(0,0,0,0.06); outline: none; width: 100%; }
+  input:focus { border-color: #E8590C; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .chip { height: 46px; padding: 0 14px; background: #FFF; border: 2px solid transparent; border-radius: 14px; font-size: 15px; font-weight: 600; color: #1D1D1F; box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer; font-family: inherit; transition: background .15s, border-color .15s; white-space: nowrap; }
+  .chip.sel { background: #FFF3EB; border-color: #E8590C; color: #C2410C; font-weight: 700; box-shadow: none; }
+  .trow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #F0F0F2; }
+  .trow:last-child { border-bottom: none; }
+  .trow .tname { flex: 1; font-size: 15px; font-weight: 600; }
+  .trow input { width: 96px; height: 44px; text-align: right; padding: 0 12px; font-weight: 700; box-shadow: none; background: #F5F5F7; }
+  .trow .off { font-size: 12px; font-weight: 600; color: #6E6E73; background: none; border: 1.5px dashed #C7C7CC; border-radius: 12px; height: 44px; padding: 0 10px; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .trow.dis .tname { color: #8E8E93; text-decoration: line-through; }
+  .trow.dis input { visibility: hidden; }
+  .trow.dis .off { border-style: solid; color: #C2410C; border-color: #C2410C; background: #FFF3EB; }
+  .swrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .swname { font-size: 16px; font-weight: 600; }
+  .swsub { font-size: 14px; color: #6E6E73; margin-top: 2px; }
+  .sw { position: relative; width: 52px; height: 32px; border-radius: 16px; background: #C7C7CC; border: none; cursor: pointer; transition: background .15s; flex-shrink: 0; }
+  .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 28px; height: 28px; border-radius: 14px; background: #FFF; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: left .15s; }
+  .sw.on { background: #E8590C; }
+  .sw.on::after { left: 22px; }
+  .hint { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: #6E6E73; padding: 0 4px; }
+  .err { display: none; background: #FDECEC; color: #B42318; border-radius: 14px; padding: 14px 16px; font-size: 15px; font-weight: 500; }
+  .err.on { display: block; }
+  .warn { display: none; background: #FFF6E5; color: #8A5A00; border-radius: 14px; padding: 14px 16px; font-size: 15px; font-weight: 500; }
+  .warn.on { display: block; }
+  .warn .btn { height: 44px; font-size: 16px; margin-top: 12px; }
+  .grow { flex-grow: 1; }
+  .center { text-align: center; }
+  .logo { width: 96px; height: 96px; border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+  .spin { width: 36px; height: 36px; border: 4px solid #E5E5EA; border-top-color: #E8590C; border-radius: 50%; margin: 0 auto; animation: sp 0.8s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  .krow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #F0F0F2; }
+  .krow:last-child { border-bottom: none; }
+  .krow .k { font-size: 15px; color: #6E6E73; flex-shrink: 0; }
+  .krow .v { font-size: 15px; font-weight: 700; text-align: right; overflow-wrap: anywhere; }
+  .badge { display: inline-flex; align-items: center; height: 30px; padding: 0 14px; background: #EAF7EF; border-radius: 15px; font-size: 13px; font-weight: 700; color: #1F7A3D; }
+  .note { font-size: 13px; color: #6E6E73; }
+  .paycard { background: #FFF; border-radius: 20px; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .paytotal { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; }
+  .paydetail { font-size: 13px; color: #6E6E73; text-align: right; line-height: 1.5; }
+  .hmhead { display: flex; align-items: center; gap: 12px; }
+  .hmhead img { width: 40px; height: 40px; border-radius: 10px; }
+  .hmdate { font-size: 13px; color: #6E6E73; }
+  .hmsalut { font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+  .darkcard { background: #1D1D1F; border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+  .dchead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .dclab { font-size: 14px; font-weight: 600; color: #A1A1A6; }
+  .dctag { height: 28px; padding: 0 12px; background: rgba(232,89,12,0.22); border-radius: 14px; display: inline-flex; align-items: center; font-size: 13px; font-weight: 700; color: #FF8A4C; }
+  .dctotal { font-size: 42px; font-weight: 800; letter-spacing: -1px; color: #FFF; }
+  .dkrow { display: flex; align-items: center; justify-content: space-between; }
+  .dkrow .k { font-size: 14px; color: #A1A1A6; }
+  .dkrow .v { font-size: 14px; font-weight: 600; color: #FFF; }
+  .dkrow .v.hot { color: #FF8A4C; }
+  .dksep { height: 1px; background: #3A3A3C; }
+  .dktotal { font-size: 24px; font-weight: 800; letter-spacing: -0.4px; color: #FFF; }
+  .bars { display: flex; gap: 8px; align-items: flex-end; height: 44px; }
+  .bars i { flex: 1; background: #3A3A3C; border-radius: 4px; min-height: 4px; }
+  .bars i.hot { background: #E8590C; }
+  .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .tile { background: #FFF; border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .tile .tv { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }
+  .lsthead { display: flex; align-items: center; justify-content: space-between; }
+  .lsthead .t { font-size: 15px; font-weight: 700; }
+  .hrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 13px 0; border-bottom: 1px solid #F0F0F2; background: none; border-left: none; border-right: none; border-top: none; font-family: inherit; text-align: left; cursor: pointer; }
+  .hrow:last-child { border-bottom: none; }
+  .hrow .j { font-size: 15px; font-weight: 600; color: #1D1D1F; }
+  .hrow .m { font-size: 13px; color: #6E6E73; margin-top: 2px; }
+  .hrow .t { font-size: 15px; font-weight: 700; white-space: nowrap; color: #1D1D1F; display: flex; align-items: center; gap: 6px; }
+  .fjeton { font-size: 26px; font-weight: 800; letter-spacing: 0.5px; }
+  a { color: #C2410C; }
+  .linkbtn { background: none; border: none; font-family: inherit; font-size: 15px; font-weight: 600; color: #C2410C; cursor: pointer; padding: 10px; }
+  .btn:focus-visible, .chip:focus-visible, .sw:focus-visible, .off:focus-visible, .back:focus-visible, a:focus-visible, .linkbtn:focus-visible, .hrow:focus-visible { outline: 3px solid #1D1D1F; outline-offset: 2px; }
+  input:focus-visible { border-color: #E8590C; }
+  @media (prefers-reduced-motion: reduce) {
+    .spin { animation: none; }
+    .btn, .chip, .sw, .sw::after { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<section class="screen on" id="s-accueil">
+  <div class="grow"></div>
+  <div class="center"><img class="logo" src="" data-logo="1" alt="Logo Crinstalle IA"></div>
+  <div class="center">
+    <h1>Crinstalle IA</h1>
+    <p class="sub" style="margin-top:8px">Ton CA de technicien fibre,<br>calculé en temps réel sur <b>ta</b> grille.</p>
+  </div>
+  <div class="grow"></div>
+  <div class="field">
+    <label class="lab" for="in-prenom">Ton prénom</label>
+    <input type="text" id="in-prenom" placeholder="ex. Karim" maxlength="40" autocomplete="given-name">
+  </div>
+  <div class="field">
+    <label class="lab" for="in-nom">Ton nom <span style="text-transform:none;font-weight:400">(facultatif)</span></label>
+    <input type="text" id="in-nom" placeholder="ex. Benali" maxlength="40" autocomplete="family-name">
+  </div>
+  <div class="err" id="err-accueil" role="alert"></div>
+  <button class="btn" onclick="goOperateur()">Créer mon compte</button>
+  <div class="center note">2 minutes · 1ᵉʳ mois offert · sans carte</div>
+</section>
+
+<section class="screen" id="s-operateur">
+  <div class="topbar">
+    <button class="back" aria-label="Retour" onclick="backOp()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="step" id="step1">Étape 1 sur 3</div>
+  </div>
+  <div class="bar" aria-hidden="true"><i class="f"></i><i></i><i></i></div>
+  <h1>Tu travailles pour quel réseau&nbsp;?</h1>
+  <p class="sub">Ton donneur d'ordre principal.</p>
+  <div class="chips" id="chips-op" role="radiogroup" aria-label="Opérateur"></div>
+  <div class="grow"></div>
+  <button class="btn" id="btn-op" disabled onclick="show('s-tarifs')">Continuer</button>
+</section>
+
+<section class="screen" id="s-tarifs">
+  <div class="topbar">
+    <button class="back" aria-label="Retour" onclick="show('s-operateur')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="step">Étape 2 sur 3</div>
+  </div>
+  <div class="bar" aria-hidden="true"><i class="f"></i><i class="f"></i><i></i></div>
+  <h1>Tes tarifs</h1>
+  <p class="sub">Ce que tu touches par intervention. Modifiable à tout moment.</p>
+  <div class="card" id="list-tarifs" style="padding:4px 18px"></div>
+  <div class="hint">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E73" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>
+    <div>Une typologie que tu ne fais pas&nbsp;? Touche «&nbsp;Je ne fais pas ça&nbsp;».</div>
+  </div>
+  <div class="err" id="err-tarifs" role="alert"></div>
+  <div class="grow"></div>
+  <button class="btn" onclick="goBonus()">Continuer</button>
+</section>
+
+<section class="screen" id="s-bonus">
+  <div class="topbar">
+    <button class="back" aria-label="Retour" onclick="show('s-tarifs')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="step">Étape 3 sur 3</div>
+  </div>
+  <div class="bar" aria-hidden="true"><i class="f"></i><i class="f"></i><i class="f"></i></div>
+  <h1>Tes bonus</h1>
+  <p class="sub">Les majorations prévues par ton donneur d'ordre.</p>
+
+  <div class="card">
+    <div class="swrow">
+      <div><div class="swname" id="lbl-sect">Bonus selon le secteur</div><div class="swsub">+30&nbsp;% sur les secteurs choisis</div></div>
+      <button class="sw on" id="sw-sect" role="switch" aria-checked="true" aria-labelledby="lbl-sect" onclick="togSw(this)"></button>
+    </div>
+    <div class="chips" id="chips-sect" style="margin-top:14px" aria-label="Secteurs avec bonus"></div>
+  </div>
+
+  <div class="card swrow">
+    <div><div class="swname" id="lbl-pp">Post-production</div><div class="swsub">Majorée de +30&nbsp;%</div></div>
+    <button class="sw on" id="sw-pp" role="switch" aria-checked="true" aria-labelledby="lbl-pp" onclick="togSw(this)"></button>
+  </div>
+
+  <div class="card">
+    <div class="swrow">
+      <div><div class="swname" id="lbl-met">Métrage</div><div class="swsub">Payé au-delà d'un seuil</div></div>
+      <button class="sw on" id="sw-met" role="switch" aria-checked="true" aria-labelledby="lbl-met" onclick="togSw(this)"></button>
+    </div>
+    <div id="met-fields" style="display:flex;gap:12px;margin-top:14px">
+      <div class="field" style="flex:1"><label class="lab" style="text-transform:none" for="in-seuil">Payé au-delà de (m)</label><input type="tel" id="in-seuil" value="150" inputmode="numeric"></div>
+      <div class="field" style="flex:1"><label class="lab" style="text-transform:none" for="in-tm">Le mètre (€)</label><input type="tel" id="in-tm" value="0,30" inputmode="decimal"></div>
+    </div>
+  </div>
+
+  <div class="err" id="err-bonus" role="alert"></div>
+  <div class="grow"></div>
+  <div class="center note" id="bonus-note">Tout reste modifiable à tout moment.</div>
+  <button class="btn" id="btn-go" onclick="submit()">C'est parti</button>
+</section>
+
+<section class="screen" id="s-wait">
+  <div class="grow"></div>
+  <div class="spin" role="status" aria-label="Un instant"></div>
+  <p class="sub center" id="wait-txt">Un instant…</p>
+  <div class="grow"></div>
+</section>
+
+<section class="screen" id="s-ok">
+  <div class="grow"></div>
+  <div class="center"><img class="logo" src="" data-logo="1" alt="Logo Crinstalle IA" style="width:72px;height:72px;border-radius:18px"></div>
+  <div class="center">
+    <span class="badge" id="ok-badge">Compte créé</span>
+    <h1 style="margin-top:12px" id="ok-titre">Bienvenue&nbsp;!</h1>
+    <p class="sub" style="margin-top:8px" id="ok-sub">Ta grille est enregistrée. Ton 1ᵉʳ mois est offert.</p>
+  </div>
+  <div class="card" style="padding:6px 18px" id="ok-recap"></div>
+  <button class="btn" id="btn-new" style="display:none" onclick="openSaisie()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>Nouvelle intervention</button>
+  <button class="btn ghost" id="btn-regl" style="display:none" onclick="openReglages()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 00-2-1.2L14 3h-4l-.5 2.6a7 7 0 00-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 005 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 002 1.2L10 21h4l.5-2.6a7 7 0 002-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/></svg>Modifier ma grille</button>
+  <button class="btn ghost" id="btn-home" style="display:none" onclick="goHome()">Mon CA</button>
+  <div class="grow"></div>
+</section>
+
+<section class="screen" id="s-home">
+  <div class="hmhead">
+    <img src="" data-logo="1" alt="">
+    <div style="flex:1">
+      <div class="hmdate" id="hm-date"></div>
+      <div class="hmsalut" id="hm-salut"></div>
+    </div>
+  </div>
+  <div class="darkcard">
+    <div class="dchead">
+      <div class="dclab" id="hm-moislab">CA du mois</div>
+      <div class="dctag" id="hm-vs" style="display:none"></div>
+    </div>
+    <div class="dctotal" id="hm-total">0,00 €</div>
+    <div class="bars" id="hm-bars" aria-hidden="true"></div>
+    <div style="font-size:12px;color:#A1A1A6">7 derniers jours</div>
+  </div>
+  <div class="tiles">
+    <div class="tile"><div class="note">Aujourd'hui</div><div class="tv" id="hm-auj">0,00 €</div><div class="note" id="hm-auj-n"></div></div>
+    <div class="tile"><div class="note" id="hm-prec-lab">Mois dernier</div><div class="tv" id="hm-prec">0,00 €</div><div class="note" id="hm-prec-n"></div></div>
+  </div>
+  <div class="lsthead"><div class="t">Dernières saisies</div></div>
+  <div class="card" style="padding:4px 18px" id="hm-list"></div>
+  <div class="grow"></div>
+  <button class="btn" onclick="openSaisie()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>Nouvelle intervention</button>
+  <div class="center"><button class="linkbtn" onclick="show('s-ok')">Ma grille et mon lien d'accès</button></div>
+</section>
+
+<section class="screen" id="s-fiche">
+  <div class="topbar">
+    <button class="back" aria-label="Retour" onclick="goHome()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="ttl">Intervention</div>
+    <div style="width:34px"></div>
+  </div>
+  <div class="card" style="display:flex;flex-direction:column;gap:6px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="lab">Jeton</div>
+      <span class="badge">Enregistrée</span>
+    </div>
+    <div class="fjeton" id="fi-jeton"></div>
+  </div>
+  <div class="card" style="padding:6px 18px" id="fi-rows"></div>
+  <div class="darkcard" id="fi-pay" style="gap:10px"></div>
+  <div class="hint">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E73" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>
+    <div>Toute modification recalcule le montant automatiquement.</div>
+  </div>
+  <div class="err" id="err-fiche" role="alert"></div>
+  <div class="warn" id="warn-del" role="alert"><span id="warn-del-txt"></span><button class="btn" onclick="confirmDel()">Oui, supprimer définitivement</button></div>
+  <div class="grow"></div>
+  <button class="btn" onclick="editFiche()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4L8 20H4v-4z"/></svg>Modifier la saisie</button>
+  <button class="btn danger" onclick="delFiche()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>Supprimer</button>
+</section>
+
+<section class="screen" id="s-saisie">
+  <div class="topbar">
+    <button class="back" aria-label="Fermer" onclick="goHome()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="ttl" id="sa-ttl">Nouvelle intervention</div>
+    <div style="width:34px"></div>
+  </div>
+  <div class="field">
+    <label class="lab" for="sa-jeton">Jeton</label>
+    <input type="text" id="sa-jeton" placeholder="ex. 23649812" maxlength="30" autocomplete="off" style="font-weight:700;letter-spacing:1px">
+  </div>
+  <div class="field">
+    <div class="lab" id="lbl-date">Date</div>
+    <div class="chips" id="chips-date" role="radiogroup" aria-labelledby="lbl-date">
+      <button class="chip sel" id="d-auj" role="radio" aria-checked="true" onclick="pickDate('auj')">Aujourd'hui</button>
+      <button class="chip" id="d-hier" role="radio" aria-checked="false" onclick="pickDate('hier')">Hier</button>
+      <button class="chip" id="d-autre" role="radio" aria-checked="false" onclick="pickDate('autre')">Autre date</button>
+    </div>
+    <input type="date" id="sa-date" style="display:none" aria-label="Date de l'intervention" onchange="recalc()">
+  </div>
+  <div class="field">
+    <div class="lab" id="lbl-typo">Typologie</div>
+    <div class="grid3" id="sa-typos" role="radiogroup" aria-labelledby="lbl-typo"></div>
+  </div>
+  <div class="field">
+    <div class="lab" id="lbl-sect2">Secteur</div>
+    <div class="grid3" id="sa-sects" role="radiogroup" aria-labelledby="lbl-sect2"></div>
+  </div>
+  <div class="card swrow" id="row-pp">
+    <div><div class="swname" id="lbl-spp">Post-production</div></div>
+    <button class="sw" id="sw-spp" role="switch" aria-checked="false" aria-labelledby="lbl-spp" onclick="togSpp(this)"></button>
+  </div>
+  <div class="field" id="row-met">
+    <label class="lab" for="sa-met">Métrage (m)</label>
+    <input type="tel" id="sa-met" inputmode="numeric" placeholder="0" oninput="recalc()">
+  </div>
+  <div class="hint" id="sa-hint" style="display:none">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E73" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>
+    <div>Pas de post-prod ni de métrage pour cette typologie.</div>
+  </div>
+  <div class="field">
+    <label class="lab" for="sa-com">Commentaire <span style="text-transform:none;font-weight:400">(facultatif)</span></label>
+    <input type="text" id="sa-com" maxlength="200" placeholder="ex. Client absent, RDV reporté…" autocomplete="off">
+  </div>
+  <div class="err" id="err-saisie" role="alert"></div>
+  <div class="warn" id="warn-doublon" role="alert"><span id="warn-txt"></span><button class="btn" onclick="saveSaisie(true)">Oui, saisir quand même</button></div>
+  <div class="grow"></div>
+  <div class="paycard">
+    <div><div class="note">Tu seras payé</div><div class="paytotal" id="sa-total">—</div></div>
+    <div class="paydetail" id="sa-detail"></div>
+  </div>
+  <button class="btn" id="btn-save" onclick="saveSaisie(false)">Enregistrer</button>
+</section>
+
+<section class="screen" id="s-saved">
+  <div class="grow"></div>
+  <div class="center">
+    <span class="badge" id="sv-badge">Intervention enregistrée</span>
+    <h1 style="margin-top:12px" id="sv-total"></h1>
+  </div>
+  <div class="card" style="padding:6px 18px" id="sv-recap"></div>
+  <button class="btn" onclick="openSaisie()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>Encore une</button>
+  <button class="btn ghost" onclick="goHome()">Mon CA</button>
+  <div class="grow"></div>
+</section>
+
+<script src="crinstalle-app.js"></script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+</body>
+</html>
