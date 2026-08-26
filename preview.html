@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F5F5F7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Crinstalle IA">
+<title>Crinstalle IA — preview Pop</title>
+<meta name="description" content="Crinstalle IA — ton CA de technicien fibre, calculé en temps réel sur ta grille. Saisie en 20 s, relevé PDF mensuel.">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  /* ═══ Crinstalle IA — style « Pop » jour/nuit ═══
+     Thème : variables sur :root (jour) ; nuit via prefers-color-scheme (non forcé) et html[data-theme].
+     Toutes les classes d'origine sont conservées — seule l'apparence change. */
+  :root{
+    --bg:#FFF6EE; --ink:#231F1C; --muted:#7A6F66; --card:#FFFFFF;
+    --line:#1D1D1F; --line-soft:#EFE3D7; --shadow:rgba(29,29,31,.16); --shadow-strong:#1D1D1F;
+    --accent:#E8590C; --accent-soft:#FFF3EB; --accent-deep:#C2410C;
+    --yellow:#FFD43B; --yellow-ink:#4A3A00;
+    --dark-card:#1D1D1F; --dark-ink:#FFFFFF; --dark-muted:#A1A1A6; --dark-sep:#3A3A3C; --dark-bar:#3A3A3C;
+    --dark-card-line:#1D1D1F; --dark-card-shadow:#E8590C;
+    --ok-bg:#EAF7EF; --ok-ink:#1F7A3D;
+    --err-bg:#FDECEC; --err-ink:#B42318; --warn-bg:#FFF6E5; --warn-ink:#8A5A00;
+    --input-bg:#FFFFFF; --input-alt:#F7EFE7; --sw-off:#C9BFB5; --hot:#E8590C;
+    --bw:2.5px; --btn-bw:3px; --r:18px;
+  }
+  html[data-theme="nuit"]{
+    --bg:#171310; --ink:#F4EDE5; --muted:#B3A79B; --card:#201914;
+    --line:#F4EDE5; --line-soft:#3A2E24; --shadow:rgba(232,89,12,.32); --shadow-strong:#F4EDE5;
+    --accent:#E8590C; --accent-soft:#33200F; --accent-deep:#FF9A55;
+    --yellow:#FFD43B; --yellow-ink:#4A3A00;
+    --dark-card:#241D17; --dark-ink:#FFFFFF; --dark-muted:#B3A79B; --dark-sep:#4A3B2E; --dark-bar:#4A3B2E;
+    --dark-card-line:#F4EDE5; --dark-card-shadow:#E8590C;
+    --ok-bg:#173822; --ok-ink:#7BE495;
+    --err-bg:#3B1512; --err-ink:#FFB3A7; --warn-bg:#3A2C0A; --warn-ink:#FFD98A;
+    --input-bg:#201914; --input-alt:#2A211A; --sw-off:#5A4B3D;
+  }
+  @media (prefers-color-scheme: dark){
+    html:not([data-theme="jour"]){
+      --bg:#171310; --ink:#F4EDE5; --muted:#B3A79B; --card:#201914;
+      --line:#F4EDE5; --line-soft:#3A2E24; --shadow:rgba(232,89,12,.32); --shadow-strong:#F4EDE5;
+      --accent:#E8590C; --accent-soft:#33200F; --accent-deep:#FF9A55;
+      --dark-card:#241D17; --dark-muted:#B3A79B; --dark-sep:#4A3B2E; --dark-bar:#4A3B2E;
+      --dark-card-line:#F4EDE5;
+      --ok-bg:#173822; --ok-ink:#7BE495;
+      --err-bg:#3B1512; --err-ink:#FFB3A7; --warn-bg:#3A2C0A; --warn-ink:#FFD98A;
+      --input-bg:#201914; --input-alt:#2A211A; --sw-off:#5A4B3D;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+  body { font-family: -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: var(--ink);
+         transition: background .35s ease, color .35s ease; }
+  .screen { display: none; min-height: 100dvh; flex-direction: column; padding: max(24px, env(safe-area-inset-top)) 24px max(28px, env(safe-area-inset-bottom)); max-width: 480px; margin: 0 auto; gap: 20px; }
+  .screen.on { display: flex; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; min-height: 28px; }
+  .back { width: 44px; height: 44px; margin: -8px 0 -8px -10px; border: none; background: none; padding: 0; cursor: pointer; color: var(--ink); display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+  .step { font-size: 14px; font-weight: 700; color: var(--muted); }
+  .ttl { font-size: 17px; font-weight: 800; }
+  .bar { display: flex; gap: 6px; }
+  .bar i { flex: 1; height: 6px; border-radius: 3px; background: var(--line-soft); border: 1.5px solid var(--line); }
+  .bar i.f { background: var(--accent); }
+  h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.4px; margin: 0; line-height: 1.2; }
+  .sub { font-size: 16px; color: var(--muted); line-height: 1.4; margin: 0; }
+  .card { background: var(--card); border: var(--bw) solid var(--line); border-radius: var(--r); padding: 18px; box-shadow: 4px 4px 0 var(--shadow);
+          transition: background .35s ease, border-color .35s ease, box-shadow .35s ease; }
+  .btn { width: 100%; height: 54px; background: var(--accent); border: var(--btn-bw) solid var(--line); border-radius: 20px; font-size: 19px; font-weight: 800; color: #FFF; box-shadow: 5px 5px 0 var(--shadow-strong); cursor: pointer; font-family: inherit;
+         transition: transform .16s cubic-bezier(.34,1.56,.64,1), box-shadow .16s, background .35s ease, border-color .35s ease; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .btn:active { transform: translate(3px,3px); box-shadow: 2px 2px 0 var(--shadow-strong); }
+  .btn:disabled { opacity: 0.4; box-shadow: none; cursor: default; transform: none; }
+  .btn.ghost { background: var(--card); color: var(--ink); }
+  .btn.danger { background: var(--card); color: #D22D2D; }
+  html[data-theme="nuit"] .btn.danger { color: #FF8A80; }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .lab { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  input[type=text], input[type=tel], input[type=date] { height: 52px; background: var(--input-bg); border: var(--bw) solid var(--line); border-radius: 14px; padding: 0 16px; font-size: 17px; font-family: inherit; color: var(--ink); box-shadow: 3px 3px 0 var(--shadow); outline: none; width: 100%;
+         transition: background .35s ease, border-color .2s, box-shadow .2s, color .35s ease; }
+  input:focus { border-color: var(--accent); box-shadow: 3px 3px 0 rgba(232,89,12,.45); }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .chip { height: 46px; padding: 0 14px; background: var(--card); border: var(--bw) solid var(--line); border-radius: 14px; font-size: 15px; font-weight: 700; color: var(--ink); box-shadow: 3px 3px 0 var(--shadow); cursor: pointer; font-family: inherit;
+          transition: transform .16s cubic-bezier(.34,1.56,.64,1), background .2s, border-color .2s, box-shadow .16s, color .2s; white-space: nowrap; }
+  .chip:active { transform: scale(.93); }
+  .chip.sel { background: var(--accent); border-color: var(--line); color: #FFF; box-shadow: 3px 3px 0 var(--shadow-strong); transform: translate(1px,1px); }
+  .trow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1.5px solid var(--line-soft); }
+  .trow:last-child { border-bottom: none; }
+  .trow .tname { flex: 1; font-size: 15px; font-weight: 700; }
+  .trow input { width: 96px; height: 44px; text-align: right; padding: 0 12px; font-weight: 800; box-shadow: none; background: var(--input-alt); border-width: 2px; }
+  .trow .off { font-size: 12px; font-weight: 700; color: var(--muted); background: none; border: 2px dashed var(--muted); border-radius: 12px; height: 44px; padding: 0 10px; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .trow.dis .tname { color: var(--muted); text-decoration: line-through; }
+  .trow.dis input { visibility: hidden; }
+  .trow.dis .off { border-style: solid; color: var(--accent-deep); border-color: var(--accent-deep); background: var(--accent-soft); }
+  .swrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .swname { font-size: 16px; font-weight: 700; }
+  .swsub { font-size: 14px; color: var(--muted); margin-top: 2px; }
+  .sw { position: relative; width: 54px; height: 32px; border-radius: 16px; background: var(--sw-off); border: 2px solid var(--line); cursor: pointer; transition: background .2s, border-color .35s ease; flex-shrink: 0; }
+  .sw::after { content: ""; position: absolute; top: 1px; left: 1px; width: 26px; height: 26px; border-radius: 13px; background: #FFF; border: 1.5px solid var(--line); box-shadow: 1px 1px 0 rgba(29,29,31,.3); transition: left .18s cubic-bezier(.34,1.56,.64,1); }
+  .sw.on { background: var(--accent); }
+  .sw.on::after { left: 23px; }
+  .hint { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--muted); padding: 0 4px; }
+  .err { display: none; background: var(--err-bg); color: var(--err-ink); border: 2px solid var(--err-ink); border-radius: 14px; padding: 14px 16px; font-size: 15px; font-weight: 600; }
+  .err.on { display: block; }
+  .warn { display: none; background: var(--warn-bg); color: var(--warn-ink); border: 2px solid var(--warn-ink); border-radius: 14px; padding: 14px 16px; font-size: 15px; font-weight: 600; }
+  .warn.on { display: block; }
+  .warn .btn { height: 44px; font-size: 16px; margin-top: 12px; }
+  .grow { flex-grow: 1; }
+  .center { text-align: center; }
+  .logo { width: 96px; height: 96px; border-radius: 24px; border: 3px solid var(--line); box-shadow: 5px 5px 0 var(--shadow-strong); }
+  .spin { width: 36px; height: 36px; border: 4px solid var(--line-soft); border-top-color: var(--accent); border-radius: 50%; margin: 0 auto; animation: sp 0.8s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  .krow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1.5px solid var(--line-soft); }
+  .krow:last-child { border-bottom: none; }
+  .krow .k { font-size: 15px; color: var(--muted); flex-shrink: 0; }
+  .krow .v { font-size: 15px; font-weight: 800; text-align: right; overflow-wrap: anywhere; }
+  .badge { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; background: var(--yellow); border: 2px solid var(--line); border-radius: 16px; font-size: 13px; font-weight: 800; color: var(--yellow-ink); box-shadow: 2px 2px 0 var(--shadow); }
+  .note { font-size: 13px; color: var(--muted); }
+  .paycard { background: var(--card); border: var(--bw) solid var(--line); border-radius: 20px; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 4px 4px 0 var(--shadow); transition: background .35s ease, border-color .35s ease; }
+  .paytotal { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; color: var(--accent-deep); }
+  .paydetail { font-size: 13px; color: var(--muted); text-align: right; line-height: 1.5; }
+  .hmhead { display: flex; align-items: center; gap: 12px; }
+  .hmhead img { width: 40px; height: 40px; border-radius: 10px; border: 2px solid var(--line); }
+  .hmdate { font-size: 13px; color: var(--muted); }
+  .hmsalut { font-size: 19px; font-weight: 800; letter-spacing: -0.3px; }
+  .darkcard { background: var(--dark-card); border: var(--btn-bw) solid var(--dark-card-line); border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 14px; box-shadow: 6px 6px 0 var(--dark-card-shadow); transition: background .35s ease, border-color .35s ease; }
+  .dchead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .dclab { font-size: 14px; font-weight: 700; color: var(--dark-muted); }
+  .dctag { height: 28px; padding: 0 12px; background: var(--yellow); border: 2px solid #1D1D1F; border-radius: 14px; display: inline-flex; align-items: center; font-size: 13px; font-weight: 800; color: var(--yellow-ink); }
+  .dctotal { font-size: 42px; font-weight: 800; letter-spacing: -1px; color: var(--dark-ink); }
+  .dkrow { display: flex; align-items: center; justify-content: space-between; }
+  .dkrow .k { font-size: 14px; color: var(--dark-muted); }
+  .dkrow .v { font-size: 14px; font-weight: 700; color: var(--dark-ink); }
+  .dkrow .v.hot { color: #FF8A4C; }
+  .dksep { height: 1px; background: var(--dark-sep); }
+  .dktotal { font-size: 24px; font-weight: 800; letter-spacing: -0.4px; color: var(--dark-ink); }
+  .bars { display: flex; gap: 8px; align-items: flex-end; height: 44px; }
+  .bars i { flex: 1; background: var(--dark-bar); border-radius: 6px; min-height: 4px; transform-origin: bottom; animation: barpop .6s cubic-bezier(.34,1.56,.64,1) backwards; }
+  .bars i:nth-child(1){animation-delay:.05s} .bars i:nth-child(2){animation-delay:.1s} .bars i:nth-child(3){animation-delay:.15s} .bars i:nth-child(4){animation-delay:.2s} .bars i:nth-child(5){animation-delay:.25s} .bars i:nth-child(6){animation-delay:.3s} .bars i:nth-child(7){animation-delay:.35s}
+  @keyframes barpop { from { transform: scaleY(0); } }
+  .bars i.hot { background: var(--hot); box-shadow: 0 0 10px rgba(232,89,12,.4); }
+  .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .tile { background: var(--card); border: var(--bw) solid var(--line); border-radius: var(--r); padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; box-shadow: 4px 4px 0 var(--shadow); transition: background .35s ease, border-color .35s ease; }
+  .tile .tv { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }
+  .lsthead { display: flex; align-items: center; justify-content: space-between; }
+  .lsthead .t { font-size: 15px; font-weight: 800; }
+  .hrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 13px 0; border-bottom: 1.5px solid var(--line-soft); background: none; border-left: none; border-right: none; border-top: none; font-family: inherit; text-align: left; cursor: pointer; transition: transform .15s ease; }
+  .hrow:active { transform: scale(.98); }
+  .hrow:last-child { border-bottom: none; }
+  .hrow .j { font-size: 15px; font-weight: 700; color: var(--ink); }
+  .hrow .m { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .hrow .t { font-size: 15px; font-weight: 800; white-space: nowrap; color: var(--accent-deep); display: flex; align-items: center; gap: 6px; }
+  .fjeton { font-size: 26px; font-weight: 800; letter-spacing: 0.5px; }
+  a { color: var(--accent-deep); }
+  .linkbtn { background: none; border: none; font-family: inherit; font-size: 15px; font-weight: 700; color: var(--accent-deep); cursor: pointer; padding: 10px; }
+  .btn:focus-visible, .chip:focus-visible, .sw:focus-visible, .off:focus-visible, .back:focus-visible, a:focus-visible, .linkbtn:focus-visible, .hrow:focus-visible, .themetog:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  input:focus-visible { border-color: var(--accent); }
+  .themetog { position: fixed; top: max(14px, env(safe-area-inset-top)); right: 14px; z-index: 60; width: 46px; height: 46px; border-radius: 50%; border: var(--bw) solid var(--line); background: var(--card); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 3px 3px 0 var(--shadow); transition: transform .18s cubic-bezier(.34,1.8,.5,1), background .35s ease, border-color .35s ease; }
+  .themetog:active { transform: scale(.88) rotate(-15deg); }
+  .confetti { position: fixed; width: 9px; height: 9px; border-radius: 2px; pointer-events: none; z-index: 99; }
+  @keyframes cpop { 0%{transform:translate(0,0) rotate(0);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0} }
+  @media (prefers-reduced-motion: reduce) {
+    .spin { animation: none; }
+    .btn, .chip, .sw, .sw::after, .themetog, .hrow, body, .card, .tile, .paycard, .darkcard { transition: none; }
+    .bars i { animation: none; }
+    .confetti { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<section class="screen on" id="s-accueil">
+  <div class="grow"></div>
+  <div class="center"><img class="logo" src="" data-logo="1" alt="Logo Crinstalle IA"></div>
+  <div class="center">
+    <h1>Crinstalle IA</h1>
+    <p class="sub" style="margin-top:8px">Ton CA de technicien fibre,<br>calculé en temps réel sur <b>ta</b> grille.</p>
+  </div>
+  <div class="grow"></div>
+  <div class="field">
+    <label class="lab" for="in-prenom">Ton prénom</label>
+    <input type="text" id="in-prenom" placeholder="ex. Karim" maxlength="40" autocomplete="given-name">
+  </div>
+  <div class="field">
+    <label class="lab" for="in-nom">Ton nom <span style="text-transform:none;font-weight:400">(facultatif)</span></label>
+    <input type="text" id="in-nom" placeholder="ex. Benali" maxlength="40" autocomplete="family-name">
+  </div>
+  <div class="err" id="err-accueil" role="alert"></div>
+  <button class="btn" onclick="goOperateur()">Créer mon compte</button>
+  <div class="center note">2 minutes · 1ᵉʳ mois offert · sans carte</div>
+</section>
+
+<section class="screen" id="s-operateur">
+  <div class="topbar">
+    <button class="back" aria-label="Retour" onclick="backOp()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="step" id="step1">Étape 1 sur 3</div>
+  </div>
+  <div class="bar" aria-hidden="true"><i class="f"></i><i></i><i></i></div>
+  <h1>Tu travailles pour quel réseau&nbsp;?</h1>
+  <p class="sub">Ton donneur d'ordre principal.</p>
+  <div class="chips" id="chips-op" role="radiogroup" aria-label="Opérateur"></div>
+  <div class="grow"></div>
+  <button class="btn" id="btn-op" disabled onclick="show('s-tarifs')">Continuer</button>
+</section>
+
+<section class="screen" id="s-tarifs">
+  <div class="topbar">
+    <button class="back" aria-label="Retour" onclick="show('s-operateur')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="step">Étape 2 sur 3</div>
+  </div>
+  <div class="bar" aria-hidden="true"><i class="f"></i><i class="f"></i><i></i></div>
+  <h1>Tes tarifs</h1>
+  <p class="sub">Ce que tu touches par intervention. Modifiable à tout moment.</p>
+  <div class="card" id="list-tarifs" style="padding:4px 18px"></div>
+  <div class="hint">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E73" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>
+    <div>Une typologie que tu ne fais pas&nbsp;? Touche «&nbsp;Je ne fais pas ça&nbsp;».</div>
+  </div>
+  <div class="err" id="err-tarifs" role="alert"></div>
+  <div class="grow"></div>
+  <button class="btn" onclick="goBonus()">Continuer</button>
+</section>
+
+<section class="screen" id="s-bonus">
+  <div class="topbar">
+    <button class="back" aria-label="Retour" onclick="show('s-tarifs')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="step">Étape 3 sur 3</div>
+  </div>
+  <div class="bar" aria-hidden="true"><i class="f"></i><i class="f"></i><i class="f"></i></div>
+  <h1>Tes bonus</h1>
+  <p class="sub">Les majorations prévues par ton donneur d'ordre.</p>
+
+  <div class="card">
+    <div class="swrow">
+      <div><div class="swname" id="lbl-sect">Bonus selon le secteur</div><div class="swsub">+30&nbsp;% sur les secteurs choisis</div></div>
+      <button class="sw on" id="sw-sect" role="switch" aria-checked="true" aria-labelledby="lbl-sect" onclick="togSw(this)"></button>
+    </div>
+    <div class="chips" id="chips-sect" style="margin-top:14px" aria-label="Secteurs avec bonus"></div>
+  </div>
+
+  <div class="card swrow">
+    <div><div class="swname" id="lbl-pp">Post-production</div><div class="swsub">Majorée de +30&nbsp;%</div></div>
+    <button class="sw on" id="sw-pp" role="switch" aria-checked="true" aria-labelledby="lbl-pp" onclick="togSw(this)"></button>
+  </div>
+
+  <div class="card">
+    <div class="swrow">
+      <div><div class="swname" id="lbl-met">Métrage</div><div class="swsub">Payé au-delà d'un seuil</div></div>
+      <button class="sw on" id="sw-met" role="switch" aria-checked="true" aria-labelledby="lbl-met" onclick="togSw(this)"></button>
+    </div>
+    <div id="met-fields" style="display:flex;gap:12px;margin-top:14px">
+      <div class="field" style="flex:1"><label class="lab" style="text-transform:none" for="in-seuil">Payé au-delà de (m)</label><input type="tel" id="in-seuil" value="150" inputmode="numeric"></div>
+      <div class="field" style="flex:1"><label class="lab" style="text-transform:none" for="in-tm">Le mètre (€)</label><input type="tel" id="in-tm" value="0,30" inputmode="decimal"></div>
+    </div>
+  </div>
+
+  <div class="err" id="err-bonus" role="alert"></div>
+  <div class="grow"></div>
+  <div class="center note" id="bonus-note">Tout reste modifiable à tout moment.</div>
+  <button class="btn" id="btn-go" onclick="submit()">C'est parti</button>
+</section>
+
+<section class="screen" id="s-wait">
+  <div class="grow"></div>
+  <div class="spin" role="status" aria-label="Un instant"></div>
+  <p class="sub center" id="wait-txt">Un instant…</p>
+  <div class="grow"></div>
+</section>
+
+<section class="screen" id="s-ok">
+  <div class="grow"></div>
+  <div class="center"><img class="logo" src="" data-logo="1" alt="Logo Crinstalle IA" style="width:72px;height:72px;border-radius:18px"></div>
+  <div class="center">
+    <span class="badge" id="ok-badge">Compte créé</span>
+    <h1 style="margin-top:12px" id="ok-titre">Bienvenue&nbsp;!</h1>
+    <p class="sub" style="margin-top:8px" id="ok-sub">Ta grille est enregistrée. Ton 1ᵉʳ mois est offert.</p>
+  </div>
+  <div class="card" style="padding:6px 18px" id="ok-recap"></div>
+  <button class="btn" id="btn-new" style="display:none" onclick="openSaisie()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>Nouvelle intervention</button>
+  <button class="btn ghost" id="btn-regl" style="display:none" onclick="openReglages()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 00-2-1.2L14 3h-4l-.5 2.6a7 7 0 00-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 005 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 002 1.2L10 21h4l.5-2.6a7 7 0 002-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/></svg>Modifier ma grille</button>
+  <button class="btn ghost" id="btn-home" style="display:none" onclick="goHome()">Mon CA</button>
+  <div class="grow"></div>
+</section>
+
+<section class="screen" id="s-home">
+  <div class="hmhead">
+    <img src="" data-logo="1" alt="">
+    <div style="flex:1">
+      <div class="hmdate" id="hm-date"></div>
+      <div class="hmsalut" id="hm-salut"></div>
+    </div>
+  </div>
+  <div class="darkcard">
+    <div class="dchead">
+      <div class="dclab" id="hm-moislab">CA du mois</div>
+      <div class="dctag" id="hm-vs" style="display:none"></div>
+    </div>
+    <div class="dctotal" id="hm-total">0,00 €</div>
+    <div class="bars" id="hm-bars" aria-hidden="true"></div>
+    <div style="font-size:12px;color:#A1A1A6">7 derniers jours</div>
+  </div>
+  <div class="tiles">
+    <div class="tile"><div class="note">Aujourd'hui</div><div class="tv" id="hm-auj">0,00 €</div><div class="note" id="hm-auj-n"></div></div>
+    <div class="tile"><div class="note" id="hm-prec-lab">Mois dernier</div><div class="tv" id="hm-prec">0,00 €</div><div class="note" id="hm-prec-n"></div></div>
+  </div>
+  <div class="lsthead"><div class="t">Dernières saisies</div></div>
+  <div class="card" style="padding:4px 18px" id="hm-list"></div>
+  <div class="grow"></div>
+  <button class="btn" onclick="openSaisie()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>Nouvelle intervention</button>
+  <div class="center"><button class="linkbtn" onclick="show('s-ok')">Ma grille et mon lien d'accès</button></div>
+</section>
+
+<section class="screen" id="s-fiche">
+  <div class="topbar">
+    <button class="back" aria-label="Retour" onclick="goHome()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="ttl">Intervention</div>
+    <div style="width:34px"></div>
+  </div>
+  <div class="card" style="display:flex;flex-direction:column;gap:6px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="lab">Jeton</div>
+      <span class="badge">Enregistrée</span>
+    </div>
+    <div class="fjeton" id="fi-jeton"></div>
+  </div>
+  <div class="card" style="padding:6px 18px" id="fi-rows"></div>
+  <div class="darkcard" id="fi-pay" style="gap:10px"></div>
+  <div class="hint">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E73" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>
+    <div>Toute modification recalcule le montant automatiquement.</div>
+  </div>
+  <div class="err" id="err-fiche" role="alert"></div>
+  <div class="warn" id="warn-del" role="alert"><span id="warn-del-txt"></span><button class="btn" onclick="confirmDel()">Oui, supprimer définitivement</button></div>
+  <div class="grow"></div>
+  <button class="btn" onclick="editFiche()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4L8 20H4v-4z"/></svg>Modifier la saisie</button>
+  <button class="btn danger" onclick="delFiche()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>Supprimer</button>
+</section>
+
+<section class="screen" id="s-saisie">
+  <div class="topbar">
+    <button class="back" aria-label="Fermer" onclick="goHome()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="ttl" id="sa-ttl">Nouvelle intervention</div>
+    <div style="width:34px"></div>
+  </div>
+  <div class="field">
+    <label class="lab" for="sa-jeton">Jeton</label>
+    <input type="text" id="sa-jeton" placeholder="ex. 23649812" maxlength="30" autocomplete="off" style="font-weight:700;letter-spacing:1px">
+  </div>
+  <div class="field">
+    <div class="lab" id="lbl-date">Date</div>
+    <div class="chips" id="chips-date" role="radiogroup" aria-labelledby="lbl-date">
+      <button class="chip sel" id="d-auj" role="radio" aria-checked="true" onclick="pickDate('auj')">Aujourd'hui</button>
+      <button class="chip" id="d-hier" role="radio" aria-checked="false" onclick="pickDate('hier')">Hier</button>
+      <button class="chip" id="d-autre" role="radio" aria-checked="false" onclick="pickDate('autre')">Autre date</button>
+    </div>
+    <input type="date" id="sa-date" style="display:none" aria-label="Date de l'intervention" onchange="recalc()">
+  </div>
+  <div class="field">
+    <div class="lab" id="lbl-typo">Typologie</div>
+    <div class="grid3" id="sa-typos" role="radiogroup" aria-labelledby="lbl-typo"></div>
+  </div>
+  <div class="field">
+    <div class="lab" id="lbl-sect2">Secteur</div>
+    <div class="grid3" id="sa-sects" role="radiogroup" aria-labelledby="lbl-sect2"></div>
+  </div>
+  <div class="card swrow" id="row-pp">
+    <div><div class="swname" id="lbl-spp">Post-production</div></div>
+    <button class="sw" id="sw-spp" role="switch" aria-checked="false" aria-labelledby="lbl-spp" onclick="togSpp(this)"></button>
+  </div>
+  <div class="field" id="row-met">
+    <label class="lab" for="sa-met">Métrage (m)</label>
+    <input type="tel" id="sa-met" inputmode="numeric" placeholder="0" oninput="recalc()">
+  </div>
+  <div class="hint" id="sa-hint" style="display:none">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E73" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>
+    <div>Pas de post-prod ni de métrage pour cette typologie.</div>
+  </div>
+  <div class="field">
+    <label class="lab" for="sa-com">Commentaire <span style="text-transform:none;font-weight:400">(facultatif)</span></label>
+    <input type="text" id="sa-com" maxlength="200" placeholder="ex. Client absent, RDV reporté…" autocomplete="off">
+  </div>
+  <div class="err" id="err-saisie" role="alert"></div>
+  <div class="warn" id="warn-doublon" role="alert"><span id="warn-txt"></span><button class="btn" onclick="saveSaisie(true)">Oui, saisir quand même</button></div>
+  <div class="grow"></div>
+  <div class="paycard">
+    <div><div class="note">Tu seras payé</div><div class="paytotal" id="sa-total">—</div></div>
+    <div class="paydetail" id="sa-detail"></div>
+  </div>
+  <button class="btn" id="btn-save" onclick="saveSaisie(false)">Enregistrer</button>
+</section>
+
+<section class="screen" id="s-saved">
+  <div class="grow"></div>
+  <div class="center">
+    <span class="badge" id="sv-badge">Intervention enregistrée</span>
+    <h1 style="margin-top:12px" id="sv-total"></h1>
+  </div>
+  <div class="card" style="padding:6px 18px" id="sv-recap"></div>
+  <button class="btn" onclick="openSaisie()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>Encore une</button>
+  <button class="btn ghost" onclick="goHome()">Mon CA</button>
+  <div class="grow"></div>
+</section>
+
+<script src="crinstalle-app.js"></script>
+<button class="themetog" id="themetog" aria-label="Basculer jour / nuit" title="Jour / nuit">🌙</button>
+<script>
+(function(){
+  var KEY='crinstalle-theme';
+  function saved(){ try{ return localStorage.getItem(KEY); }catch(e){ return null; } }
+  function sysDark(){ return window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches; }
+  function isNight(){ var s=saved(); return s ? s==='nuit' : sysDark(); }
+  function apply(){
+    var n=isNight(), s=saved();
+    if(s){ document.documentElement.setAttribute('data-theme', s); }
+    else { document.documentElement.removeAttribute('data-theme'); }
+    var tog=document.getElementById('themetog'); if(tog) tog.textContent = n ? '☀️' : '🌙';
+    var mc=document.querySelector('meta[name="theme-color"]'); if(mc) mc.setAttribute('content', n ? '#171310' : '#FFF6EE');
+  }
+  document.getElementById('themetog').addEventListener('click', function(){
+    var next = isNight() ? 'jour' : 'nuit';
+    try{ localStorage.setItem(KEY, next); }catch(e){}
+    apply();
+  });
+  if(window.matchMedia){ try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', apply); }catch(e){} }
+  apply();
+
+  // Confettis quand l'écran « Intervention enregistrée » apparaît
+  function confetti(){
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var colors=['#E8590C','#FFD43B','#1D1D1F','#2FB344','#FF7A2F'];
+    var cx=innerWidth/2, cy=Math.min(innerHeight*0.35, 260);
+    for(var i=0;i<28;i++){
+      var c=document.createElement('span'); c.className='confetti';
+      c.style.background=colors[i%colors.length];
+      c.style.left=cx+'px'; c.style.top=cy+'px';
+      c.style.setProperty('--dx',(Math.random()*260-130)+'px');
+      c.style.setProperty('--dy',(-40-Math.random()*200)+'px');
+      c.style.setProperty('--rot',(Math.random()*540-270)+'deg');
+      c.style.animation='cpop '+(0.8+Math.random()*0.6)+'s cubic-bezier(.2,.8,.4,1) forwards';
+      document.body.appendChild(c);
+      (function(el){ setTimeout(function(){ el.remove(); }, 1600); })(c);
+    }
+  }
+  var sv=document.getElementById('s-saved');
+  if(sv && window.MutationObserver){
+    new MutationObserver(function(){ if(sv.classList.contains('on')) confetti(); })
+      .observe(sv, {attributes:true, attributeFilter:['class']});
+  }
+})();
+</script>
+</body>
+</html>
