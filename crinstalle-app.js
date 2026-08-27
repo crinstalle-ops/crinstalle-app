@@ -58,7 +58,7 @@ var ab=document.getElementById('hm-abo');
 if(aboLocked(ACCT.me)){ab.innerHTML='<button class="linkbtn" style="width:100%;text-align:center;background:#FDECE3;border-radius:12px;padding:12px;color:#C2410C;font-weight:700" onclick="show(&quot;s-abo&quot;)">Essai terminé — la saisie est en pause. S’abonner</button>';}
 else if(ACCT.me.abo_statut==='essai'){var aj=parseInt(ACCT.me.abo_jours,10)||0;ab.innerHTML='<div class="note center" style="padding:2px 0 10px'+(aj<=5?';color:#C2410C;font-weight:600':'')+'">Essai gratuit — '+aj+' jour'+(aj>1?'s':'')+' restant'+(aj>1?'s':'')+'</div>';}
 else{ab.innerHTML='';}
-show('s-home');}).catch(function(){show('s-ok');});}
+buildAnnonce();show('s-home');}).catch(function(){show('s-ok');});}
 var PDFSVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:8px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 function openPdf(back){if(!ACCT)return;var n=new Date();var m=new Date(n.getFullYear(),n.getMonth()-back,1);var ms=m.getFullYear()+'-'+((m.getMonth()+1)<10?'0':'')+(m.getMonth()+1);location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-pdf?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms;}
 function aboLocked(m){return (m.abo_statut==='essai'&&(parseInt(m.abo_jours,10)||0)<=0)||m.abo_statut==='annule';}
@@ -175,3 +175,22 @@ function openDocAdd(){docsAddReset();show('s-docadd');}
    +'<div class="grow"></div>'
    +'<button class="btn" id="docs-save" disabled onclick="docsSave()">Enregistrer</button>';
   document.body.appendChild(s1);document.body.appendChild(s2);})();
+
+/* === v10 : annonces in-app === */
+function annVus(){try{return JSON.parse(localStorage.getItem('crinstalle_ann'))||[];}catch(e){return [];}}
+function annFermer(id){try{var v=annVus();if(v.indexOf(id)<0){v.push(id);localStorage.setItem('crinstalle_ann',JSON.stringify(v.slice(-20)));}}catch(e){}
+  var el=document.getElementById('hm-ann');if(el)el.innerHTML='';}
+function buildAnnonce(){if(!ACCT)return;
+  if(!document.getElementById('hm-ann')){var adv=document.createElement('div');adv.id='hm-ann';
+    var abo=document.getElementById('hm-abo');
+    (abo||document.querySelector('#s-home .hmhead')).insertAdjacentElement('afterend',adv);}
+  rpc('solo_annonces',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(list){
+    var vus=annVus();var a=null;
+    for(var i=0;i<(list||[]).length;i++){if(vus.indexOf(list[i].id)<0){a=list[i];break;}}
+    var el=document.getElementById('hm-ann');if(!el)return;
+    if(!a){el.innerHTML='';return;}
+    el.innerHTML='<div class="card" style="border-left:4px solid #E8590C;display:flex;gap:10px;align-items:flex-start;padding:14px 14px 14px 16px;margin-bottom:4px">'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:800;margin-bottom:4px">'+esc(a.titre)+'</div>'
+      +'<div class="note" style="line-height:1.5">'+esc(a.texte)+'</div></div>'
+      +'<button class="back" aria-label="Fermer" onclick="annFermer('+Number(a.id)+')" style="flex:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>';
+  }).catch(function(){});}
