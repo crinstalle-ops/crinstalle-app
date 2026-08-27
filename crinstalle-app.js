@@ -52,6 +52,7 @@ var dl=c.dernieres||[],lh='';if(!dl.length){lh='<div style="padding:16px 0;font-
 if(!document.getElementById('hm-pdf')){var pdiv=document.createElement('div');pdiv.id='hm-pdf';document.getElementById('hm-list').insertAdjacentElement('afterend',pdiv);}
 var cap=function(m){return m.charAt(0).toUpperCase()+m.slice(1);};
 document.getElementById('hm-pdf').innerHTML='<div class="lsthead"><div class="t">Relevé mensuel (PDF)</div></div><div style="display:flex;gap:10px"><button class="btn ghost" style="flex:1" onclick="openPdf(0)">'+PDFSVG+cap(MOIS[now.getMonth()])+'</button><button class="btn ghost" style="flex:1" onclick="openPdf(1)">'+PDFSVG+cap(MOIS[pm.getMonth()])+'</button></div>';
+if(!document.getElementById('hm-docs')){var ddiv=document.createElement('div');ddiv.id='hm-docs';document.getElementById('hm-pdf').insertAdjacentElement('afterend',ddiv);}document.getElementById('hm-docs').innerHTML='<div class="lsthead"><div class="t">Documents de contr\u00f4le</div></div>'+'<button class="btn ghost" style="width:100%" onclick="buildDocs()">\ud83d\udcc4 Mes documents</button>';
 if(!document.getElementById('hm-abo')){var adiv=document.createElement('div');adiv.id='hm-abo';document.querySelector('#s-home .hmhead').insertAdjacentElement('afterend',adiv);}
 var ab=document.getElementById('hm-abo');
 if(aboLocked(ACCT.me)){ab.innerHTML='<button class="linkbtn" style="width:100%;text-align:center;background:#FDECE3;border-radius:12px;padding:12px;color:#C2410C;font-weight:700" onclick="show(&quot;s-abo&quot;)">Essai terminé — la saisie est en pause. S’abonner</button>';}
@@ -94,3 +95,83 @@ var m=(location.hash||'').match(/^#c=([0-9a-f-]{36})\.([0-9a-f]{20,64})$/);var s
 if(saved&&saved.client_id&&saved.cle){connect(saved.client_id,saved.cle,{nouveau:false,persist:!!m});}})();
 
 (function(){var sc=document.getElementById('s-accueil');if(!sc)return;var b=document.createElement('button');b.type='button';b.id='btn-deja';b.textContent='Tu as déjà un compte ? Colle ton lien ici';b.style.cssText='display:block;margin:14px auto 0;background:none;border:none;color:#E8590C;font-size:15px;font-weight:600;font-family:inherit;text-decoration:underline;cursor:pointer';b.onclick=function(){var s=window.prompt('Colle ici ton lien personnel :');if(!s)return;var mm=String(s).match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.([0-9a-f]{20,64})/i);if(!mm){err('err-accueil','Lien non reconnu — colle ton lien personnel complet (celui avec #c=).');return;}err('err-accueil','');document.getElementById('wait-txt').textContent='Connexion…';show('s-wait');connect(mm[1],mm[2],{nouveau:false,persist:true});};sc.appendChild(b);})();
+
+/* === v9 : Mes documents (documents de contrôle) === */
+var DOCSFN='https://vzolxdeqcxilgrufhugi.supabase.co/functions/v1/docs';
+var DOCS_LIB=['Habilitation électrique','AIPR','CACES','Carte BTP','Grille de compétence','Autre'];
+var docsFile=null;
+function docsCall(body){body.client_id=ACCT.client_id;body.cle=ACCT.cle;
+  return fetch(DOCSFN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+  .then(function(res){return res.json().then(function(j){if(!res.ok)throw new Error(j&&j.error?j.error:'Erreur '+res.status);return j;});});}
+function docsFmtK(n){n=Number(n)||0;return n>=1048576?(n/1048576).toFixed(1).replace('.',',')+' Mo':Math.max(1,Math.round(n/1024))+' Ko';}
+function docsBadge(vj){if(!vj)return '';var d=new Date(vj+'T23:59:59'),now=new Date();var j=Math.floor((d-now)/86400000);
+  if(j<0)return '<span class="badge" style="background:#FDECE3;color:#C2410C">Expiré</span>';
+  if(j<=30)return '<span class="badge" style="background:#FEF3C7;color:#92400E">Expire dans '+(j+1)+' j</span>';
+  return '<span class="badge">Valide</span>';}
+function buildDocs(){show('s-docs');var el=document.getElementById('docs-list');el.innerHTML='<div class="note center" style="padding:22px 0">Chargement…</div>';err('err-docs','');
+  docsCall({action:'list'}).then(function(r){
+    if(!r.docs.length){el.innerHTML='<div class="note center" style="padding:26px 12px;line-height:1.6">Aucun document pour l’instant.<br>Ajoute tes habilitations, AIPR, CACES, carte BTP…<br>Ils seront toujours là, prêts à montrer lors d’un contrôle.</div>';return;}
+    var h='';for(var i=0;i<r.docs.length;i++){var d=r.docs[i];var ic=d.mime==='application/pdf'?'📄':'🖼️';
+      h+='<div class="card" style="display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:10px">'
+       +'<div style="font-size:26px" aria-hidden="true">'+ic+'</div>'
+       +'<div style="flex:1;min-width:0" onclick="openDoc(\''+d.id+'\')">'
+       +'<div style="font-weight:700">'+esc(d.libelle)+'</div>'
+       +'<div class="note" style="margin-top:2px">'+docsFmtK(d.taille)+(d.valide_jusqua?' · valide jusqu’au '+d.valide_jusqua.split('-').reverse().join('/'):'')+'</div>'
+       +'<div style="margin-top:6px">'+docsBadge(d.valide_jusqua)+'</div></div>'
+       +'<button class="back" aria-label="Supprimer" onclick="delDoc(\''+d.id+'\',\''+esc(d.libelle).replace(/'/g,'\\\'')+'\')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C2410C" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>';}
+    el.innerHTML=h;
+  }).catch(function(e){el.innerHTML='';err('err-docs',e.message||'Connexion impossible — réessaie.');});}
+function openDoc(id){err('err-docs','');docsCall({action:'get',id:id}).then(function(r){window.open(r.url,'_blank');}).catch(function(e){err('err-docs',e.message);});}
+function delDoc(id,lib){if(!window.confirm('Supprimer « '+lib+' » ?'))return;
+  docsCall({action:'delete',id:id}).then(function(){buildDocs();}).catch(function(e){err('err-docs',e.message);});}
+function docsPickLib(el){var cs=document.querySelectorAll('#docs-chips .chip');for(var i=0;i<cs.length;i++){cs[i].classList.remove('sel');cs[i].setAttribute('aria-checked','false');}
+  el.classList.add('sel');el.setAttribute('aria-checked','true');
+  var inp=document.getElementById('docs-lib');if(el.textContent==='Autre'){inp.value='';inp.style.display='block';inp.focus();}else{inp.value=el.textContent;inp.style.display='none';}
+  docsAddReady();}
+function docsAddReady(){document.getElementById('docs-save').disabled=!(docsFile&&document.getElementById('docs-lib').value.trim());}
+function docsOnFile(input){var f=input.files&&input.files[0];if(!f)return;err('err-docadd','');
+  var finish=function(file){docsFile=file;document.getElementById('docs-fname').textContent=file.name+' · '+docsFmtK(file.size);document.getElementById('docs-fname').style.display='block';docsAddReady();};
+  if(f.type==='application/pdf'){if(f.size>8*1048576){err('err-docadd','PDF trop lourd (8 Mo max).');return;}finish(f);return;}
+  if(f.type.indexOf('image/')!==0){err('err-docadd','Formats acceptés : PDF ou photo.');return;}
+  var img=new Image();var url=URL.createObjectURL(f);
+  img.onload=function(){var M=1600,w=img.width,h=img.height;if(w>M||h>M){var k=Math.min(M/w,M/h);w=Math.round(w*k);h=Math.round(h*k);}
+    var c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+    c.toBlob(function(b){if(!b){err('err-docadd','Photo illisible — réessaie.');return;}
+      finish(new File([b],(f.name.replace(/\.[^.]+$/,'')||'photo')+'.jpg',{type:'image/jpeg'}));},'image/jpeg',0.82);};
+  img.onerror=function(){URL.revokeObjectURL(url);err('err-docadd','Photo illisible — réessaie.');};
+  img.src=url;}
+function docsSave(){if(!docsFile)return;var btn=document.getElementById('docs-save');btn.disabled=true;btn.textContent='Envoi…';err('err-docadd','');
+  var lib=document.getElementById('docs-lib').value.trim();var vj=document.getElementById('docs-vj').value||null;var did=null;
+  docsCall({action:'upload',mime:docsFile.type,taille:docsFile.size,libelle:lib,filename:docsFile.name,valide_jusqua:vj})
+  .then(function(r){did=r.id;return fetch(r.url,{method:'PUT',headers:{'Content-Type':docsFile.type},body:docsFile});})
+  .then(function(res){if(!res.ok)throw new Error('Envoi interrompu — vérifie ta connexion.');return docsCall({action:'confirm',id:did});})
+  .then(function(){docsAddReset();buildDocs();})
+  .catch(function(e){btn.disabled=false;btn.textContent='Enregistrer';err('err-docadd',e.message);});}
+function docsAddReset(){docsFile=null;document.getElementById('docs-file').value='';document.getElementById('docs-fname').style.display='none';
+  document.getElementById('docs-lib').value='';document.getElementById('docs-lib').style.display='block';document.getElementById('docs-vj').value='';
+  var cs=document.querySelectorAll('#docs-chips .chip');for(var i=0;i<cs.length;i++){cs[i].classList.remove('sel');cs[i].setAttribute('aria-checked','false');}
+  var b=document.getElementById('docs-save');b.disabled=true;b.textContent='Enregistrer';err('err-docadd','');}
+function openDocAdd(){docsAddReset();show('s-docadd');}
+(function(){var BACKSVG='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  var s1=document.createElement('section');s1.className='screen';s1.id='s-docs';
+  s1.innerHTML='<div class="topbar"><button class="back" aria-label="Retour" onclick="goHome()">'+BACKSVG+'</button><div class="ttl">Mes documents</div><div style="width:34px"></div></div>'
+   +'<p class="sub" style="margin:2px 0 14px">Tes documents de contrôle, toujours sur toi.</p>'
+   +'<div class="err" id="err-docs" role="alert"></div>'
+   +'<div id="docs-list"></div>'
+   +'<div class="grow"></div>'
+   +'<button class="btn" onclick="openDocAdd()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>Ajouter un document</button>';
+  var s2=document.createElement('section');s2.className='screen';s2.id='s-docadd';
+  var chips='';for(var i=0;i<DOCS_LIB.length;i++){chips+='<button type="button" class="chip" role="radio" aria-checked="false" onclick="docsPickLib(this)">'+DOCS_LIB[i]+'</button>';}
+  s2.innerHTML='<div class="topbar"><button class="back" aria-label="Retour" onclick="buildDocs()">'+BACKSVG+'</button><div class="ttl">Ajouter un document</div><div style="width:34px"></div></div>'
+   +'<div class="field"><label class="lab">Le document</label>'
+   +'<input type="file" id="docs-file" accept="application/pdf,image/*" style="display:none" onchange="docsOnFile(this)">'
+   +'<button type="button" class="btn ghost" style="width:100%" onclick="document.getElementById(\'docs-file\').click()">📷 Photo ou fichier PDF</button>'
+   +'<div class="note" id="docs-fname" style="display:none;margin-top:8px"></div></div>'
+   +'<div class="field"><label class="lab">C’est quoi ?</label><div class="chips" id="docs-chips" role="radiogroup" aria-label="Type de document">'+chips+'</div>'
+   +'<input type="text" id="docs-lib" placeholder="ex. Habilitation électrique" maxlength="60" style="margin-top:8px" oninput="docsAddReady()"></div>'
+   +'<div class="field"><label class="lab" for="docs-vj">Valide jusqu’au <span style="text-transform:none;font-weight:400">(facultatif)</span></label>'
+   +'<input type="date" id="docs-vj"><div class="note">Pour être prévenu avant l’expiration.</div></div>'
+   +'<div class="err" id="err-docadd" role="alert"></div>'
+   +'<div class="grow"></div>'
+   +'<button class="btn" id="docs-save" disabled onclick="docsSave()">Enregistrer</button>';
+  document.body.appendChild(s1);document.body.appendChild(s2);})();
