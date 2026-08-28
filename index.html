@@ -245,6 +245,22 @@ body.nav #tabs{display:grid;position:fixed;left:0;right:0;bottom:0;z-index:40;
 .tab.on{color:var(--accent-l)}
 .tab svg{stroke-width:1.9}
 
+/* file d'attente des saisies */
+.frow{display:flex;align-items:center;gap:12px;padding:13px 16px}
+.frow+.frow,.fact+.frow{border-top:1px solid var(--border)}
+.fmid{flex:1;min-width:0}
+.fmid .j{display:block;font-size:15px;font-weight:600}
+.fmid .m{display:block;font-size:12.5px;color:var(--tx3);margin-top:2px}
+.fmid .fmsg{color:var(--warn);margin-top:4px;line-height:1.4}
+.fdte{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none}
+.fdte .t{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.fchip{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap;
+  background:var(--surface-s);color:var(--tx3);border:1px solid var(--border)}
+.fchip.wa{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+.fchip.ko{background:var(--danger-bg);color:var(--danger);border-color:var(--danger)}
+.fact{display:flex;gap:8px;padding:0 16px 14px}
+.fact .btn{margin-top:0;height:42px;font-size:13.5px}
+
 /* bandeau hors ligne */
 #offbar{display:none}
 #offbar.on{display:flex;align-items:center;justify-content:center;gap:8px;
@@ -384,6 +400,7 @@ body.hl.nav .screen.on{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
     <h1 style="margin-top:12px" id="ok-titre">Bienvenue&nbsp;!</h1>
     <p class="sub" style="margin-top:8px" id="ok-sub">Ta grille est enregistrée. Ton 1<sup>er</sup> mois est offert.</p>
   </div>
+  <div id="ok-file"></div>
   <div class="lsthead"><div class="t">Ma grille</div></div>
   <div class="rows" id="ok-recap"></div>
   <button class="btn" id="btn-new" style="display:none" onclick="openSaisie()"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nouvelle intervention</button>
@@ -414,6 +431,7 @@ body.hl.nav .screen.on{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
     <div class="tile"><div class="note">Aujourd'hui</div><div class="tv" id="hm-auj">0,00 €</div><div class="note" id="hm-auj-n"></div></div>
     <div class="tile"><div class="note" id="hm-prec-lab">Mois dernier</div><div class="tv" id="hm-prec">0,00 €</div><div class="note" id="hm-prec-n"></div></div>
   </div>
+  <div id="hm-file"></div>
   <div class="lsthead"><div class="t">Dernières saisies</div></div>
   <div class="rows" id="hm-list"></div>
   <div class="grow"></div>
