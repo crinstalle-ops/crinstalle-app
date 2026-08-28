@@ -245,6 +245,16 @@ body.nav #tabs{display:grid;position:fixed;left:0;right:0;bottom:0;z-index:40;
 .tab.on{color:var(--accent-l)}
 .tab svg{stroke-width:1.9}
 
+/* CA hors ligne : bandeau de fraicheur sous le total */
+.cbx{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);
+  display:flex;flex-direction:column;gap:7px}
+.cline{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;line-height:1.45;color:var(--tx2)}
+.cline svg{flex:none;margin-top:1px;stroke:var(--tx3)}
+.cline b{font-weight:650;color:var(--tx)}
+.cline.att{color:var(--warn)}
+.cline.att svg{stroke:var(--warn)}
+.cline.att b{color:var(--warn)}
+
 /* recherche par jeton */
 .lsthead.srch{align-items:center}
 /* marges negatives : la loupe garde 44 px de zone tactile SANS grandir le titre */
@@ -451,7 +461,9 @@ body.hl.nav .screen.on{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
     <div class="dctotal" id="hm-total">0,00 €</div>
     <div class="bars" id="hm-bars" aria-hidden="true"></div>
     <div class="note">7 derniers jours</div>
+    <div id="hm-cache"></div>
   </div>
+  <div class="err" id="err-home" role="alert"></div>
   <div class="tiles">
     <div class="tile"><div class="note">Aujourd'hui</div><div class="tv" id="hm-auj">0,00 €</div><div class="note" id="hm-auj-n"></div></div>
     <div class="tile"><div class="note" id="hm-prec-lab">Mois dernier</div><div class="tv" id="hm-prec">0,00 €</div><div class="note" id="hm-prec-n"></div></div>
