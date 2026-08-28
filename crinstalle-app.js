@@ -15,6 +15,82 @@ var FICHE=null;
 var ss={date:'auj',typo:null,sect:'APT',pp:false,editId:null};
 var REGL=false;
 var PAYLINK='https://buy.stripe.com/test_3cI6oI1cQfbO8h7gK76kg00';
+/* ---------- recherche par jeton (v16) ---------- */
+var RECH_MIN=2;
+var RECH_SEQ=0;   /* numero de requete : une reponse en retard ne doit JAMAIS ecraser une plus recente */
+var RECH_T=null;  /* minuterie de frappe */
+var RECH_Q='';    /* derniere requete effectivement lancee */
+function rechEls(){return {b:document.getElementById('hm-srchb'),w:document.getElementById('hm-srchwrap'),
+  q:document.getElementById('hm-srchq'),x:document.getElementById('hm-srchx'),
+  i:document.getElementById('hm-srchinfo'),r:document.getElementById('hm-srchres'),
+  l:document.getElementById('hm-list'),p:document.getElementById('hm-pdf'),d:document.getElementById('hm-docs')};}
+function rechListe(v){var e=rechEls(),k,n=['l','p','d'];
+  for(k=0;k<n.length;k++){if(e[n[k]])e[n[k]].style.display=v?'':'none';}}
+function rechInfo(t,ko){var e=rechEls();if(!e.i)return;e.i.textContent=t||'';e.i.className='srchinfo'+(ko?' ko':'');}
+function rechAide(){rechInfo('Tape au moins '+RECH_MIN+' caract\u00e8res du jeton.');}
+function rechBascule(){var e=rechEls();if(!e.w)return;
+  if(e.w.classList.contains('on')){rechFermer();return;}
+  e.w.classList.add('on');
+  if(e.b){e.b.classList.add('on');e.b.setAttribute('aria-expanded','true');}
+  if(e.x)e.x.classList.remove('on');
+  if(e.q){e.q.value='';try{e.q.focus();}catch(_e){}}
+  rechAide();}
+function rechFermer(){var e=rechEls();if(!e.w)return;
+  RECH_SEQ++;if(RECH_T){clearTimeout(RECH_T);RECH_T=null;}
+  RECH_Q='';
+  e.w.classList.remove('on');
+  if(e.b){e.b.classList.remove('on');e.b.setAttribute('aria-expanded','false');}
+  if(e.q)e.q.value='';
+  if(e.x)e.x.classList.remove('on');
+  if(e.r)e.r.innerHTML='';
+  rechInfo('');rechListe(true);}
+function rechVider(){var e=rechEls();if(e.q){e.q.value='';try{e.q.focus();}catch(_e){}}rechSaisie();}
+function rechRendu(d){var e=rechEls();if(!e.r)return;
+  var l=(d&&d.resultats)||[],h='',i;
+  for(i=0;i<l.length;i++){var o=l[i];var dd=(o.date||'').split('-');
+    h+='<button class="hrow" onclick="openFiche('+parseInt(o.id,10)+')"><span>'
+      +'<span class="j" style="display:block">'+esc(o.jeton)+'</span>'
+      +'<span class="m" style="display:block">'+esc(TLBL[o.typo]||o.typo)+' \u00b7 '+esc(o.sect)+' \u00b7 '+esc(dd[2]+'/'+dd[1]+'/'+dd[0])+'</span></span>'
+      +'<span class="t">'+fmt(parseFloat(o.total)||0)
+      +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></button>';}
+  e.r.innerHTML=h;
+  var n=parseInt(d&&d.n,10)||0;
+  if(!n){rechInfo('Aucune saisie avec \u00ab\u202f'+RECH_Q+'\u202f\u00bb dans le jeton.');}
+  else if(n>l.length){rechInfo(l.length+' saisies affich\u00e9es sur '+n+' trouv\u00e9es \u2014 pr\u00e9cise le jeton.');}
+  else{rechInfo(n>1?(n+' saisies trouv\u00e9es'):'1 saisie trouv\u00e9e');}
+  rechListe(false);}
+function rechOuverte(){var w=document.getElementById('hm-srchwrap');return !!(w&&w.classList.contains('on'));}
+/* au retour d'une fiche on RELANCE la recherche : une saisie modifiee ou supprimee
+   ne doit pas rester affichee a partir d'un ancien resultat */
+function rechRestaurer(){if(rechOuverte()&&RECH_Q.length>=RECH_MIN){rechListe(false);rechLancer(RECH_Q);}}
+function rechSaisie(){var e=rechEls();if(!e.q)return;
+  if(RECH_T){clearTimeout(RECH_T);RECH_T=null;}
+  var brut=e.q.value||'';
+  var v=brut.replace(/^\s+|\s+$/g,'');
+  if(e.x)e.x.classList[brut.length?'add':'remove']('on');
+  if(v.length<RECH_MIN){RECH_SEQ++;RECH_Q='';if(e.r)e.r.innerHTML='';rechAide();rechListe(true);return;}
+  RECH_T=setTimeout(function(){rechLancer(v);},350);}
+function rechLancer(v){if(!ACCT)return;
+  var s=++RECH_SEQ;RECH_Q=v;
+  rechInfo('Recherche\u2026');
+  rpc('solo_recherche',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_q:v}).then(function(d){
+    if(s!==RECH_SEQ)return;   /* une frappe plus recente a pris la main */
+    rechRendu(d);
+  },function(er){
+    if(s!==RECH_SEQ)return;
+    var r=document.getElementById('hm-srchres');if(r)r.innerHTML='';
+    rechInfo(er&&er.message?er.message:'Petit souci r\u00e9seau, r\u00e9essaie.',true);
+    rechListe(true);});}
+function rechInit(){var q=document.getElementById('hm-srchq');if(!q)return;
+  q.addEventListener('input',rechSaisie);
+  q.addEventListener('search',rechSaisie);   /* croix native du champ de recherche */
+  q.addEventListener('keydown',function(ev){
+    if(ev.key==='Escape'){rechFermer();return;}
+    if(ev.key==='Enter'){ev.preventDefault();
+      if(RECH_T){clearTimeout(RECH_T);RECH_T=null;}
+      var v=(q.value||'').replace(/^\s+|\s+$/g,'');
+      if(v.length>=RECH_MIN)rechLancer(v);
+      try{q.blur();}catch(_e){}}});}
 /* === v15 : file d'attente des saisies hors ligne === */
 var FILECLE='crinstalle_file';
 var FILE_MAX=50;
@@ -197,7 +273,7 @@ var ab=document.getElementById('hm-abo');
 if(aboLocked(ACCT.me)){ab.innerHTML='<button class="linkbtn" style="width:100%;text-align:center;background:var(--tint);border:1px solid var(--accent);border-radius:14px;padding:14px;color:var(--accent-l);font-weight:700" onclick="show(&quot;s-abo&quot;)">Essai terminé — la saisie est en pause. S’abonner</button>';}
 else if(ACCT.me.abo_statut==='essai'){var aj=parseInt(ACCT.me.abo_jours,10)||0;ab.innerHTML='<div class="note center" style="padding:2px 0 10px'+(aj<=5?';color:var(--accent-l);font-weight:600':'')+'">Essai gratuit — '+aj+' jour'+(aj>1?'s':'')+' restant'+(aj>1?'s':'')+'</div>';}
 else{ab.innerHTML='';}
-buildAnnonce();buildFile();fileEnvoyer();show('s-home');}).catch(function(){buildFile();show('s-ok');});}
+buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();show('s-home');}).catch(function(){buildFile();show('s-ok');});}
 var PDFSVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:8px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 function openPdf(back){if(!ACCT)return;var n=new Date();var m=new Date(n.getFullYear(),n.getMonth()-back,1);var ms=m.getFullYear()+'-'+((m.getMonth()+1)<10?'0':'')+(m.getMonth()+1);location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-pdf?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms;}
 function aboLocked(m){return (m.abo_statut==='essai'&&(parseInt(m.abo_jours,10)||0)<=0)||m.abo_statut==='annule';}
@@ -227,7 +303,7 @@ function recalc(){if(!ACCT)return;var me=ACCT.me;var sansPPM=ss.typo?SANS_PPM.in
 function saveSaisie(force){if(!ACCT)return;var j=document.getElementById('sa-jeton').value.trim();err('err-saisie');document.getElementById('warn-doublon').classList.remove('on');if(!j){err('err-saisie','Entre le jeton de l’intervention.');document.getElementById('sa-jeton').focus();return;}if(!/^[A-Za-z0-9._-]{1,30}$/.test(j)){err('err-saisie','Jeton invalide : lettres et chiffres uniquement (30 max).');return;}if(!ss.typo){err('err-saisie','Choisis une typologie.');return;}var dt=saDate();if(!dt){err('err-saisie','Choisis la date de l’intervention.');return;}var sansPPM=SANS_PPM.indexOf(ss.typo)>=0;var m=sansPPM?0:(parseInt(document.getElementById('sa-met').value,10)||0);var com=document.getElementById('sa-com').value.trim();var b=document.getElementById('btn-save');b.disabled=true;
 var fn,body;if(ss.editId){fn='solo_modifier';body={p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:ss.editId,p_jeton:j,p_date:dt,p_typo:ss.typo,p_secteur:ss.sect,p_pp:!sansPPM&&ss.pp,p_metrage:m,p_commentaire:com};}else{fn='solo_saisie';body={p_client:ACCT.client_id,p_cle:ACCT.cle,p_jeton:j,p_date:dt,p_typo:ss.typo,p_secteur:ss.sect,p_pp:!sansPPM&&ss.pp,p_metrage:m,p_force:!!force,p_commentaire:com};}
 rpc(fn,body).then(function(r){b.disabled=false;if(r&&r.doublon){document.getElementById('warn-txt').textContent=r.message+' C’était bien une nouvelle intervention ?';document.getElementById('warn-doublon').classList.add('on');return;}var dd=dt.split('-');document.getElementById('sv-badge').textContent=ss.editId?'Saisie modifiée':'Intervention enregistrée';document.getElementById('sv-total').textContent=fmt(parseFloat(r.total));var h='<div class="krow"><div class="k">Jeton</div><div class="v">'+esc(j)+'</div></div><div class="krow"><div class="k">Date</div><div class="v">'+esc(dd[2]+'/'+dd[1]+'/'+dd[0])+'</div></div><div class="krow"><div class="k">Typologie</div><div class="v">'+esc(TLBL[ss.typo])+'</div></div><div class="krow"><div class="k">Secteur</div><div class="v">'+esc(ss.sect)+'</div></div><div class="krow"><div class="k">Base</div><div class="v">'+fmt(parseFloat(r.base))+'</div></div>';if(parseFloat(r.bonus_secteur)>0)h+='<div class="krow"><div class="k">Bonus secteur</div><div class="v">+'+fmt(parseFloat(r.bonus_secteur))+'</div></div>';if(parseFloat(r.bonus_pp)>0)h+='<div class="krow"><div class="k">Post-prod</div><div class="v">+'+fmt(parseFloat(r.bonus_pp))+'</div></div>';if(parseFloat(r.bonus_met)>0)h+='<div class="krow"><div class="k">Métrage</div><div class="v">+'+fmt(parseFloat(r.bonus_met))+'</div></div>';h+='<div class="krow"><div class="k">Total</div><div class="v">'+fmt(parseFloat(r.total))+'</div></div>';if(com)h+='<div class="krow"><div class="k">Commentaire</div><div class="v" style="font-weight:500">'+esc(com)+'</div></div>';document.getElementById('sv-recap').innerHTML=h;show('s-saved');}).catch(function(e){b.disabled=false;if(!ss.editId&&e&&e.reseau){var q=fileEnfiler(j,dt,ss.typo,ss.sect,!sansPPM&&ss.pp,m,com,!!force);if(q){fileConfirmer(q);return;}err('err-saisie','Trop de saisies en attente sur ce téléphone — reconnecte-toi au réseau pour les envoyer.');return;}err('err-saisie',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
-buildUI();
+buildUI();rechInit();
 (function(){var inv=(location.hash||'').match(/^#i=([0-9a-f]{20,64})$/);
 if(inv){document.getElementById('wait-txt').textContent='Activation de ton accès…';show('s-wait');rpc('solo_invite_signup',{p_code:inv[1]}).then(function(r){try{localStorage.setItem('crinstalle',JSON.stringify({client_id:r.client_id,cle:r.cle,compte:r.compte}));}catch(e){}try{history.replaceState(null,'',location.pathname);}catch(e){}connect(r.client_id,r.cle,{nouveau:true,lien:lienPerso(r.client_id,r.cle)});}).catch(function(e){show('s-accueil');err('err-accueil',e&&e.message?e.message:'Invitation invalide.');});return;}
 var m=(location.hash||'').match(/^#c=([0-9a-f-]{36})\.([0-9a-f]{20,64})$/);var saved=null;if(m){saved={client_id:m[1],cle:m[2]};}else{try{saved=JSON.parse(localStorage.getItem('crinstalle'));}catch(e){}}
