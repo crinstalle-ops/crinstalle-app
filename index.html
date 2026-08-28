@@ -245,6 +245,20 @@ body.nav #tabs{display:grid;position:fixed;left:0;right:0;bottom:0;z-index:40;
 .tab.on{color:var(--accent-l)}
 .tab svg{stroke-width:1.9}
 
+/* bandeau hors ligne */
+#offbar{display:none}
+#offbar.on{display:flex;align-items:center;justify-content:center;gap:8px;
+  position:fixed;left:0;right:0;bottom:0;z-index:70;max-width:520px;margin:0 auto;
+  background:linear-gradient(0deg,var(--warn-bg),var(--warn-bg)),var(--bg2);
+  border-top:1px solid var(--warn);color:var(--warn);
+  font-size:12.5px;font-weight:600;line-height:1.35;text-align:left;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+#offbar.on svg{flex:none}
+body.nav #offbar.on{bottom:calc(60px + env(safe-area-inset-bottom))}
+/* le bandeau ne doit jamais recouvrir le bouton principal d'un ecran */
+body.hl .screen.on{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+body.hl.nav .screen.on{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
+
 /* bouton thème */
 .thm{width:44px;height:44px;border-radius:13px;border:1px solid var(--border);background:var(--surface);
   display:flex;align-items:center;justify-content:center;color:var(--tx2);flex:none;order:2}
