@@ -15,6 +15,90 @@ var FICHE=null;
 var ss={date:'auj',typo:null,sect:'APT',pp:false,editId:null};
 var REGL=false;
 var PAYLINK='https://buy.stripe.com/test_3cI6oI1cQfbO8h7gK76kg00';
+/* === v15 : file d'attente des saisies hors ligne === */
+var FILECLE='crinstalle_file';
+var FILE_MAX=50;
+var FILE_EN_COURS=false;
+function fileLire(){try{var a=JSON.parse(localStorage.getItem(FILECLE));return Array.isArray(a)?a:[];}catch(e){return [];}}
+function fileEcrire(a){try{localStorage.setItem(FILECLE,JSON.stringify(a));return true;}catch(e){return false;}}
+function fileMiennes(){if(!ACCT)return [];var a=fileLire(),o=[],i;
+  for(i=0;i<a.length;i++)if(a[i].client_id===ACCT.client_id)o.push(a[i]);return o;}
+function fileRetirer(id){var a=fileLire(),o=[],i;for(i=0;i<a.length;i++)if(a[i].id!==id)o.push(a[i]);fileEcrire(o);}
+function fileMaj(id,ch){var a=fileLire(),i,k;for(i=0;i<a.length;i++)if(a[i].id===id){for(k in ch)a[i][k]=ch[k];}fileEcrire(a);}
+/* met une saisie de cote ; renvoie l'entree ou null si la file est pleine */
+function fileEnfiler(jeton,date,typo,sect,pp,metrage,com,force){
+  if(!ACCT)return null;
+  if(fileMiennes().length>=FILE_MAX)return null;
+  var c=null;try{c=calcLocal();}catch(e){}
+  var e={id:'f'+Date.now()+Math.floor(Math.random()*1000),client_id:ACCT.client_id,
+    jeton:jeton,date:date,typo:typo,sect:sect,pp:!!pp,metrage:metrage||0,com:com||'',
+    force:!!force,total:c?c.total:0,base:c?c.base:0,bApt:c?c.bApt:0,bPp:c?c.bPp:0,bMet:c?c.bMet:0,
+    statut:'attente',message:'',le:Date.now()};
+  var a=fileLire();a.push(e);
+  if(!fileEcrire(a))return null;
+  return e;}
+/* ecran de confirmation pour une saisie mise en file */
+function fileConfirmer(e){var d=(e.date||'').split('-');
+  document.getElementById('sv-badge').textContent='Gardée sur ton téléphone';
+  document.getElementById('sv-total').textContent=fmt(parseFloat(e.total)||0);
+  var h='<div class="krow"><div class="k">Jeton</div><div class="v">'+esc(e.jeton)+'</div></div>'
+   +'<div class="krow"><div class="k">Date</div><div class="v">'+esc(d[2]+'/'+d[1]+'/'+d[0])+'</div></div>'
+   +'<div class="krow"><div class="k">Typologie</div><div class="v">'+esc(TLBL[e.typo]||e.typo)+'</div></div>'
+   +'<div class="krow"><div class="k">Secteur</div><div class="v">'+esc(e.sect)+'</div></div>'
+   +'<div class="krow"><div class="k">Base</div><div class="v">'+fmt(parseFloat(e.base)||0)+'</div></div>';
+  if(parseFloat(e.bApt)>0)h+='<div class="krow"><div class="k">Bonus secteur</div><div class="v">+'+fmt(parseFloat(e.bApt))+'</div></div>';
+  if(parseFloat(e.bPp)>0)h+='<div class="krow"><div class="k">Post-prod</div><div class="v">+'+fmt(parseFloat(e.bPp))+'</div></div>';
+  if(parseFloat(e.bMet)>0)h+='<div class="krow"><div class="k">Métrage</div><div class="v">+'+fmt(parseFloat(e.bMet))+'</div></div>';
+  h+='<div class="krow"><div class="k">Total estimé</div><div class="v">'+fmt(parseFloat(e.total)||0)+'</div></div>';
+  if(e.com)h+='<div class="krow"><div class="k">Commentaire</div><div class="v" style="font-weight:500">'+esc(e.com)+'</div></div>';
+  h+='<div class="krow"><div class="k">Envoi</div><div class="v" style="font-weight:500;color:var(--warn)">Dès le retour du réseau</div></div>';
+  document.getElementById('sv-recap').innerHTML=h;
+  buildFile();majBandeau();show('s-saved');}
+/* liste des saisies en attente, affichee sur l'accueil ET sur Mon compte */
+function buildFile(){var m=fileMiennes(),h='',i;
+  if(m.length){
+    h='<div class="lsthead"><div class="t">En attente d’envoi</div><div class="note">'+m.length+'</div></div><div class="rows">';
+    for(i=0;i<m.length;i++){var e=m[i];var d=(e.date||'').split('-');
+      h+='<div class="frow"><div class="fmid"><span class="j">'+esc(e.jeton)+'</span>'
+       +'<span class="m">'+esc(TLBL[e.typo]||e.typo)+' · '+esc(e.sect)+' · '+esc(d[2]+'/'+d[1])+'</span>'
+       +((e.statut!=='attente'&&e.message)?('<span class="m fmsg">'+esc(e.message)+'</span>'):'')
+       +'</div><div class="fdte"><span class="t">'+fmt(parseFloat(e.total)||0)+'</span>'
+       +'<span class="fchip'+(e.statut==='doublon'?' wa':(e.statut==='refuse'?' ko':''))+'">'
+       +(e.statut==='doublon'?'à confirmer':(e.statut==='refuse'?'refusée':'en attente'))+'</span></div></div>';
+      if(e.statut==='doublon')h+='<div class="fact"><button class="btn ghost" onclick="fileForcer(\''+e.id+'\')">Oui, envoyer quand même</button><button class="btn danger" onclick="fileJeter(\''+e.id+'\')">Supprimer</button></div>';
+      if(e.statut==='refuse')h+='<div class="fact"><button class="btn danger" onclick="fileJeter(\''+e.id+'\')">Retirer de la liste</button></div>';
+    }
+    h+='</div>';}
+  var ids=['hm-file','ok-file'];
+  for(i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.innerHTML=h;}}
+function fileForcer(id){fileMaj(id,{statut:'attente',force:true,message:''});buildFile();fileEnvoyer();}
+function fileJeter(id){fileRetirer(id);buildFile();majBandeau();}
+/* envoi sequentiel ; l'index UNIQUE (client, tech, jeton, date) garantit l'absence de doublon */
+function fileEnvoyer(){
+  if(FILE_EN_COURS||!ACCT||!navigator.onLine)return Promise.resolve();
+  var m=fileMiennes(),att=[],i;
+  for(i=0;i<m.length;i++)if(m[i].statut==='attente')att.push(m[i]);
+  if(!att.length)return Promise.resolve();
+  FILE_EN_COURS=true;
+  var suivant=function(k){
+    if(k>=att.length)return Promise.resolve();
+    var e=att[k];
+    return rpc('solo_saisie',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_jeton:e.jeton,p_date:e.date,
+      p_typo:e.typo,p_secteur:e.sect,p_pp:!!e.pp,p_metrage:e.metrage||0,p_force:!!e.force,p_commentaire:e.com||''})
+    .then(function(r){
+      if(r&&r.doublon){fileMaj(e.id,{statut:'doublon',message:r.message});return suivant(k+1);}
+      fileRetirer(e.id);return suivant(k+1);
+    },function(er){
+      var msg=(er&&er.message)?er.message:'';
+      if(er&&er.reseau)return Promise.resolve();
+      if(msg.indexOf('déjà saisi')>=0){fileRetirer(e.id);return suivant(k+1);}
+      fileMaj(e.id,{statut:'refuse',message:msg||'Refusée par le serveur.'});return suivant(k+1);
+    });};
+  /* le verrou est TOUJOURS relache, meme si un imprevu casse la chaine :
+     sinon la file resterait bloquee et les saisies ne partiraient plus jamais */
+  var relacher=function(){FILE_EN_COURS=false;buildFile();majBandeau();};
+  return Promise.resolve().then(function(){return suivant(0);})
+    .then(relacher,relacher);}
 /* === v14 : bloc hors ligne 1/3 — ouvrir l'app sans reseau === */
 var HORSLIGNE_MSG='Tu es hors ligne \u2014 cette action a besoin du r\u00e9seau.';
 var RESEAU_MSG='Connexion au serveur impossible ou trop lente \u2014 r\u00e9essaie dans un instant.';
@@ -32,7 +116,7 @@ function demarrerHorsLigne(cid,cle){var d=meLire(cid);if(!d)return false;
   document.getElementById('btn-home').style.display='flex';
   document.getElementById('btn-regl').style.display=d.me.equipe?'none':'flex';
   if(d.me.equipe){var op=document.getElementById('ok-profil');if(op)op.innerHTML='';}
-  buildAbo();majBandeau();
+  buildAbo();majBandeau();buildFile();fileEnvoyer();
   if(aboLocked(d.me)){show('s-abo');return true;}
   /* on affiche TOUT DE SUITE un ecran utilisable, sans attendre le reseau :
      hors ligne un fetch peut agoniser plusieurs secondes, et l'utilisateur
@@ -43,15 +127,15 @@ function demarrerHorsLigne(cid,cle){var d=meLire(cid);if(!d)return false;
 /* rafraichit le profil sans jamais deplacer l'utilisateur */
 function rafraichirProfil(){if(!ACCT)return;
   rpc('solo_me',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(m){
-    ACCT.me=m;meSave(ACCT.client_id,m);majBandeau();}).catch(function(){majBandeau();});}
+    if(m&&m.tarifs){ACCT.me=m;meSave(ACCT.client_id,m);}majBandeau();}).catch(function(){majBandeau();});}
 /* bandeau discret « hors ligne » */
-function majBandeau(){var b=document.getElementById('offbar');
+function majBandeau(){var n=0;try{n=fileMiennes().length;}catch(e){}var b=document.getElementById('offbar');
   if(!b){b=document.createElement('div');b.id='offbar';b.setAttribute('role','status');document.body.appendChild(b);}
   b.className=navigator.onLine?'':'on';
   document.body.classList.toggle('hl',!navigator.onLine);
   b.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 2l20 20"/><path d="M5 12.5a9 9 0 013.6-2.4"/><path d="M8.5 16a4.5 4.5 0 015.2-.8"/><path d="M12 19.5h.01"/><path d="M19 12.5a9 9 0 00-4.6-2.6"/></svg>'
-    +'<span>Hors ligne — consultation seulement, la saisie a besoin du réseau</span>';}
-window.addEventListener('online',function(){majBandeau();rafraichirProfil();});
+    +'<span>'+(n>0?('Hors ligne — '+n+' saisie'+(n>1?'s':'')+' en attente, elle'+(n>1?'s partiront':' partira')+' au retour du réseau'):'Hors ligne — tes saisies sont gardées et envoyées au retour du réseau')+'</span>';}
+window.addEventListener('online',function(){majBandeau();rafraichirProfil();fileEnvoyer();});
 window.addEventListener('offline',majBandeau);
 majBandeau();
 var NAVMAP={'s-home':'s-home','s-docs':'s-docs','s-docadd':'s-docs','s-ok':'s-ok'};
@@ -94,7 +178,7 @@ function submit(){var t=collectTarifs();var sects=[];for(var i=0;i<SECTS.length;
 if(REGL){var rb={p_client:ACCT.client_id,p_cle:ACCT.cle,p_operateur:st.op,p_tarifs:t.vals,p_options:{bonus_secteur:document.getElementById('sw-sect').classList.contains('on'),secteurs:sects,post_prod:document.getElementById('sw-pp').classList.contains('on'),metrage:document.getElementById('sw-met').classList.contains('on'),metrage_seuil:document.getElementById('in-seuil').value.trim(),metrage_tarif:document.getElementById('in-tm').value.trim(),bonus_taux:tauxVal('in-taux'),bonus_pp_taux:tauxVal('in-taux-pp')}};err('err-bonus');document.getElementById('wait-txt').textContent='Mise à jour de ta grille…';show('s-wait');rpc('solo_reglages_save',rb).then(function(){return rpc('solo_me',{p_client:ACCT.client_id,p_cle:ACCT.cle});}).then(function(m){ACCT.me=m;buildOkScreen({compte:m.compte,prenom:m.prenom,operateur:m.operateur,tarifs:m.tarifs,nouveau:false});document.getElementById('ok-badge').textContent='Grille mise à jour';document.getElementById('ok-sub').textContent='Ta nouvelle grille s’applique à tes prochaines saisies.';reglOff();show('s-ok');}).catch(function(e){show('s-bonus');err('err-bonus',e&&e.message?e.message:'Petit souci réseau, réessaie.');});return;}
 var body={p_prenom:document.getElementById('in-prenom').value.trim(),p_nom:document.getElementById('in-nom').value.trim(),p_operateur:st.op,p_tarifs:t.vals,p_options:{bonus_secteur:document.getElementById('sw-sect').classList.contains('on'),secteurs:sects,post_prod:document.getElementById('sw-pp').classList.contains('on'),metrage:document.getElementById('sw-met').classList.contains('on'),metrage_seuil:document.getElementById('in-seuil').value.trim(),metrage_tarif:document.getElementById('in-tm').value.trim(),bonus_taux:tauxVal('in-taux'),bonus_pp_taux:tauxVal('in-taux-pp')}};err('err-bonus');document.getElementById('wait-txt').textContent='Création de ton compte…';show('s-wait');rpc('solo_signup',body).then(function(r){try{localStorage.setItem('crinstalle',JSON.stringify({client_id:r.client_id,cle:r.cle,compte:r.compte}));}catch(e){}var em=document.getElementById('in-email').value.trim();var fin=function(){connect(r.client_id,r.cle,{nouveau:true,lien:lienPerso(r.client_id,r.cle)});};if(em){rpc('solo_profil_save',{p_client:r.client_id,p_cle:r.cle,p_email:em,p_departement:'',p_dispo:'non'}).then(fin,fin);}else{fin();}}).catch(function(e){show('s-bonus');err('err-bonus',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
 function connect(cid,cle,opts){rpc('solo_me',{p_client:cid,p_cle:cle}).then(function(m){ACCT={client_id:cid,cle:cle,me:m};meSave(cid,m);if(opts&&opts.persist){try{localStorage.setItem('crinstalle',JSON.stringify({client_id:cid,cle:cle,compte:m.compte}));}catch(e2){}try{history.replaceState(null,'',location.pathname);}catch(e2){}}buildOkScreen({compte:m.compte,prenom:m.prenom,operateur:m.operateur,tarifs:m.tarifs,nouveau:opts&&opts.nouveau,lien:opts&&opts.lien});document.getElementById('btn-new').style.display='flex';document.getElementById('btn-home').style.display='flex';document.getElementById('btn-regl').style.display=m.equipe?'none':'flex';if(m.equipe){var op=document.getElementById('ok-profil');if(op)op.innerHTML='';if(opts&&opts.nouveau){document.getElementById('ok-sub').textContent='Ton accès est offert par ton responsable — bonne saisie !';}}buildAbo();if(opts&&opts.nouveau){show('s-ok');}else if(aboLocked(m)){show('s-abo');}else{goHome();}}).catch(function(e){var msg=e&&e.message?e.message:'';if(msg.indexOf('Accès refusé')>=0){try{localStorage.removeItem('crinstalle');}catch(_e){}meOublier(cid);err('err-accueil','Ce compte n’existe plus — tu peux en créer un nouveau.');show('s-accueil');return;}if(demarrerHorsLigne(cid,cle))return;err('err-accueil','Connexion impossible pour l’instant — vérifie ta connexion et recharge la page.');show('s-accueil');});}
-function rpc(fn,body){if(!navigator.onLine)return Promise.reject(new Error(HORSLIGNE_MSG));var ctl=(typeof AbortController!=='undefined')?new AbortController():null;var min=setTimeout(function(){if(ctl)ctl.abort();},20000);return fetch(API+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY},body:JSON.stringify(body),signal:ctl?ctl.signal:undefined}).then(function(res){clearTimeout(min);return res.json().then(function(j){if(!res.ok)throw new Error(j&&j.message?j.message:'Erreur '+res.status);return j;});},function(){clearTimeout(min);throw new Error(navigator.onLine?RESEAU_MSG:HORSLIGNE_MSG);});}
+function rpc(fn,body){if(!navigator.onLine){var e0=new Error(HORSLIGNE_MSG);e0.reseau=true;return Promise.reject(e0);}var ctl=(typeof AbortController!=='undefined')?new AbortController():null;var min=setTimeout(function(){if(ctl)ctl.abort();},20000);return fetch(API+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY},body:JSON.stringify(body),signal:ctl?ctl.signal:undefined}).then(function(res){clearTimeout(min);return res.json().then(function(j){if(!res.ok)throw new Error(j&&j.message?j.message:'Erreur '+res.status);return j;});},function(){clearTimeout(min);var er=new Error(navigator.onLine?RESEAU_MSG:HORSLIGNE_MSG);er.reseau=true;throw er;});}
 function buildOkScreen(d){var h='<div class="krow"><div class="k">Compte</div><div class="v">'+esc(d.compte||'')+'</div></div><div class="krow"><div class="k">Prénom</div><div class="v">'+esc(d.prenom||'')+'</div></div><div class="krow"><div class="k">Réseau</div><div class="v vop">'+opMark(d.operateur||'')+'<span>'+esc(d.operateur||'')+'</span></div></div>';for(var k in d.tarifs){if(d.tarifs[k]===null||d.tarifs[k]===undefined||d.tarifs[k]==='')continue;h+='<div class="krow"><div class="k">'+esc(TLBL[k]||k)+'</div><div class="v">'+esc(String(d.tarifs[k]).replace('.',','))+' €</div></div>';}var lien=d.lien;if(!lien&&ACCT)lien=lienPerso(ACCT.client_id,ACCT.cle);if(lien){h+='<div style="padding:16px;border-top:1px solid var(--border)"><div style="font-size:14px;font-weight:700;color:var(--accent-l);margin-bottom:6px">⚠️ Ton accès — à garder précieusement</div><div style="font-size:13px;color:var(--tx2);line-height:1.5;margin-bottom:8px">Ouvre toujours l’app avec CE lien (mets-le dans tes favoris ou sur ton écran d’accueil). Sans lui, tu perds l’accès à ton compte.</div><a href="'+esc(lien)+'" style="font-size:12px;word-break:break-all;font-weight:600">'+esc(lien)+'</a></div>';}document.getElementById('ok-recap').innerHTML=h;if(!d.nouveau){document.getElementById('ok-badge').textContent='Ton compte';document.getElementById('ok-titre').textContent='Salut '+esc(d.prenom||'')+' !';document.getElementById('ok-sub').textContent='Ta grille est bien enregistrée.';}buildProfil();}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function buildProfil(){if(!ACCT||(ACCT.me&&ACCT.me.equipe))return;var me=ACCT.me||{};if(!document.getElementById('ok-profil')){var d=document.createElement('div');d.id='ok-profil';document.getElementById('ok-recap').insertAdjacentElement('afterend',d);}document.getElementById('ok-profil').innerHTML='<div class="lsthead" style="margin-top:8px"><div class="t">Mon profil</div></div><div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="field"><label class="lab" for="pf-email">Email</label><input type="text" id="pf-email" maxlength="120" autocomplete="email" placeholder="ex. karim@gmail.com"><div class="note">Pour récupérer ton compte si tu perds ton lien.</div></div><div class="field"><label class="lab" for="pf-dep">Département</label><input type="text" id="pf-dep" maxlength="3" placeholder="ex. 06" style="width:110px"></div><div class="swrow"><div><div class="swname" id="lbl-dispo">Ouvert aux opportunités</div><div class="swsub">On te contacte si un patron cherche un technicien dans ton département.</div></div><button class="sw'+(me.dispo_opportunites==='oui'?' on':'')+'" id="sw-dispo" role="switch" aria-checked="'+(me.dispo_opportunites==='oui'?'true':'false')+'" aria-labelledby="lbl-dispo" onclick="togSw(this)"></button></div><div class="err" id="err-profil" role="alert"></div><button class="btn ghost" onclick="saveProfil()" id="btn-profil">Enregistrer mon profil</button></div>';document.getElementById('pf-email').value=me.email||'';document.getElementById('pf-dep').value=me.departement||'';}
@@ -113,7 +197,7 @@ var ab=document.getElementById('hm-abo');
 if(aboLocked(ACCT.me)){ab.innerHTML='<button class="linkbtn" style="width:100%;text-align:center;background:var(--tint);border:1px solid var(--accent);border-radius:14px;padding:14px;color:var(--accent-l);font-weight:700" onclick="show(&quot;s-abo&quot;)">Essai terminé — la saisie est en pause. S’abonner</button>';}
 else if(ACCT.me.abo_statut==='essai'){var aj=parseInt(ACCT.me.abo_jours,10)||0;ab.innerHTML='<div class="note center" style="padding:2px 0 10px'+(aj<=5?';color:var(--accent-l);font-weight:600':'')+'">Essai gratuit — '+aj+' jour'+(aj>1?'s':'')+' restant'+(aj>1?'s':'')+'</div>';}
 else{ab.innerHTML='';}
-buildAnnonce();show('s-home');}).catch(function(){show('s-ok');});}
+buildAnnonce();buildFile();fileEnvoyer();show('s-home');}).catch(function(){buildFile();show('s-ok');});}
 var PDFSVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:8px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 function openPdf(back){if(!ACCT)return;var n=new Date();var m=new Date(n.getFullYear(),n.getMonth()-back,1);var ms=m.getFullYear()+'-'+((m.getMonth()+1)<10?'0':'')+(m.getMonth()+1);location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-pdf?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms;}
 function aboLocked(m){return (m.abo_statut==='essai'&&(parseInt(m.abo_jours,10)||0)<=0)||m.abo_statut==='annule';}
@@ -138,11 +222,11 @@ function pickDate(w){ss.date=w;var ids=['d-auj','d-hier','d-autre'],ks=['auj','h
 function pickTypo(el,k){ss.typo=k;var c=document.querySelectorAll('#sa-typos .chip');for(var i=0;i<c.length;i++){c[i].classList.remove('sel');c[i].setAttribute('aria-checked','false');}el.classList.add('sel');el.setAttribute('aria-checked','true');recalc();}
 function pickSect(el,s){ss.sect=s;var c=document.querySelectorAll('#sa-sects .chip');for(var i=0;i<c.length;i++){c[i].classList.remove('sel');c[i].setAttribute('aria-checked','false');}el.classList.add('sel');el.setAttribute('aria-checked','true');recalc();}
 function togSpp(el){el.classList.toggle('on');el.setAttribute('aria-checked',el.classList.contains('on')?'true':'false');ss.pp=el.classList.contains('on');recalc();}
-function calcLocal(){var me=ACCT.me,base=parseFloat(me.tarifs[ss.typo]);if(isNaN(base))return null;var sansPPM=SANS_PPM.indexOf(ss.typo)>=0;var sects=(me.secteurs_bonus||'APT').split(',');var sb=sects.indexOf(ss.sect)>=0&&ss.typo!=='SAV';var bApt=sb?base*0.3:0;var bPp=(ss.pp&&!sansPPM&&me.ui_post_prod!=='0')?base*0.3:0;var m=sansPPM?0:(parseInt(document.getElementById('sa-met').value,10)||0);var seuil=parseInt(me.metrage_seuil,10);if(isNaN(seuil))seuil=150;var tm=parseFloat(me.metrage_tarif);if(isNaN(tm))tm=0.3;var bMet=(me.ui_metrage!=='0'&&m>seuil)?(m-seuil)*tm:0;if(sects.indexOf(ss.sect)>=0)bMet=bMet*1.3;bMet=Math.round(bMet*100)/100;return {base:base,bApt:bApt,bPp:bPp,bMet:bMet,total:Math.round((base+bApt+bPp+bMet)*100)/100,sansPPM:sansPPM};}
+function calcLocal(){var me=ACCT.me,base=parseFloat(me.tarifs[ss.typo]);if(isNaN(base))return null;var sansPPM=SANS_PPM.indexOf(ss.typo)>=0;var sects=(me.secteurs_bonus||'APT').split(',');var tApt=parseFloat(me.bonus_apt_taux);if(isNaN(tApt))tApt=0.30;var tPp=parseFloat(me.bonus_pp_taux);if(isNaN(tPp))tPp=0.30;var sb=sects.indexOf(ss.sect)>=0&&ss.typo!=='SAV';var bApt=sb?base*tApt:0;var bPp=(ss.pp&&!sansPPM&&me.ui_post_prod!=='0')?base*tPp:0;var m=sansPPM?0:(parseInt(document.getElementById('sa-met').value,10)||0);var seuil=parseInt(me.metrage_seuil,10);if(isNaN(seuil))seuil=150;var tm=parseFloat(me.metrage_tarif);if(isNaN(tm))tm=0.3;var bMet=(me.ui_metrage!=='0'&&m>seuil)?(m-seuil)*tm:0;if(sects.indexOf(ss.sect)>=0)bMet=bMet*(1+tApt);bMet=Math.round(bMet*100)/100;return {base:base,bApt:bApt,bPp:bPp,bMet:bMet,total:Math.round((base+bApt+bPp+bMet)*100)/100,sansPPM:sansPPM};}
 function recalc(){if(!ACCT)return;var me=ACCT.me;var sansPPM=ss.typo?SANS_PPM.indexOf(ss.typo)>=0:false;document.getElementById('row-pp').style.display=(ss.typo&&!sansPPM&&me.ui_post_prod!=='0')?'flex':'none';document.getElementById('row-met').style.display=(ss.typo&&!sansPPM&&me.ui_metrage!=='0')?'flex':'none';document.getElementById('sa-hint').style.display=(ss.typo&&sansPPM)?'flex':'none';var t=document.getElementById('sa-total'),d=document.getElementById('sa-detail');if(!ss.typo){t.textContent='—';d.textContent='Choisis une typologie';return;}var c=calcLocal();if(!c){t.textContent='—';d.textContent='';return;}t.textContent=fmt(c.total);var lines=[TLBL[ss.typo]+' '+fmt(c.base)];if(c.bApt>0)lines.push('Bonus secteur +'+fmt(c.bApt));if(c.bPp>0)lines.push('Post-prod +'+fmt(c.bPp));if(c.bMet>0)lines.push('Métrage +'+fmt(c.bMet));d.innerHTML=lines.map(esc).join('<br>');}
 function saveSaisie(force){if(!ACCT)return;var j=document.getElementById('sa-jeton').value.trim();err('err-saisie');document.getElementById('warn-doublon').classList.remove('on');if(!j){err('err-saisie','Entre le jeton de l’intervention.');document.getElementById('sa-jeton').focus();return;}if(!/^[A-Za-z0-9._-]{1,30}$/.test(j)){err('err-saisie','Jeton invalide : lettres et chiffres uniquement (30 max).');return;}if(!ss.typo){err('err-saisie','Choisis une typologie.');return;}var dt=saDate();if(!dt){err('err-saisie','Choisis la date de l’intervention.');return;}var sansPPM=SANS_PPM.indexOf(ss.typo)>=0;var m=sansPPM?0:(parseInt(document.getElementById('sa-met').value,10)||0);var com=document.getElementById('sa-com').value.trim();var b=document.getElementById('btn-save');b.disabled=true;
 var fn,body;if(ss.editId){fn='solo_modifier';body={p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:ss.editId,p_jeton:j,p_date:dt,p_typo:ss.typo,p_secteur:ss.sect,p_pp:!sansPPM&&ss.pp,p_metrage:m,p_commentaire:com};}else{fn='solo_saisie';body={p_client:ACCT.client_id,p_cle:ACCT.cle,p_jeton:j,p_date:dt,p_typo:ss.typo,p_secteur:ss.sect,p_pp:!sansPPM&&ss.pp,p_metrage:m,p_force:!!force,p_commentaire:com};}
-rpc(fn,body).then(function(r){b.disabled=false;if(r&&r.doublon){document.getElementById('warn-txt').textContent=r.message+' C’était bien une nouvelle intervention ?';document.getElementById('warn-doublon').classList.add('on');return;}var dd=dt.split('-');document.getElementById('sv-badge').textContent=ss.editId?'Saisie modifiée':'Intervention enregistrée';document.getElementById('sv-total').textContent=fmt(parseFloat(r.total));var h='<div class="krow"><div class="k">Jeton</div><div class="v">'+esc(j)+'</div></div><div class="krow"><div class="k">Date</div><div class="v">'+esc(dd[2]+'/'+dd[1]+'/'+dd[0])+'</div></div><div class="krow"><div class="k">Typologie</div><div class="v">'+esc(TLBL[ss.typo])+'</div></div><div class="krow"><div class="k">Secteur</div><div class="v">'+esc(ss.sect)+'</div></div><div class="krow"><div class="k">Base</div><div class="v">'+fmt(parseFloat(r.base))+'</div></div>';if(parseFloat(r.bonus_secteur)>0)h+='<div class="krow"><div class="k">Bonus secteur</div><div class="v">+'+fmt(parseFloat(r.bonus_secteur))+'</div></div>';if(parseFloat(r.bonus_pp)>0)h+='<div class="krow"><div class="k">Post-prod</div><div class="v">+'+fmt(parseFloat(r.bonus_pp))+'</div></div>';if(parseFloat(r.bonus_met)>0)h+='<div class="krow"><div class="k">Métrage</div><div class="v">+'+fmt(parseFloat(r.bonus_met))+'</div></div>';h+='<div class="krow"><div class="k">Total</div><div class="v">'+fmt(parseFloat(r.total))+'</div></div>';if(com)h+='<div class="krow"><div class="k">Commentaire</div><div class="v" style="font-weight:500">'+esc(com)+'</div></div>';document.getElementById('sv-recap').innerHTML=h;show('s-saved');}).catch(function(e){b.disabled=false;err('err-saisie',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
+rpc(fn,body).then(function(r){b.disabled=false;if(r&&r.doublon){document.getElementById('warn-txt').textContent=r.message+' C’était bien une nouvelle intervention ?';document.getElementById('warn-doublon').classList.add('on');return;}var dd=dt.split('-');document.getElementById('sv-badge').textContent=ss.editId?'Saisie modifiée':'Intervention enregistrée';document.getElementById('sv-total').textContent=fmt(parseFloat(r.total));var h='<div class="krow"><div class="k">Jeton</div><div class="v">'+esc(j)+'</div></div><div class="krow"><div class="k">Date</div><div class="v">'+esc(dd[2]+'/'+dd[1]+'/'+dd[0])+'</div></div><div class="krow"><div class="k">Typologie</div><div class="v">'+esc(TLBL[ss.typo])+'</div></div><div class="krow"><div class="k">Secteur</div><div class="v">'+esc(ss.sect)+'</div></div><div class="krow"><div class="k">Base</div><div class="v">'+fmt(parseFloat(r.base))+'</div></div>';if(parseFloat(r.bonus_secteur)>0)h+='<div class="krow"><div class="k">Bonus secteur</div><div class="v">+'+fmt(parseFloat(r.bonus_secteur))+'</div></div>';if(parseFloat(r.bonus_pp)>0)h+='<div class="krow"><div class="k">Post-prod</div><div class="v">+'+fmt(parseFloat(r.bonus_pp))+'</div></div>';if(parseFloat(r.bonus_met)>0)h+='<div class="krow"><div class="k">Métrage</div><div class="v">+'+fmt(parseFloat(r.bonus_met))+'</div></div>';h+='<div class="krow"><div class="k">Total</div><div class="v">'+fmt(parseFloat(r.total))+'</div></div>';if(com)h+='<div class="krow"><div class="k">Commentaire</div><div class="v" style="font-weight:500">'+esc(com)+'</div></div>';document.getElementById('sv-recap').innerHTML=h;show('s-saved');}).catch(function(e){b.disabled=false;if(!ss.editId&&e&&e.reseau){var q=fileEnfiler(j,dt,ss.typo,ss.sect,!sansPPM&&ss.pp,m,com,!!force);if(q){fileConfirmer(q);return;}err('err-saisie','Trop de saisies en attente sur ce téléphone — reconnecte-toi au réseau pour les envoyer.');return;}err('err-saisie',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
 buildUI();
 (function(){var inv=(location.hash||'').match(/^#i=([0-9a-f]{20,64})$/);
 if(inv){document.getElementById('wait-txt').textContent='Activation de ton accès…';show('s-wait');rpc('solo_invite_signup',{p_code:inv[1]}).then(function(r){try{localStorage.setItem('crinstalle',JSON.stringify({client_id:r.client_id,cle:r.cle,compte:r.compte}));}catch(e){}try{history.replaceState(null,'',location.pathname);}catch(e){}connect(r.client_id,r.cle,{nouveau:true,lien:lienPerso(r.client_id,r.cle)});}).catch(function(e){show('s-accueil');err('err-accueil',e&&e.message?e.message:'Invitation invalide.');});return;}
