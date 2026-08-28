@@ -15,6 +15,45 @@ var FICHE=null;
 var ss={date:'auj',typo:null,sect:'APT',pp:false,editId:null};
 var REGL=false;
 var PAYLINK='https://buy.stripe.com/test_3cI6oI1cQfbO8h7gK76kg00';
+/* ---------- CA hors ligne (v17) ---------- */
+var CACLE='crinstalle_ca';
+var CA_LE=0;   /* horodatage du CA affiche quand il vient du cache, 0 s'il est frais */
+function caSave(cid,ca){try{localStorage.setItem(CACLE,JSON.stringify({client_id:cid,ca:ca,le:Date.now()}));}catch(e){}}
+function caLire(cid){try{var d=JSON.parse(localStorage.getItem(CACLE));
+  return (d&&d.client_id===cid&&d.ca)?d:null;}catch(e){return null;}}
+function caOublier(){try{localStorage.removeItem(CACLE);}catch(e){}}
+function caFrais(c){if(ACCT&&c&&c.mois_total!==undefined)caSave(ACCT.client_id,c);CA_LE=0;return c;}
+/* on ne se rabat sur le cache que pour une VRAIE panne reseau :
+   un « Acces refuse » doit continuer a ejecter l'utilisateur */
+function caSecours(er){var d=ACCT?caLire(ACCT.client_id):null;
+  if(d&&er&&er.reseau){CA_LE=d.le;return d.ca;}
+  throw er;}
+function caQuand(t,now){var d=new Date(t);
+  var hh=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+  var j0=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
+  if(t>=j0)return 'aujourd\u2019hui \u00e0 '+hh;
+  if(t>=j0-86400000)return 'hier \u00e0 '+hh;
+  return 'le '+('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+' \u00e0 '+hh;}
+/* saisies encore sur le telephone ET datees du mois affiche :
+   ce sont exactement celles qui manquent au total du serveur */
+function caAttente(now){var m=fileMiennes(),n=0,s=0,i;
+  var pref=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-';
+  for(i=0;i<m.length;i++){if(m[i].statut!=='attente')continue;
+    if((m[i].date||'').indexOf(pref)!==0)continue;
+    n++;s+=parseFloat(m[i].total)||0;}
+  return {n:n,somme:Math.round(s*100)/100};}
+var CASVG='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+var ATSVG='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>';
+/* apres un retour de reseau : si l'accueil affiche un CA venu du cache, on le recharge */
+function caRafraichir(){var h=document.getElementById('s-home');
+  if(CA_LE&&h&&h.classList.contains('on')&&navigator.onLine)goHome();}
+function caBandeau(now){var b=document.getElementById('hm-cache');if(!b)return;
+  now=now||new Date();
+  var h='',a=caAttente(now);
+  if(CA_LE){h+='<div class="cline">'+CASVG+'<span>Chiffres du serveur, arr\u00eat\u00e9s <b>'+esc(caQuand(CA_LE,now))+'</b>\u202f\u2014 pas de r\u00e9seau pour les mettre \u00e0 jour.</span></div>';}
+  if(a.n){h+='<div class="cline att">'+ATSVG+'<span><b>'+a.n+' saisie'+(a.n>1?'s':'')+' en attente d\u2019envoi</b>\u202f: '+esc(fmt(a.somme))+' pas encore compt\u00e9'+(a.n>1?'s':'')+' dans le total ci-dessus.</span></div>';}
+  b.innerHTML=h?('<div class="cbx">'+h+'</div>'):'';
+  b.className=h?'on':'';}
 /* ---------- recherche par jeton (v16) ---------- */
 var RECH_MIN=2;
 var RECH_SEQ=0;   /* numero de requete : une reponse en retard ne doit JAMAIS ecraser une plus recente */
@@ -198,7 +237,9 @@ function demarrerHorsLigne(cid,cle){var d=meLire(cid);if(!d)return false;
      hors ligne un fetch peut agoniser plusieurs secondes, et l'utilisateur
      resterait devant l'ecran d'inscription entre-temps */
   show('s-ok');
-  if(navigator.onLine)goHome();
+  /* si on connait deja le CA du mois, l'accueil est utilisable hors ligne :
+     goHome() retombe tout seul sur le cache quand le reseau manque */
+  if(navigator.onLine||caLire(cid))goHome();
   return true;}
 /* rafraichit le profil sans jamais deplacer l'utilisateur */
 function rafraichirProfil(){if(!ACCT)return;
@@ -211,7 +252,7 @@ function majBandeau(){var n=0;try{n=fileMiennes().length;}catch(e){}var b=docume
   document.body.classList.toggle('hl',!navigator.onLine);
   b.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 2l20 20"/><path d="M5 12.5a9 9 0 013.6-2.4"/><path d="M8.5 16a4.5 4.5 0 015.2-.8"/><path d="M12 19.5h.01"/><path d="M19 12.5a9 9 0 00-4.6-2.6"/></svg>'
     +'<span>'+(n>0?('Hors ligne — '+n+' saisie'+(n>1?'s':'')+' en attente, elle'+(n>1?'s partiront':' partira')+' au retour du réseau'):'Hors ligne — tes saisies sont gardées et envoyées au retour du réseau')+'</span>';}
-window.addEventListener('online',function(){majBandeau();rafraichirProfil();fileEnvoyer();});
+window.addEventListener('online',function(){majBandeau();rafraichirProfil();Promise.resolve(fileEnvoyer()).then(caRafraichir,caRafraichir);});
 window.addEventListener('offline',majBandeau);
 majBandeau();
 var NAVMAP={'s-home':'s-home','s-docs':'s-docs','s-docadd':'s-docs','s-ok':'s-ok'};
@@ -231,7 +272,7 @@ var IMGSVG='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="
 var SUNSVG='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>';
 var MOONSVG='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>';
 function show(id){var s=document.querySelectorAll('.screen');for(var i=0;i<s.length;i++)s[i].classList.remove('on');document.getElementById(id).classList.add('on');window.scrollTo(0,0);navSync(id);}
-function err(id,msg){var e=document.getElementById(id);if(msg){e.textContent=msg;e.classList.add('on');}else{e.classList.remove('on');}}
+function err(id,msg){var e=document.getElementById(id);if(!e)return;if(msg){e.textContent=msg;e.classList.add('on');}else{e.classList.remove('on');}}
 function fmt(n){return n.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,' ')+' €';}
 function togSw(el){el.classList.toggle('on');el.setAttribute('aria-checked',el.classList.contains('on')?'true':'false');if(el.id==='sw-sect')document.getElementById('chips-sect').style.display=el.classList.contains('on')?'flex':'none';if(el.id==='sw-met')document.getElementById('met-fields').style.display=el.classList.contains('on')?'flex':'none';}
 function goOperateur(){var p=document.getElementById('in-prenom').value.trim();if(!p){err('err-accueil','Dis-moi ton prénom pour commencer.');document.getElementById('in-prenom').focus();return;}var em=document.getElementById('in-email').value.trim();if(em&&!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(em)){err('err-accueil','Ton email ne ressemble pas à une adresse — corrige-le ou laisse-le vide.');document.getElementById('in-email').focus();return;}err('err-accueil');reglOff();show('s-operateur');}
@@ -260,7 +301,7 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function buildProfil(){if(!ACCT||(ACCT.me&&ACCT.me.equipe))return;var me=ACCT.me||{};if(!document.getElementById('ok-profil')){var d=document.createElement('div');d.id='ok-profil';document.getElementById('ok-recap').insertAdjacentElement('afterend',d);}document.getElementById('ok-profil').innerHTML='<div class="lsthead" style="margin-top:8px"><div class="t">Mon profil</div></div><div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="field"><label class="lab" for="pf-email">Email</label><input type="text" id="pf-email" maxlength="120" autocomplete="email" placeholder="ex. karim@gmail.com"><div class="note">Pour récupérer ton compte si tu perds ton lien.</div></div><div class="field"><label class="lab" for="pf-dep">Département</label><input type="text" id="pf-dep" maxlength="3" placeholder="ex. 06" style="width:110px"></div><div class="swrow"><div><div class="swname" id="lbl-dispo">Ouvert aux opportunités</div><div class="swsub">On te contacte si un patron cherche un technicien dans ton département.</div></div><button class="sw'+(me.dispo_opportunites==='oui'?' on':'')+'" id="sw-dispo" role="switch" aria-checked="'+(me.dispo_opportunites==='oui'?'true':'false')+'" aria-labelledby="lbl-dispo" onclick="togSw(this)"></button></div><div class="err" id="err-profil" role="alert"></div><button class="btn ghost" onclick="saveProfil()" id="btn-profil">Enregistrer mon profil</button></div>';document.getElementById('pf-email').value=me.email||'';document.getElementById('pf-dep').value=me.departement||'';}
 function saveProfil(){if(!ACCT)return;err('err-profil');var em=document.getElementById('pf-email').value.trim();var dep=document.getElementById('pf-dep').value.trim();var disp=document.getElementById('sw-dispo').classList.contains('on')?'oui':'non';if(disp==='oui'&&!dep){err('err-profil','Indique ton département pour être contacté.');document.getElementById('pf-dep').focus();return;}var b=document.getElementById('btn-profil');b.disabled=true;rpc('solo_profil_save',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_email:em,p_departement:dep,p_dispo:disp}).then(function(r){b.disabled=false;ACCT.me.email=r.email;ACCT.me.departement=r.departement;ACCT.me.dispo_opportunites=r.dispo;document.getElementById('pf-dep').value=r.departement;b.textContent='Profil enregistré ✓';setTimeout(function(){b.textContent='Enregistrer mon profil';},2000);}).catch(function(e){b.disabled=false;err('err-profil',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
 function isoLocal(d){var m=d.getMonth()+1,j=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(j<10?'0':'')+j;}
-function goHome(){if(!ACCT)return;rpc('solo_ca',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(c){var now=new Date();document.getElementById('hm-date').textContent=JOURS[now.getDay()]+' '+now.getDate()+' '+MOIS[now.getMonth()];document.getElementById('hm-salut').textContent='Salut '+(ACCT.me.prenom||'')+' !';document.getElementById('hm-moislab').textContent='CA du mois — '+MOIS[now.getMonth()];var mt=parseFloat(c.mois_total)||0,pt=parseFloat(c.prec_total)||0;document.getElementById('hm-total').textContent=fmt(mt);var vs=document.getElementById('hm-vs');var pm=new Date(now.getFullYear(),now.getMonth()-1,1);if(pt>0){var pc=Math.round((mt-pt)/pt*100);vs.textContent=(pc>=0?'+':'')+pc+' % vs '+MOIS[pm.getMonth()];vs.style.display='inline-flex';}else{vs.style.display='none';}
+function goHome(){if(!ACCT)return;err('err-home');rpc('solo_ca',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(caFrais,caSecours).then(function(c){var now=new Date();document.getElementById('hm-date').textContent=JOURS[now.getDay()]+' '+now.getDate()+' '+MOIS[now.getMonth()];document.getElementById('hm-salut').textContent='Salut '+(ACCT.me.prenom||'')+' !';document.getElementById('hm-moislab').textContent='CA du mois — '+MOIS[now.getMonth()];var mt=parseFloat(c.mois_total)||0,pt=parseFloat(c.prec_total)||0;document.getElementById('hm-total').textContent=fmt(mt);var vs=document.getElementById('hm-vs');var pm=new Date(now.getFullYear(),now.getMonth()-1,1);if(pt>0){var pc=Math.round((mt-pt)/pt*100);vs.textContent=(pc>=0?'+':'')+pc+' % vs '+MOIS[pm.getMonth()];vs.style.display='inline-flex';}else{vs.style.display='none';}
 var jours=c.jours||[],max=1,i;for(i=0;i<jours.length;i++)max=Math.max(max,parseFloat(jours[i].t)||0);var bh='';for(i=0;i<jours.length;i++){var v=parseFloat(jours[i].t)||0;var pct=Math.max(6,Math.round(v/max*100));bh+='<i style="height:'+pct+'%" class="'+(i===jours.length-1?'hot':'')+'"></i>';}document.getElementById('hm-bars').innerHTML=bh;
 document.getElementById('hm-auj').textContent=fmt(parseFloat(c.auj_total)||0);document.getElementById('hm-auj-n').textContent=(c.auj_n||0)+' intervention'+((c.auj_n||0)>1?'s':'');document.getElementById('hm-prec-lab').textContent=MOIS[pm.getMonth()].charAt(0).toUpperCase()+MOIS[pm.getMonth()].slice(1);document.getElementById('hm-prec').textContent=fmt(pt);document.getElementById('hm-prec-n').textContent=(c.prec_n||0)+' intervention'+((c.prec_n||0)>1?'s':'');
 var dl=c.dernieres||[],lh='';if(!dl.length){lh='<div style="padding:18px 16px;font-size:14px;color:var(--tx2)">Aucune saisie pour l’instant — commence par ta première intervention.</div>';}for(i=0;i<dl.length;i++){var d=dl[i];var dd=(d.date||'').split('-');lh+='<button class="hrow" onclick="openFiche('+parseInt(d.id,10)+')"><span><span class="j" style="display:block">'+esc(d.jeton)+'</span><span class="m" style="display:block">'+esc(TLBL[d.typo]||d.typo)+' · '+esc(d.sect)+' · '+esc(dd[2]+'/'+dd[1])+'</span></span><span class="t">'+fmt(parseFloat(d.total)||0)+'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></button>';}document.getElementById('hm-list').innerHTML=lh;
@@ -273,9 +314,9 @@ var ab=document.getElementById('hm-abo');
 if(aboLocked(ACCT.me)){ab.innerHTML='<button class="linkbtn" style="width:100%;text-align:center;background:var(--tint);border:1px solid var(--accent);border-radius:14px;padding:14px;color:var(--accent-l);font-weight:700" onclick="show(&quot;s-abo&quot;)">Essai terminé — la saisie est en pause. S’abonner</button>';}
 else if(ACCT.me.abo_statut==='essai'){var aj=parseInt(ACCT.me.abo_jours,10)||0;ab.innerHTML='<div class="note center" style="padding:2px 0 10px'+(aj<=5?';color:var(--accent-l);font-weight:600':'')+'">Essai gratuit — '+aj+' jour'+(aj>1?'s':'')+' restant'+(aj>1?'s':'')+'</div>';}
 else{ab.innerHTML='';}
-buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();show('s-home');}).catch(function(){buildFile();show('s-ok');});}
+buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);show('s-home');}).catch(function(){buildFile();show('s-ok');});}
 var PDFSVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:8px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
-function openPdf(back){if(!ACCT)return;var n=new Date();var m=new Date(n.getFullYear(),n.getMonth()-back,1);var ms=m.getFullYear()+'-'+((m.getMonth()+1)<10?'0':'')+(m.getMonth()+1);location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-pdf?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms;}
+function openPdf(back){if(!ACCT)return;if(!navigator.onLine){err('err-home',HORSLIGNE_MSG);return;}var n=new Date();var m=new Date(n.getFullYear(),n.getMonth()-back,1);var ms=m.getFullYear()+'-'+((m.getMonth()+1)<10?'0':'')+(m.getMonth()+1);location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-pdf?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms;}
 function aboLocked(m){return (m.abo_statut==='essai'&&(parseInt(m.abo_jours,10)||0)<=0)||m.abo_statut==='annule';}
 function buildAbo(){if(document.getElementById('s-abo'))return;var s=document.createElement('section');s.className='screen';s.id='s-abo';s.innerHTML='<div class="grow"></div><div class="center"><img src="" alt="Logo Crinstalle IA" id="abo-logo" style="width:72px;height:72px;border-radius:18px"><div style="margin-top:14px"><span class="badge ko">Essai terminé</span></div><h1 style="margin-top:12px">On continue ensemble ?</h1><p class="sub" style="margin-top:8px">Ton mois d’essai gratuit est terminé.<br>Tes données et tes relevés PDF restent accessibles.</p></div><div class="card" style="padding:6px 18px;margin-top:18px"><div class="krow"><div class="k">Abonnement</div><div class="v">4,99 € / mois</div></div><div class="krow"><div class="k">Engagement</div><div class="v">Aucun</div></div><div class="krow"><div class="k">Inclus</div><div class="v" style="font-weight:500">Saisie illimitée · Mon CA · Relevés PDF</div></div></div><div class="err" id="err-abo" role="alert"></div><div class="grow"></div><button class="btn" onclick="openAbo()">S’abonner — 4,99 €/mois</button><button class="btn ghost" onclick="refreshAbo()">J’ai payé — actualiser</button><div class="center"><button class="linkbtn" onclick="goHome()">Voir mon CA (lecture)</button></div>';document.getElementById('s-accueil').parentNode.appendChild(s);var l=document.getElementById('abo-logo');if(l)l.src=LOGO;}
 function openAbo(){if(!ACCT)return;location.href=PAYLINK+'?client_reference_id='+ACCT.client_id;}
@@ -284,7 +325,7 @@ function openFiche(id){if(!ACCT)return;rpc('solo_intervention',{p_client:ACCT.cl
 if(f.commentaire){h+='<div class="krow"><div class="k">Commentaire</div><div class="v" style="font-weight:500">'+esc(f.commentaire)+'</div></div>';}
 document.getElementById('fi-rows').innerHTML=h;
 var p='<div class="dkrow"><span class="k">'+esc(TLBL[f.typo]||f.typo)+'</span><span class="v">'+fmt(parseFloat(f.base)||0)+'</span></div>';if(parseFloat(f.bonus_secteur)>0)p+='<div class="dkrow"><span class="k">Bonus secteur</span><span class="v hot">+'+fmt(parseFloat(f.bonus_secteur))+'</span></div>';if(parseFloat(f.bonus_pp)>0)p+='<div class="dkrow"><span class="k">Post-prod</span><span class="v hot">+'+fmt(parseFloat(f.bonus_pp))+'</span></div>';if(parseFloat(f.bonus_met)>0)p+='<div class="dkrow"><span class="k">Métrage</span><span class="v hot">+'+fmt(parseFloat(f.bonus_met))+'</span></div>';p+='<div class="dksep"></div><div class="dkrow"><span class="k tot">Total</span><span class="dktotal">'+fmt(parseFloat(f.total)||0)+'</span></div>';document.getElementById('fi-pay').innerHTML=p;
-show('s-fiche');}).catch(function(e){err('err-fiche',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
+show('s-fiche');}).catch(function(e){var msg=e&&e.message?e.message:'Petit souci réseau, réessaie.';var f=document.getElementById('s-fiche');if(f&&f.classList.contains('on')){err('err-fiche',msg);}else{err('err-home',msg);}});}
 function delFiche(){if(!FICHE)return;document.getElementById('warn-del-txt').textContent='Supprimer définitivement la saisie du jeton '+FICHE.jeton+' ('+fmt(parseFloat(FICHE.total)||0)+') ? Cette action est irréversible.';document.getElementById('warn-del').classList.add('on');}
 function confirmDel(){if(!FICHE)return;err('err-fiche');rpc('solo_supprimer',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:FICHE.id}).then(function(){FICHE=null;goHome();}).catch(function(e){document.getElementById('warn-del').classList.remove('on');err('err-fiche',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
 function editFiche(){if(!FICHE)return;var f=FICHE;openSaisie();ss.editId=f.id;document.getElementById('sa-ttl').textContent='Modifier la saisie';document.getElementById('sa-jeton').value=f.jeton;var auj=isoLocal(new Date());var hier=new Date();hier.setDate(hier.getDate()-1);hier=isoLocal(hier);if(f.date===auj){pickDate('auj');}else if(f.date===hier){pickDate('hier');}else{pickDate('autre');document.getElementById('sa-date').value=f.date;}
