@@ -1,5 +1,5 @@
 // Crinstalle IA — service worker v1 : réseau d'abord, cache en secours (app utilisable hors ligne en lecture du shell)
-var CACHE = 'crinstalle-v5';
+var CACHE = 'crinstalle-v6';
 var SHELL = ['/', '/index.html', '/crinstalle-app.js', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); }));
