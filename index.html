@@ -316,6 +316,15 @@ body.hl.nav .screen.on{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
 /* pastille d'icone (documents) */
 .ic{width:40px;height:40px;border-radius:12px;background:var(--surface-s);border:1px solid var(--border);
   display:flex;align-items:center;justify-content:center;color:var(--accent-l);flex:none}
+
+/* ---------- droite-a-gauche (langues v20) ---------- */
+[dir=rtl] input[type=tel],[dir=rtl] #sa-jeton,[dir=rtl] #in-email,[dir=rtl] #hm-srchq{direction:ltr;text-align:right}
+[dir=rtl] .hrow .t svg{transform:scaleX(-1)}
+[dir=rtl] .srchb{margin:-11px 0 -11px -10px}
+[dir=rtl] .darkcard::before{background:linear-gradient(270deg,var(--accent),transparent 70%)}
+[dir=rtl] .dctotal,[dir=rtl] .tv,[dir=rtl] .paytotal,[dir=rtl] .dktotal,[dir=rtl] .fjeton,[dir=rtl] .hrow .t,[dir=rtl] #sv-total{direction:ltr}
+[dir=rtl] .krow .v{direction:ltr;text-align:left}
+[dir=rtl] .dkrow .v{direction:ltr}
 </style>
 </head>
 <body>
