@@ -14,7 +14,7 @@ var ACCT=null;
 var FICHE=null;
 var ss={date:'auj',typo:null,sect:'APT',pp:false,editId:null};
 var REGL=false;
-var PAYLINK='https://buy.stripe.com/test_3cI6oI1cQfbO8h7gK76kg00';
+var PAYLINK='https://buy.stripe.com/00w28sbU13Kw4YP00F43S00';
 /* ---------- CA hors ligne (v17) ---------- */
 var CACLE='crinstalle_ca';
 var CA_LE=0;   /* horodatage du CA affiche quand il vient du cache, 0 s'il est frais */
