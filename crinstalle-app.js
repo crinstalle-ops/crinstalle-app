@@ -15,6 +15,35 @@ var FICHE=null;
 var ss={date:'auj',typo:null,sect:'APT',pp:false,editId:null};
 var REGL=false;
 var PAYLINK='https://buy.stripe.com/00w28sbU13Kw4YP00F43S00';
+/* ---------- langues (v19) : mecanisme inerte tant qu'aucun dictionnaire n'est charge ---------- */
+var LANGCLE='crinstalle_lang';
+var DICOS={};  /* bloc 2 : DICOS.ar={dir:'rtl',exact:{...},motifs:[[re,gabarit],...]} */
+var LANG='fr';
+try{var _lg=localStorage.getItem(LANGCLE);if(_lg&&_lg!=='fr')LANG=_lg;}catch(e){}
+function trad(s){var d=DICOS[LANG];if(!d)return null;
+  var e=d.exact[s];if(e!==undefined)return e;
+  if(d.motifs){for(var i=0;i<d.motifs.length;i++){var m=d.motifs[i];if(m[0].test(s))return s.replace(m[0],m[1]);}}
+  return null;}
+function tradNoeud(n){
+  if(n.nodeType===3){var v=n.nodeValue,c=v.trim();if(!c)return;
+    var t2=trad(c);if(t2!==null&&t2!==c)n.nodeValue=v.replace(c,t2);return;}
+  if(n.nodeType!==1||n.tagName==='SCRIPT'||n.tagName==='STYLE')return;
+  var i,ATTRS=['placeholder','aria-label','title','alt'];
+  for(i=0;i<ATTRS.length;i++){if(!n.hasAttribute||!n.hasAttribute(ATTRS[i]))continue;
+    var a=n.getAttribute(ATTRS[i]),t3=trad(a);if(t3!==null&&t3!==a)n.setAttribute(ATTRS[i],t3);}
+  for(i=0;i<n.childNodes.length;i++)tradNoeud(n.childNodes[i]);}
+function tradTout(){if(DICOS[LANG]&&document.body)tradNoeud(document.body);}
+(function(){var d=DICOS[LANG];if(!d)return;   /* francais : rien n'est installe */
+  document.documentElement.lang=LANG;
+  if(d.dir)document.documentElement.setAttribute('dir',d.dir);
+  new MutationObserver(function(ms){
+    for(var i=0;i<ms.length;i++){var m=ms[i];
+      if(m.type==='characterData'){tradNoeud(m.target);continue;}
+      for(var j=0;j<m.addedNodes.length;j++)tradNoeud(m.addedNodes[j]);}
+  }).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+  if(document.body)tradTout();else document.addEventListener('DOMContentLoaded',tradTout);
+})();
+function setLang(l){try{if(!l||l==='fr')localStorage.removeItem(LANGCLE);else localStorage.setItem(LANGCLE,l);}catch(e){}location.reload();}
 /* ---------- CA hors ligne (v17) ---------- */
 var CACLE='crinstalle_ca';
 var CA_LE=0;   /* horodatage du CA affiche quand il vient du cache, 0 s'il est frais */
