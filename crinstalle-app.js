@@ -187,6 +187,12 @@ DICOS.ar={dir:'rtl',exact:{
  "Ce compte n’existe plus — tu peux en créer un nouveau.":"هذا الحساب لم يعد موجودًا — يمكنك إنشاء حساب جديد.",
  "Ton accès est offert par ton responsable — bonne saisie !":"وصولك مقدَّم من مسؤولك — تسجيلًا موفقًا!",
  "Renseigne au moins un tarif (ou décoche moins de typologies).":"أدخل سعرًا واحدًا على الأقل (أو قلّل الأنواع المستبعدة).",
+ "Répartition du mois":"توزيع الشهر",
+ "Base":"الأساس",
+ "Bonus & majorations":"العلاوات والزيادات",
+ "Réclamations":"المطالبات",
+ "Aucune intervention ce mois-ci.":"لا تدخّل هذا الشهر.",
+ "Voir le détail":"عرض التفاصيل",
  "Non":"لا",
 },motifs:[
  [/^CA du mois — (.+)$/, "رقم أعمال الشهر — $1"],
@@ -526,8 +532,36 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function buildProfil(){if(!ACCT||(ACCT.me&&ACCT.me.equipe))return;var me=ACCT.me||{};if(!document.getElementById('ok-profil')){var d=document.createElement('div');d.id='ok-profil';document.getElementById('ok-recap').insertAdjacentElement('afterend',d);}document.getElementById('ok-profil').innerHTML='<div class="lsthead" style="margin-top:8px"><div class="t">Mon profil</div></div><div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="field"><label class="lab" for="pf-email">Email</label><input type="text" id="pf-email" maxlength="120" autocomplete="email" placeholder="ex. karim@gmail.com"><div class="note">Pour récupérer ton compte si tu perds ton lien.</div></div><div class="field"><label class="lab" for="pf-dep">Département</label><input type="text" id="pf-dep" maxlength="3" placeholder="ex. 06" style="width:110px"></div><div class="swrow"><div><div class="swname" id="lbl-dispo">Ouvert aux opportunités</div><div class="swsub">On te contacte si un patron cherche un technicien dans ton département.</div></div><button class="sw'+(me.dispo_opportunites==='oui'?' on':'')+'" id="sw-dispo" role="switch" aria-checked="'+(me.dispo_opportunites==='oui'?'true':'false')+'" aria-labelledby="lbl-dispo" onclick="togSw(this)"></button></div><div class="err" id="err-profil" role="alert"></div><button class="btn ghost" onclick="saveProfil()" id="btn-profil">Enregistrer mon profil</button></div>';document.getElementById('pf-email').value=me.email||'';document.getElementById('pf-dep').value=me.departement||'';}
 function saveProfil(){if(!ACCT)return;err('err-profil');var em=document.getElementById('pf-email').value.trim();var dep=document.getElementById('pf-dep').value.trim();var disp=document.getElementById('sw-dispo').classList.contains('on')?'oui':'non';if(disp==='oui'&&!dep){err('err-profil','Indique ton département pour être contacté.');document.getElementById('pf-dep').focus();return;}var b=document.getElementById('btn-profil');b.disabled=true;rpc('solo_profil_save',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_email:em,p_departement:dep,p_dispo:disp}).then(function(r){b.disabled=false;ACCT.me.email=r.email;ACCT.me.departement=r.departement;ACCT.me.dispo_opportunites=r.dispo;document.getElementById('pf-dep').value=r.departement;b.textContent='Profil enregistré ✓';setTimeout(function(){b.textContent='Enregistrer mon profil';},2000);}).catch(function(e){b.disabled=false;err('err-profil',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
 function isoLocal(d){var m=d.getMonth()+1,j=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(j<10?'0':'')+j;}
+var CADET_OPEN=false;
+function caDetRow(a,b,opts){opts=opts||{};return '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:14px'+(opts.strong?';font-weight:600':'')+(opts.sep?';border-top:1px solid var(--border);margin-top:6px;padding-top:8px':'')+'">'+a+'<span style="direction:ltr;font-variant-numeric:tabular-nums'+(opts.vcol?';color:'+opts.vcol:';color:var(--tx2)')+'">'+b+'</span></div>';}
+function buildCaDetail(c){
+  var card=document.querySelector('#s-home .darkcard');if(!card)return;
+  var det=(c&&c.detail)||null;
+  var box=document.getElementById('hm-detail');
+  if(!box){box=document.createElement('div');box.id='hm-detail';box.hidden=true;box.style.cssText='margin-top:12px;padding-top:12px;border-top:1px solid var(--border)';var cache=document.getElementById('hm-cache');if(cache)cache.insertAdjacentElement('afterend',box);else card.appendChild(box);}
+  var head=card.querySelector('.dchead');
+  if(head&&!document.getElementById('hm-chev')){head.insertAdjacentHTML('beforeend','<svg id="hm-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transition:transform .2s;flex:none;color:var(--tx3)"><path d="M6 9l6 6 6-6"/></svg>');}
+  if(!det||!det.typos||!det.typos.length){box.innerHTML='<div class="note center" style="padding:6px 0">Aucune intervention ce mois-ci.</div>';}
+  else{
+    var h='<div class="note" style="margin-bottom:8px">Répartition du mois</div>',i;
+    for(i=0;i<det.typos.length;i++){var t=det.typos[i];var lbl=TLBL[t.typo]||t.typo;
+      h+=caDetRow('<span style="direction:ltr;color:var(--tx)"><b style="font-variant-numeric:tabular-nums">'+(parseInt(t.n,10)||0)+'</b> '+esc(lbl)+'</span>', fmt(parseFloat(t.t)||0));}
+    var base=parseFloat(det.base)||0,bonus=parseFloat(det.bonus)||0,reclam=parseFloat(det.reclam)||0;
+    h+=caDetRow('<span style="color:var(--tx2)">Base</span>', fmt(base), {sep:true});
+    h+=caDetRow('<span>Bonus & majorations</span>', '+ '+fmt(bonus), {strong:true,vcol:'var(--accent-l)'});
+    if(reclam>0)h+=caDetRow('<span style="color:var(--tx2)">Réclamations</span>', '+ '+fmt(reclam));
+    box.innerHTML=h;
+  }
+  if(!card.dataset.tap){card.dataset.tap='1';card.style.cursor='pointer';card.setAttribute('role','button');card.setAttribute('tabindex','0');card.setAttribute('aria-controls','hm-detail');
+    var tog=function(){CADET_OPEN=!CADET_OPEN;caDetReflect(card);};
+    card.addEventListener('click',tog);
+    card.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}});
+  }
+  caDetReflect(card);
+}
+function caDetReflect(card){var b=document.getElementById('hm-detail');if(b)b.hidden=!CADET_OPEN;var ch=document.getElementById('hm-chev');if(ch)ch.style.transform=CADET_OPEN?'rotate(180deg)':'';if(card)card.setAttribute('aria-expanded',CADET_OPEN?'true':'false');}
 function goHome(){if(!ACCT)return;err('err-home');rpc('solo_ca',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(caFrais,caSecours).then(function(c){var now=new Date();document.getElementById('hm-date').textContent=JOURS[now.getDay()]+' '+now.getDate()+' '+MOIS[now.getMonth()];document.getElementById('hm-salut').textContent='Salut '+(ACCT.me.prenom||'')+' !';document.getElementById('hm-moislab').textContent='CA du mois — '+MOIS[now.getMonth()];var mt=parseFloat(c.mois_total)||0,pt=parseFloat(c.prec_total)||0;document.getElementById('hm-total').textContent=fmt(mt);var vs=document.getElementById('hm-vs');var pm=new Date(now.getFullYear(),now.getMonth()-1,1);if(pt>0){var pc=Math.round((mt-pt)/pt*100);vs.textContent=(pc>=0?'+':'')+pc+' % vs '+MOIS[pm.getMonth()];vs.style.display='inline-flex';}else{vs.style.display='none';}
-var jours=c.jours||[],max=1,i;for(i=0;i<jours.length;i++)max=Math.max(max,parseFloat(jours[i].t)||0);var bh='';for(i=0;i<jours.length;i++){var v=parseFloat(jours[i].t)||0;var pct=Math.max(6,Math.round(v/max*100));bh+='<i style="height:'+pct+'%" class="'+(i===jours.length-1?'hot':'')+'"></i>';}document.getElementById('hm-bars').innerHTML=bh;
+var jours=c.jours||[],max=1,i;for(i=0;i<jours.length;i++)max=Math.max(max,parseFloat(jours[i].t)||0);var bh='';for(i=0;i<jours.length;i++){var v=parseFloat(jours[i].t)||0;var pct=Math.max(6,Math.round(v/max*100));bh+='<i style="height:'+pct+'%" class="'+(i===jours.length-1?'hot':'')+'"></i>';}document.getElementById('hm-bars').innerHTML=bh;buildCaDetail(c);
 document.getElementById('hm-auj').textContent=fmt(parseFloat(c.auj_total)||0);document.getElementById('hm-auj-n').textContent=(c.auj_n||0)+' intervention'+((c.auj_n||0)>1?'s':'');document.getElementById('hm-prec-lab').textContent=MOIS[pm.getMonth()].charAt(0).toUpperCase()+MOIS[pm.getMonth()].slice(1);document.getElementById('hm-prec').textContent=fmt(pt);document.getElementById('hm-prec-n').textContent=(c.prec_n||0)+' intervention'+((c.prec_n||0)>1?'s':'');
 var dl=c.dernieres||[],lh='';if(!dl.length){lh='<div style="padding:18px 16px;font-size:14px;color:var(--tx2)">Aucune saisie pour l’instant — commence par ta première intervention.</div>';}for(i=0;i<dl.length;i++){var d=dl[i];var dd=(d.date||'').split('-');lh+='<button class="hrow" onclick="openFiche('+parseInt(d.id,10)+')"><span><span class="j" style="display:block">'+esc(d.jeton)+'</span><span class="m" style="display:block">'+esc(TLBL[d.typo]||d.typo)+' · '+esc(d.sect)+' · '+esc(dd[2]+'/'+dd[1])+'</span></span><span class="t">'+fmt(parseFloat(d.total)||0)+'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></button>';}document.getElementById('hm-list').innerHTML=lh;
 if(!document.getElementById('hm-pdf')){var pdiv=document.createElement('div');pdiv.id='hm-pdf';document.getElementById('hm-list').insertAdjacentElement('afterend',pdiv);}
