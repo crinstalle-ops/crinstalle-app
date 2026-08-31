@@ -770,10 +770,12 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   l.style.cssText='display:block;margin:10px auto 0;padding:8px;background:none;border:none;color:var(--tx2);font-size:14px;font-weight:600;font-family:inherit;text-decoration:underline;cursor:pointer';
   l.onclick=function(){setLang(LANG==='ar'?'fr':'ar');};
   acc.appendChild(l);}
- var rec=document.getElementById('ok-recap');
- if(rec&&rec.parentNode){var d=document.createElement('div');d.className='card swrow';d.id='lang-row';
-  d.innerHTML='<div><div class="swname">Langue · اللغة</div></div><div style="display:flex;gap:8px">'
-   +'<button type="button" class="chip'+(LANG==='fr'?' sel':'')+'" onclick="setLang(\'fr\')">Français</button>'
-   +'<button type="button" class="chip'+(LANG!=='fr'?' sel':'')+'" onclick="setLang(\'ar\')">العربية</button></div>';
-  rec.parentNode.insertBefore(d,rec.nextSibling);}
+ var hh=document.querySelector('#s-home .hmhead');var bt=document.getElementById('btn-thm');
+ if(hh&&bt&&!document.getElementById('lang-tog')){var g=document.createElement('button');g.type='button';g.className='thm';g.id='lang-tog';
+  g.textContent=(LANG==='ar')?'FR':'ع';
+  g.style.fontWeight='700';g.style.fontSize='15px';
+  g.setAttribute('lang',(LANG==='ar')?'fr':'ar');
+  g.setAttribute('aria-label',(LANG==='ar')?'التبديل إلى الفرنسية':'Passer en arabe');
+  g.onclick=function(){setLang(LANG==='ar'?'fr':'ar');};
+  hh.insertBefore(g,bt);}
 })();
