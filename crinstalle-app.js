@@ -81,6 +81,9 @@ DICOS.ar={dir:'rtl',exact:{
  "Mon CA":"رقم أعمالي",
  "CA du mois":"رقم أعمال الشهر",
  "Mois dernier":"الشهر الماضي",
+ "Mois précédent":"الشهر السابق",
+ "Mois suivant":"الشهر التالي",
+ "Historique indisponible pour l’instant.":"السجل غير متاح في الوقت الحالي.",
  "Aujourd'hui":"اليوم",
  "7 derniers jours":"آخر 7 أيام",
  "Dernières saisies":"آخر التسجيلات",
@@ -534,6 +537,66 @@ function saveProfil(){if(!ACCT)return;err('err-profil');var em=document.getEleme
 function isoLocal(d){var m=d.getMonth()+1,j=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(j<10?'0':'')+j;}
 var CADET_OPEN=false;
 function caDetRow(a,b,opts){opts=opts||{};return '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:14px'+(opts.strong?';font-weight:600':'')+(opts.sep?';border-top:1px solid var(--border);margin-top:6px;padding-top:8px':'')+'">'+a+'<span style="direction:ltr;font-variant-numeric:tabular-nums'+(opts.vcol?';color:'+opts.vcol:';color:var(--tx2)')+'">'+b+'</span></div>';}
+function caDetHTML(det){
+  if(!det||!det.typos||!det.typos.length)return '<div class="note center" style="padding:6px 0">Aucune intervention ce mois-ci.</div>';
+  var h='<div class="note" style="margin-bottom:8px">Répartition du mois</div>',i;
+  for(i=0;i<det.typos.length;i++){var t=det.typos[i];var lbl=TLBL[t.typo]||t.typo;
+    h+=caDetRow('<span style="direction:ltr;color:var(--tx)"><b style="font-variant-numeric:tabular-nums">'+(parseInt(t.n,10)||0)+'</b> '+esc(lbl)+'</span>', fmt(parseFloat(t.t)||0));}
+  var base=parseFloat(det.base)||0,bonus=parseFloat(det.bonus)||0,reclam=parseFloat(det.reclam)||0;
+  h+=caDetRow('<span style="color:var(--tx2)">Base</span>', fmt(base), {sep:true});
+  h+=caDetRow('<span>Bonus & majorations</span>', '+ '+fmt(bonus), {strong:true,vcol:'var(--accent-l)'});
+  if(reclam>0)h+=caDetRow('<span style="color:var(--tx2)">Réclamations</span>', '+ '+fmt(reclam));
+  return h;
+}
+/* ---------- historique de tous les mois (v23) ---------- */
+var HIST=null,HIST_IDX=0,CA_CUR=null,CA_VS=false;
+var HISTCLE='crinstalle_hist';
+function histListe(h){var now=new Date();var cur=now.getFullYear()+'-'+((now.getMonth()+1)<10?'0':'')+(now.getMonth()+1);
+  var l=[],ms=(h&&h.mois)||[],i;for(i=0;i<ms.length;i++){if(ms[i].m<cur)l.push(ms[i]);}return l;}
+function histCharger(fin){
+  rpc('solo_ca_hist',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(h){
+    try{localStorage.setItem(HISTCLE,JSON.stringify({client_id:ACCT.client_id,h:h,le:Date.now()}));}catch(e){}
+    HIST=histListe(h);fin();
+  }).catch(function(er){
+    var d=null;try{d=JSON.parse(localStorage.getItem(HISTCLE));}catch(e){}
+    if(d&&d.client_id===ACCT.client_id&&d.h){HIST=histListe(d.h);fin();return;}
+    err('err-home',er&&er.reseau?HORSLIGNE_MSG:'Historique indisponible pour l’instant.');
+  });
+}
+function moisNav(delta,ev){if(ev){ev.stopPropagation();ev.preventDefault();}
+  if(delta<0){if(HIST===null){histCharger(function(){moisNavGo(HIST_IDX+1);});return;}moisNavGo(HIST_IDX+1);}
+  else moisNavGo(HIST_IDX-1);}
+function moisNavGo(idx){if(idx<0)idx=0;if(HIST&&idx>HIST.length)idx=HIST.length;HIST_IDX=idx;caMoisRender();}
+function caMoisRender(){
+  var lab=document.getElementById('hm-moislab'),tot=document.getElementById('hm-total'),vs=document.getElementById('hm-vs'),bars=document.getElementById('hm-bars');
+  if(!lab||!tot)return;
+  var cap7=(bars&&bars.nextElementSibling&&bars.nextElementSibling.id!=='hm-histn')?bars.nextElementSibling:null;
+  var info=document.getElementById('hm-histn');
+  if(!info&&bars){info=document.createElement('div');info.id='hm-histn';info.className='note';info.style.cssText='padding:4px 0 0;display:none';(cap7||bars).insertAdjacentElement('afterend',info);}
+  var box=document.getElementById('hm-detail');
+  var now=new Date();
+  if(HIST_IDX===0){
+    if(CA_CUR){lab.textContent='CA du mois — '+MOIS[now.getMonth()];tot.textContent=fmt(parseFloat(CA_CUR.mois_total)||0);
+      if(box)box.innerHTML=caDetHTML(CA_CUR.detail||null);}
+    if(vs)vs.style.display=CA_VS?'inline-flex':'none';
+    if(bars)bars.style.display='';
+    if(cap7)cap7.style.display='';
+    if(info)info.style.display='none';
+  }else{
+    var m=HIST[HIST_IDX-1];
+    var y=parseInt(m.m.slice(0,4),10),mo=parseInt(m.m.slice(5,7),10)-1;
+    lab.textContent='CA du mois — '+MOIS[mo]+(y!==now.getFullYear()?' '+y:'');
+    tot.textContent=fmt(parseFloat(m.total)||0);
+    if(vs)vs.style.display='none';
+    if(bars)bars.style.display='none';
+    if(cap7)cap7.style.display='none';
+    if(info){info.textContent=(m.n||0)+' intervention'+((m.n||0)>1?'s':'');info.style.display='block';}
+    if(box)box.innerHTML=caDetHTML({base:m.base,bonus:m.bonus,reclam:m.reclam,typos:m.typos});
+  }
+  var bp=document.getElementById('hm-mprev'),bn=document.getElementById('hm-mnext');
+  if(bn)bn.style.display=HIST_IDX>0?'flex':'none';
+  if(bp)bp.style.display=(HIST!==null&&HIST_IDX>=HIST.length)?'none':'flex';
+}
 function buildCaDetail(c){
   var card=document.querySelector('#s-home .darkcard');if(!card)return;
   var det=(c&&c.detail)||null;
@@ -541,17 +604,13 @@ function buildCaDetail(c){
   if(!box){box=document.createElement('div');box.id='hm-detail';box.hidden=true;box.style.cssText='margin-top:12px;padding-top:12px;border-top:1px solid var(--border)';var cache=document.getElementById('hm-cache');if(cache)cache.insertAdjacentElement('afterend',box);else card.appendChild(box);}
   var head=card.querySelector('.dchead');
   if(head&&!document.getElementById('hm-chev')){head.insertAdjacentHTML('beforeend','<svg id="hm-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transition:transform .2s;flex:none;color:var(--tx3)"><path d="M6 9l6 6 6-6"/></svg>');}
-  if(!det||!det.typos||!det.typos.length){box.innerHTML='<div class="note center" style="padding:6px 0">Aucune intervention ce mois-ci.</div>';}
-  else{
-    var h='<div class="note" style="margin-bottom:8px">Répartition du mois</div>',i;
-    for(i=0;i<det.typos.length;i++){var t=det.typos[i];var lbl=TLBL[t.typo]||t.typo;
-      h+=caDetRow('<span style="direction:ltr;color:var(--tx)"><b style="font-variant-numeric:tabular-nums">'+(parseInt(t.n,10)||0)+'</b> '+esc(lbl)+'</span>', fmt(parseFloat(t.t)||0));}
-    var base=parseFloat(det.base)||0,bonus=parseFloat(det.bonus)||0,reclam=parseFloat(det.reclam)||0;
-    h+=caDetRow('<span style="color:var(--tx2)">Base</span>', fmt(base), {sep:true});
-    h+=caDetRow('<span>Bonus & majorations</span>', '+ '+fmt(bonus), {strong:true,vcol:'var(--accent-l)'});
-    if(reclam>0)h+=caDetRow('<span style="color:var(--tx2)">Réclamations</span>', '+ '+fmt(reclam));
-    box.innerHTML=h;
+  if(head&&!document.getElementById('hm-mprev')){
+    var mkBtn=function(id,lb,d,delta){var b=document.createElement('button');b.type='button';b.id=id;b.setAttribute('aria-label',lb);b.style.cssText='width:32px;height:32px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--tx2);display:flex;align-items:center;justify-content:center;flex:none;cursor:pointer;padding:0';b.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+d+'"/></svg>';b.addEventListener('click',function(ev){moisNav(delta,ev);});return b;};
+    var chev=document.getElementById('hm-chev');
+    head.insertBefore(mkBtn('hm-mprev','Mois précédent','M15 18l-6-6 6-6',-1),chev);
+    head.insertBefore(mkBtn('hm-mnext','Mois suivant','M9 6l6 6-6 6',1),chev);
   }
+  box.innerHTML=caDetHTML(det);
   if(!card.dataset.tap){card.dataset.tap='1';card.style.cursor='pointer';card.setAttribute('role','button');card.setAttribute('tabindex','0');card.setAttribute('aria-controls','hm-detail');
     var tog=function(){CADET_OPEN=!CADET_OPEN;caDetReflect(card);};
     card.addEventListener('click',tog);
@@ -561,7 +620,7 @@ function buildCaDetail(c){
 }
 function caDetReflect(card){var b=document.getElementById('hm-detail');if(b)b.hidden=!CADET_OPEN;var ch=document.getElementById('hm-chev');if(ch)ch.style.transform=CADET_OPEN?'rotate(180deg)':'';if(card)card.setAttribute('aria-expanded',CADET_OPEN?'true':'false');}
 function goHome(){if(!ACCT)return;err('err-home');rpc('solo_ca',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(caFrais,caSecours).then(function(c){var now=new Date();document.getElementById('hm-date').textContent=JOURS[now.getDay()]+' '+now.getDate()+' '+MOIS[now.getMonth()];document.getElementById('hm-salut').textContent='Salut '+(ACCT.me.prenom||'')+' !';document.getElementById('hm-moislab').textContent='CA du mois — '+MOIS[now.getMonth()];var mt=parseFloat(c.mois_total)||0,pt=parseFloat(c.prec_total)||0;document.getElementById('hm-total').textContent=fmt(mt);var vs=document.getElementById('hm-vs');var pm=new Date(now.getFullYear(),now.getMonth()-1,1);if(pt>0){var pc=Math.round((mt-pt)/pt*100);vs.textContent=(pc>=0?'+':'')+pc+' % vs '+MOIS[pm.getMonth()];vs.style.display='inline-flex';}else{vs.style.display='none';}
-var jours=c.jours||[],max=1,i;for(i=0;i<jours.length;i++)max=Math.max(max,parseFloat(jours[i].t)||0);var bh='';for(i=0;i<jours.length;i++){var v=parseFloat(jours[i].t)||0;var pct=Math.max(6,Math.round(v/max*100));bh+='<i style="height:'+pct+'%" class="'+(i===jours.length-1?'hot':'')+'"></i>';}document.getElementById('hm-bars').innerHTML=bh;buildCaDetail(c);
+var jours=c.jours||[],max=1,i;for(i=0;i<jours.length;i++)max=Math.max(max,parseFloat(jours[i].t)||0);var bh='';for(i=0;i<jours.length;i++){var v=parseFloat(jours[i].t)||0;var pct=Math.max(6,Math.round(v/max*100));bh+='<i style="height:'+pct+'%" class="'+(i===jours.length-1?'hot':'')+'"></i>';}document.getElementById('hm-bars').innerHTML=bh;buildCaDetail(c);CA_CUR=c;CA_VS=(vs.style.display!=='none');HIST=null;HIST_IDX=0;caMoisRender();
 document.getElementById('hm-auj').textContent=fmt(parseFloat(c.auj_total)||0);document.getElementById('hm-auj-n').textContent=(c.auj_n||0)+' intervention'+((c.auj_n||0)>1?'s':'');document.getElementById('hm-prec-lab').textContent=MOIS[pm.getMonth()].charAt(0).toUpperCase()+MOIS[pm.getMonth()].slice(1);document.getElementById('hm-prec').textContent=fmt(pt);document.getElementById('hm-prec-n').textContent=(c.prec_n||0)+' intervention'+((c.prec_n||0)>1?'s':'');
 var dl=c.dernieres||[],lh='';if(!dl.length){lh='<div style="padding:18px 16px;font-size:14px;color:var(--tx2)">Aucune saisie pour l’instant — commence par ta première intervention.</div>';}for(i=0;i<dl.length;i++){var d=dl[i];var dd=(d.date||'').split('-');lh+='<button class="hrow" onclick="openFiche('+parseInt(d.id,10)+')"><span><span class="j" style="display:block">'+esc(d.jeton)+'</span><span class="m" style="display:block">'+esc(TLBL[d.typo]||d.typo)+' · '+esc(d.sect)+' · '+esc(dd[2]+'/'+dd[1])+'</span></span><span class="t">'+fmt(parseFloat(d.total)||0)+'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></button>';}document.getElementById('hm-list').innerHTML=lh;
 if(!document.getElementById('hm-pdf')){var pdiv=document.createElement('div');pdiv.id='hm-pdf';document.getElementById('hm-list').insertAdjacentElement('afterend',pdiv);}
