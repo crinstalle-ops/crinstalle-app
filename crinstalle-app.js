@@ -553,16 +553,27 @@ var HIST=null,HIST_IDX=0,CA_CUR=null,CA_VS=false;
 var HISTCLE='crinstalle_hist';
 function histListe(h){var now=new Date();var cur=now.getFullYear()+'-'+((now.getMonth()+1)<10?'0':'')+(now.getMonth()+1);
   var l=[],ms=(h&&h.mois)||[],i;for(i=0;i<ms.length;i++){if(ms[i].m<cur)l.push(ms[i]);}return l;}
-function histCharger(fin){
+function histCharger(fin,silencieux){
   rpc('solo_ca_hist',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(h){
     try{localStorage.setItem(HISTCLE,JSON.stringify({client_id:ACCT.client_id,h:h,le:Date.now()}));}catch(e){}
     HIST=histListe(h);fin();
   }).catch(function(er){
     var d=null;try{d=JSON.parse(localStorage.getItem(HISTCLE));}catch(e){}
     if(d&&d.client_id===ACCT.client_id&&d.h){HIST=histListe(d.h);fin();return;}
-    err('err-home',er&&er.reseau?HORSLIGNE_MSG:'Historique indisponible pour l’instant.');
+    if(!silencieux)err('err-home',er&&er.reseau?HORSLIGNE_MSG:'Historique indisponible pour l’instant.');
   });
 }
+function buildPdfMois(){
+  var el=document.getElementById('hm-pdf');if(!el||!HIST||!HIST.length)return;
+  var now=new Date();var cap=function(m){return m.charAt(0).toUpperCase()+m.slice(1);};
+  var cur=now.getFullYear()+'-'+((now.getMonth()+1)<10?'0':'')+(now.getMonth()+1);
+  var mois=[cur],i;for(i=0;i<HIST.length;i++)mois.push(HIST[i].m);
+  var h='';
+  for(i=0;i<mois.length;i++){var y=parseInt(mois[i].slice(0,4),10),mo=parseInt(mois[i].slice(5,7),10)-1;
+    h+='<button class="btn ghost" style="flex:1 1 calc(50% - 5px);min-width:130px" onclick="openPdfM(\''+mois[i]+'\')">'+PDFSVG+cap(MOIS[mo])+(y!==now.getFullYear()?' '+y:'')+'</button>';}
+  el.innerHTML='<div class="lsthead"><div class="t">Relevé mensuel (PDF)</div></div><div style="display:flex;gap:10px;flex-wrap:wrap">'+h+'</div>';
+}
+function openPdfM(ms){if(!ACCT)return;if(!navigator.onLine){err('err-home',HORSLIGNE_MSG);return;}location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-pdf?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms;}
 function moisNav(delta,ev){if(ev){ev.stopPropagation();ev.preventDefault();}
   if(delta<0){if(HIST===null){histCharger(function(){moisNavGo(HIST_IDX+1);});return;}moisNavGo(HIST_IDX+1);}
   else moisNavGo(HIST_IDX-1);}
@@ -620,7 +631,7 @@ function buildCaDetail(c){
 }
 function caDetReflect(card){var b=document.getElementById('hm-detail');if(b)b.hidden=!CADET_OPEN;var ch=document.getElementById('hm-chev');if(ch)ch.style.transform=CADET_OPEN?'rotate(180deg)':'';if(card)card.setAttribute('aria-expanded',CADET_OPEN?'true':'false');}
 function goHome(){if(!ACCT)return;err('err-home');rpc('solo_ca',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(caFrais,caSecours).then(function(c){var now=new Date();document.getElementById('hm-date').textContent=JOURS[now.getDay()]+' '+now.getDate()+' '+MOIS[now.getMonth()];document.getElementById('hm-salut').textContent='Salut '+(ACCT.me.prenom||'')+' !';document.getElementById('hm-moislab').textContent='CA du mois — '+MOIS[now.getMonth()];var mt=parseFloat(c.mois_total)||0,pt=parseFloat(c.prec_total)||0;document.getElementById('hm-total').textContent=fmt(mt);var vs=document.getElementById('hm-vs');var pm=new Date(now.getFullYear(),now.getMonth()-1,1);if(pt>0){var pc=Math.round((mt-pt)/pt*100);vs.textContent=(pc>=0?'+':'')+pc+' % vs '+MOIS[pm.getMonth()];vs.style.display='inline-flex';}else{vs.style.display='none';}
-var jours=c.jours||[],max=1,i;for(i=0;i<jours.length;i++)max=Math.max(max,parseFloat(jours[i].t)||0);var bh='';for(i=0;i<jours.length;i++){var v=parseFloat(jours[i].t)||0;var pct=Math.max(6,Math.round(v/max*100));bh+='<i style="height:'+pct+'%" class="'+(i===jours.length-1?'hot':'')+'"></i>';}document.getElementById('hm-bars').innerHTML=bh;buildCaDetail(c);CA_CUR=c;CA_VS=(vs.style.display!=='none');HIST=null;HIST_IDX=0;caMoisRender();
+var jours=c.jours||[],max=1,i;for(i=0;i<jours.length;i++)max=Math.max(max,parseFloat(jours[i].t)||0);var bh='';for(i=0;i<jours.length;i++){var v=parseFloat(jours[i].t)||0;var pct=Math.max(6,Math.round(v/max*100));bh+='<i style="height:'+pct+'%" class="'+(i===jours.length-1?'hot':'')+'"></i>';}document.getElementById('hm-bars').innerHTML=bh;buildCaDetail(c);CA_CUR=c;CA_VS=(vs.style.display!=='none');HIST=null;HIST_IDX=0;caMoisRender();histCharger(function(){buildPdfMois();caMoisRender();},true);
 document.getElementById('hm-auj').textContent=fmt(parseFloat(c.auj_total)||0);document.getElementById('hm-auj-n').textContent=(c.auj_n||0)+' intervention'+((c.auj_n||0)>1?'s':'');document.getElementById('hm-prec-lab').textContent=MOIS[pm.getMonth()].charAt(0).toUpperCase()+MOIS[pm.getMonth()].slice(1);document.getElementById('hm-prec').textContent=fmt(pt);document.getElementById('hm-prec-n').textContent=(c.prec_n||0)+' intervention'+((c.prec_n||0)>1?'s':'');
 var dl=c.dernieres||[],lh='';if(!dl.length){lh='<div style="padding:18px 16px;font-size:14px;color:var(--tx2)">Aucune saisie pour l’instant — commence par ta première intervention.</div>';}for(i=0;i<dl.length;i++){var d=dl[i];var dd=(d.date||'').split('-');lh+='<button class="hrow" onclick="openFiche('+parseInt(d.id,10)+')"><span><span class="j" style="display:block">'+esc(d.jeton)+'</span><span class="m" style="display:block">'+esc(TLBL[d.typo]||d.typo)+' · '+esc(d.sect)+' · '+esc(dd[2]+'/'+dd[1])+'</span></span><span class="t">'+fmt(parseFloat(d.total)||0)+'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></button>';}document.getElementById('hm-list').innerHTML=lh;
 if(!document.getElementById('hm-pdf')){var pdiv=document.createElement('div');pdiv.id='hm-pdf';document.getElementById('hm-list').insertAdjacentElement('afterend',pdiv);}
