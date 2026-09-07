@@ -849,3 +849,30 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   g.onclick=function(){setLang(LANG==='ar'?'fr':'ar');};
   hh.insertBefore(g,bt);}
 })();
+/* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
+var APPV='25';
+(function(){
+  var pr=null,startY=0,delta=0,armed=false;
+  function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
+  document.addEventListener('touchstart',function(e){
+    var h=document.getElementById('s-home');if(!h||!h.classList.contains('on'))return;
+    var sc=document.scrollingElement||document.documentElement;if(sc.scrollTop>0)return;
+    armed=true;startY=e.touches[0].clientY;delta=0;
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!armed)return;delta=e.touches[0].clientY-startY;
+    if(delta>10){var d=Math.min(delta,120);ind().style.transform='translate(-50%,'+(d-52)+'px) rotate('+Math.round(d*2)+'deg)';}
+  },{passive:true});
+  document.addEventListener('touchend',function(){
+    if(!armed)return;armed=false;
+    var ok=delta>=80;delta=0;
+    if(ok){ind().style.transform='translate(-50%,16px)';setTimeout(function(){location.reload();},150);}
+    else if(pr){pr.style.transform='translate(-50%,-60px)';}
+  },{passive:true});
+})();
+/* marqueur de version discret en bas de l'accueil */
+(function(){
+  var mk=function(){var h=document.getElementById('s-home');if(!h||document.getElementById('app-ver'))return;
+    var d=document.createElement('div');d.id='app-ver';d.className='note center';d.style.cssText='padding:14px 0 4px;opacity:.6';d.textContent='Crinstalle IA · v'+APPV;h.appendChild(d);};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mk);else mk();
+})();
