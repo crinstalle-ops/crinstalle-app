@@ -82,6 +82,8 @@ DICOS.ar={dir:'rtl',exact:{
  "CA du mois":"رقم أعمال الشهر",
  "Mois dernier":"الشهر الماضي",
  "Mois précédent":"الشهر السابق",
+ "Passages de l’équipe sur ce jeton":"مرور الفريق على هذا الـ jeton",
+ "Aucune saisie à toi — passages de l’équipe ci-dessous.":"لا تسجيل لك — مرور الفريق أدناه.",
  "Mois suivant":"الشهر التالي",
  "Historique indisponible pour l’instant.":"السجل غير متاح في الوقت الحالي.",
  "Aujourd'hui":"اليوم",
@@ -326,9 +328,20 @@ function rechRendu(d){var e=rechEls();if(!e.r)return;
       +'<span class="m" style="display:block">'+esc(TLBL[o.typo]||o.typo)+' \u00b7 '+esc(o.sect)+' \u00b7 '+esc(dd[2]+'/'+dd[1]+'/'+dd[0])+'</span></span>'
       +'<span class="t">'+fmt(parseFloat(o.total)||0)
       +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></button>';}
+  /* v26 : passages des AUTRES techniciens de l'equipe sur ce jeton (date + commentaire, sans montant) */
+  var eq=(d&&d.equipe)||[];
+  if(eq.length){
+    h+='<div class="lsthead" style="margin-top:12px"><div class="t" style="font-size:14px">Passages de l\u2019\u00e9quipe sur ce jeton</div></div>';
+    for(i=0;i<eq.length;i++){var o2=eq[i];var d2=(o2.date||'').split('-');
+      h+='<div class="hrow" style="cursor:default"><span style="flex:1;min-width:0">'
+        +'<span class="j" style="display:block">'+esc(o2.jeton||'')+' \u00b7 '+esc(d2[2]+'/'+d2[1]+'/'+d2[0])+'</span>'
+        +'<span class="m" style="display:block;white-space:normal">'+esc(o2.prenom||'')+' \u00b7 '+esc(TLBL[o2.typo]||o2.typo||'')
+        +(o2.commentaire?(' \u2014 '+esc(o2.commentaire)):'')+'</span></span></div>';}
+  }
   e.r.innerHTML=h;
   var n=parseInt(d&&d.n,10)||0;
-  if(!n){rechInfo('Aucune saisie avec \u00ab\u202f'+RECH_Q+'\u202f\u00bb dans le jeton.');}
+  if(!n&&eq.length){rechInfo('Aucune saisie \u00e0 toi \u2014 passages de l\u2019\u00e9quipe ci-dessous.');}
+  else if(!n){rechInfo('Aucune saisie avec \u00ab\u202f'+RECH_Q+'\u202f\u00bb dans le jeton.');}
   else if(n>l.length){rechInfo(l.length+' saisies affich\u00e9es sur '+n+' trouv\u00e9es \u2014 pr\u00e9cise le jeton.');}
   else{rechInfo(n>1?(n+' saisies trouv\u00e9es'):'1 saisie trouv\u00e9e');}
   rechListe(false);}
@@ -850,7 +863,7 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='25';
+var APPV='26';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
