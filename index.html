@@ -205,7 +205,8 @@ input[type=text],input[type=tel],input[type=date],input[type=email]{
   border:1px solid var(--border);padding:0 14px;color:var(--tx);font-size:16px;transition:border-color .15s}
 input:focus{border-color:var(--accent);outline:none}
 input::placeholder{color:var(--tx3)}
-input[type=date]{color-scheme:dark}
+input[type=date]{color-scheme:dark;-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 html[data-app="light"] input[type=date]{color-scheme:light}
 
 /* interrupteurs */
