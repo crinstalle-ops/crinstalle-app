@@ -651,6 +651,7 @@ function factNavInstall(){
      +'<div class="grow"></div>';
     var tabs=document.getElementById('tabs');
     document.body.insertBefore(s,tabs);
+    if(!document.getElementById('st-fact5')){var st=document.createElement('style');st.id='st-fact5';st.textContent='body.nav #tabs{grid-template-columns:repeat(5,1fr)}';document.head.appendChild(st);}
     NAVMAP['s-fact']='s-fact';
     var b=document.createElement('button');b.className='tab';b.setAttribute('data-tab','s-fact');b.setAttribute('onclick','openFact()');
     b.innerHTML=FACTSVG+'<span>Facture</span>';
