@@ -210,6 +210,12 @@ DICOS.ar={dir:'rtl',exact:{
  "Seul (sans binôme)":"وحدي (بدون زميل)",
  "(gère cette saisie)":"(يدير هذا الإدخال)",
  "Ma facture":"فاتورتي",
+ "Facture":"الفاتورة",
+ "Date de la facture":"تاريخ الفاتورة",
+ "Choisis la date de la facture.":"اختر تاريخ الفاتورة.",
+ "Génère ta facture du mois pour Crinstalle.":"أنشئ فاتورتك الشهرية لـ Crinstalle.",
+ "Proposé automatiquement à partir de ta dernière facture.":"يُقترح تلقائيًا انطلاقًا من فاتورتك الأخيرة.",
+ "Enregistrées une seule fois — reprises automatiquement sur tes prochaines factures.":"تُسجَّل مرة واحدة — وتُستعاد تلقائيًا في فواتيرك القادمة.",
  "Mois":"الشهر",
  "Numéro de facture":"رقم الفاتورة",
  "Montant (€)":"المبلغ (€)",
@@ -323,8 +329,8 @@ var RECH_Q='';    /* derniere requete effectivement lancee */
 function rechEls(){return {b:document.getElementById('hm-srchb'),w:document.getElementById('hm-srchwrap'),
   q:document.getElementById('hm-srchq'),x:document.getElementById('hm-srchx'),
   i:document.getElementById('hm-srchinfo'),r:document.getElementById('hm-srchres'),
-  l:document.getElementById('hm-list'),p:document.getElementById('hm-pdf'),d:document.getElementById('hm-docs'),f:document.getElementById('hm-fact')};}
-function rechListe(v){var e=rechEls(),k,n=['l','p','d','f'];
+  l:document.getElementById('hm-list'),p:document.getElementById('hm-pdf'),d:document.getElementById('hm-docs')};}
+function rechListe(v){var e=rechEls(),k,n=['l','p','d'];
   for(k=0;k<n.length;k++){if(e[n[k]])e[n[k]].style.display=v?'':'none';}}
 function rechInfo(t,ko){var e=rechEls();if(!e.i)return;e.i.textContent=t||'';e.i.className='srchinfo'+(ko?' ko':'');}
 function rechAide(){rechInfo('Tape au moins '+RECH_MIN+' caract\u00e8res du jeton.');}
@@ -614,7 +620,8 @@ function buildPdfMois(){
   el.innerHTML='<div class="lsthead"><div class="t">Relevé mensuel (PDF)</div></div><div style="display:flex;gap:10px;flex-wrap:wrap">'+h+'</div>';
 }
 function openPdfM(ms){if(!ACCT)return;if(!navigator.onLine){err('err-home',HORSLIGNE_MSG);return;}location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-pdf?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms;}
-/* ---------- Ma facture (équipe, v30) ---------- */
+/* ---------- Facture (équipe, v31) : onglet + écran dédiés ---------- */
+var FACTSVG='<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18l-2.33-1.75L14.33 21 12 19.25 9.67 21 7.33 19.25 5 21z"/><path d="M9 8h6M9 12h6"/></svg>';
 function factMoisListe(){var now=new Date();var cur=now.getFullYear()+'-'+((now.getMonth()+1)<10?'0':'')+(now.getMonth()+1);var l=[cur],i;
   if(HIST&&HIST.length){for(i=0;i<HIST.length;i++)if(l.indexOf(HIST[i].m)<0)l.push(HIST[i].m);}
   else{var pm=new Date(now.getFullYear(),now.getMonth()-1,1);l.push(pm.getFullYear()+'-'+((pm.getMonth()+1)<10?'0':'')+(pm.getMonth()+1));}
@@ -622,33 +629,53 @@ function factMoisListe(){var now=new Date();var cur=now.getFullYear()+'-'+((now.
 function factMoisOptions(){var s=document.getElementById('fa-mois');if(!s)return;var v=s.value;var l=factMoisListe(),h='',i;var now=new Date();var cap=function(m){return m.charAt(0).toUpperCase()+m.slice(1);};
   for(i=0;i<l.length;i++){var y=parseInt(l[i].slice(0,4),10),mo=parseInt(l[i].slice(5,7),10)-1;h+='<option value="'+l[i]+'"'+(l[i]===v?' selected':'')+'>'+cap(MOIS[mo])+(y!==now.getFullYear()?' '+y:'')+'</option>';}
   s.innerHTML=h;}
-function buildFacture(){
+function factNumSuivant(last){last=String(last||'').trim();if(!last)return '';
+  var m=last.match(/(\d+)(?!.*\d)/);if(!m)return last;
+  var n=String(parseInt(m[1],10)+1);while(n.length<m[1].length)n='0'+n;
+  return last.slice(0,m.index)+n+last.slice(m.index+m[1].length);}
+function factNavInstall(){
   if(!ACCT||!ACCT.me||!ACCT.me.equipe||ACCT.me.acces==='controle')return;
-  if(!document.getElementById('hm-fact')){var fdiv=document.createElement('div');fdiv.id='hm-fact';var anc=document.getElementById('hm-docs')||document.getElementById('hm-pdf')||document.getElementById('hm-list');anc.insertAdjacentElement('afterend',fdiv);}
-  var el=document.getElementById('hm-fact');
-  if(el.getAttribute('data-built')){factMoisOptions();return;}
-  el.setAttribute('data-built','1');
-  el.innerHTML='<div class="lsthead"><div class="t">Ma facture</div></div><div class="card" style="display:flex;flex-direction:column;gap:12px">'
-   +'<div class="field"><div class="lab" id="lbl-famois">Mois</div><select id="fa-mois" aria-labelledby="lbl-famois" style="width:100%;height:52px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:0 14px;color:var(--tx);font-size:16px;font-weight:600"></select></div>'
-   +'<div class="field"><label class="lab" for="fa-num">Numéro de facture</label><input type="text" id="fa-num" maxlength="30" placeholder="ex. 2026-09-01"></div>'
-   +'<div class="field"><label class="lab" for="fa-mt">Montant (€)</label><input type="text" id="fa-mt" inputmode="decimal" maxlength="12" placeholder="ex. 1250,50"></div>'
-   +'<button class="linkbtn" id="fa-toggle" style="text-align:left;padding:0;color:var(--accent-l);font-weight:600" aria-expanded="false" onclick="factProfilBascule()">Mes infos de facturation</button>'
-   +'<div id="fa-profil" style="display:none;flex-direction:column;gap:12px"></div>'
-   +'<div class="err" id="err-fact" role="alert"></div>'
-   +'<button class="btn ghost" id="btn-fact" onclick="factGenerer()">'+PDFSVG+'Générer ma facture</button></div>';
-  factMoisOptions();factProfilRendu();
-  if(!ACCT._factp){rpc('solo_facture_data',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:factMoisListe()[0]}).then(function(r){
-    ACCT._factp=(r&&r.profil)||{};factProfilRendu();
-    var n=document.getElementById('fa-num');if(n&&!n.value&&ACCT._factp.dernier_num)n.value=ACCT._factp.dernier_num;
-  },function(){});}
+  if(!document.getElementById('s-fact')){
+    var s=document.createElement('section');s.className='screen';s.id='s-fact';
+    s.innerHTML='<div class="topbar"><button class="back" aria-label="Retour" onclick="goHome()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><div class="ttl">Facture</div><div style="width:34px"></div></div>'
+     +'<p class="sub" style="margin:2px 0 14px">Génère ta facture du mois pour Crinstalle.</p>'
+     +'<div class="card" style="display:flex;flex-direction:column;gap:12px">'
+     +'<div class="field"><div class="lab" id="lbl-famois">Mois</div><select id="fa-mois" aria-labelledby="lbl-famois" style="width:100%;height:52px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:0 14px;color:var(--tx);font-size:16px;font-weight:600"></select></div>'
+     +'<div class="field"><label class="lab" for="fa-date">Date de la facture</label><input type="date" id="fa-date"></div>'
+     +'<div class="field"><label class="lab" for="fa-num">Numéro de facture</label><input type="text" id="fa-num" maxlength="30" placeholder="ex. 13"><div class="note">Proposé automatiquement à partir de ta dernière facture.</div></div>'
+     +'<div class="field"><label class="lab" for="fa-mt">Montant (€)</label><input type="text" id="fa-mt" inputmode="decimal" maxlength="12" placeholder="ex. 1250,50"></div>'
+     +'<button class="linkbtn" id="fa-toggle" style="text-align:left;padding:0;color:var(--accent-l);font-weight:600" aria-expanded="false" onclick="factProfilBascule()">Mes infos de facturation</button>'
+     +'<div id="fa-profil" style="display:none;flex-direction:column;gap:12px"></div>'
+     +'<div class="err" id="err-fact" role="alert"></div>'
+     +'<button class="btn ghost" id="btn-fact" onclick="factGenerer()">'+PDFSVG+'Générer ma facture</button></div>'
+     +'<div class="grow"></div>';
+    var tabs=document.getElementById('tabs');
+    document.body.insertBefore(s,tabs);
+    NAVMAP['s-fact']='s-fact';
+    var b=document.createElement('button');b.className='tab';b.setAttribute('data-tab','s-fact');b.setAttribute('onclick','openFact()');
+    b.innerHTML=FACTSVG+'<span>Facture</span>';
+    tabs.insertBefore(b,tabs.children[2]);
+  }else{factMoisOptions();}
 }
+function openFact(){if(!ACCT)return;factNavInstall();var s=document.getElementById('s-fact');if(!s)return;
+  factMoisOptions();factProfilRendu();
+  var dt=document.getElementById('fa-date');
+  if(dt&&!dt.value){var n=new Date();dt.value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+  var num=document.getElementById('fa-num');
+  if(ACCT._factp){if(num&&!num.value&&ACCT._factp.dernier_num)num.value=factNumSuivant(ACCT._factp.dernier_num);}
+  else{rpc('solo_facture_data',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:factMoisListe()[0]}).then(function(r){
+    ACCT._factp=(r&&r.profil)||{};factProfilRendu();
+    var n2=document.getElementById('fa-num');if(n2&&!n2.value&&ACCT._factp.dernier_num)n2.value=factNumSuivant(ACCT._factp.dernier_num);
+  },function(){});}
+  err('err-fact');show('s-fact');}
 function factProfilRendu(){var d=document.getElementById('fa-profil');if(!d)return;var p=ACCT._factp||{};
   if(!d.getAttribute('data-built')){d.setAttribute('data-built','1');
     d.innerHTML='<div class="field"><label class="lab" for="fap-adr">Adresse</label><input type="text" id="fap-adr" maxlength="120" placeholder="ex. 12 rue des Lilas"></div>'
      +'<div class="field"><label class="lab" for="fap-cpv">Code postal + ville</label><input type="text" id="fap-cpv" maxlength="80" placeholder="ex. 84300 Cavaillon"></div>'
      +'<div class="field"><label class="lab" for="fap-siret">SIRET</label><input type="text" id="fap-siret" maxlength="20" placeholder="ex. 123 456 789 00012"></div>'
      +'<div class="field"><label class="lab" for="fap-tel">Téléphone (facultatif)</label><input type="text" id="fap-tel" maxlength="30" inputmode="tel"></div>'
-     +'<div class="field"><label class="lab" for="fap-email">Email (facultatif)</label><input type="text" id="fap-email" maxlength="120" autocomplete="email"></div>';}
+     +'<div class="field"><label class="lab" for="fap-email">Email (facultatif)</label><input type="text" id="fap-email" maxlength="120" autocomplete="email"></div>'
+     +'<div class="note">Enregistrées une seule fois — reprises automatiquement sur tes prochaines factures.</div>';}
   var set=function(id,v){var e=document.getElementById(id);if(e&&!e.value&&v)e.value=v;};
   set('fap-adr',p.adresse);set('fap-cpv',p.cp_ville);set('fap-siret',p.siret);set('fap-tel',p.tel);set('fap-email',p.email);}
 function factProfilBascule(){var d=document.getElementById('fa-profil'),b=document.getElementById('fa-toggle');if(!d)return;var on=d.style.display==='none';d.style.display=on?'flex':'none';if(b)b.setAttribute('aria-expanded',on?'true':'false');}
@@ -657,11 +684,13 @@ function factProfilOuvre(){var d=document.getElementById('fa-profil'),b=document
 function factGenerer(){if(!ACCT)return;err('err-fact');
   if(!navigator.onLine){err('err-fact',HORSLIGNE_MSG);return;}
   var ms=(document.getElementById('fa-mois')||{}).value||'';
+  var dt=((document.getElementById('fa-date')||{}).value||'').trim();
   var num=((document.getElementById('fa-num')||{}).value||'').trim();
   var mtS=((document.getElementById('fa-mt')||{}).value||'').trim().replace(',','.').replace(/[\s ]/g,'');
   var mt=parseFloat(mtS);
   var gv=function(id){var e=document.getElementById(id);return e?e.value.trim():'';};
   var p={adresse:gv('fap-adr'),cp_ville:gv('fap-cpv'),siret:gv('fap-siret'),tel:gv('fap-tel'),email:gv('fap-email')};
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dt)){err('err-fact','Choisis la date de la facture.');document.getElementById('fa-date').focus();return;}
   if(!num){err('err-fact','Indique ton numéro de facture.');document.getElementById('fa-num').focus();return;}
   if(!isFinite(mt)||mt<=0){err('err-fact','Indique le montant de la facture (ex. 1250,50).');document.getElementById('fa-mt').focus();return;}
   if(!p.adresse||!p.cp_ville||!p.siret){err('err-fact','Complète tes infos de facturation (adresse, code postal + ville, SIRET).');factProfilOuvre();return;}
@@ -669,7 +698,7 @@ function factGenerer(){if(!ACCT)return;err('err-fact');
   rpc('solo_facture_profil_save',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_adresse:p.adresse,p_cp_ville:p.cp_ville,p_siret:p.siret,p_tel:p.tel,p_email:p.email,p_num:num}).then(function(){
     ACCT._factp={adresse:p.adresse,cp_ville:p.cp_ville,siret:p.siret,tel:p.tel,email:p.email,dernier_num:num};
     b.disabled=false;
-    location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-facture?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms+'&num='+encodeURIComponent(num)+'&mt='+encodeURIComponent(mtS);
+    location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-facture?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms+'&num='+encodeURIComponent(num)+'&mt='+encodeURIComponent(mtS)+'&dt='+encodeURIComponent(dt);
   },function(e){b.disabled=false;err('err-fact',(e&&e.message)||'Erreur');});}
 function moisNav(delta,ev){if(ev){ev.stopPropagation();ev.preventDefault();}
   if(delta<0){if(HIST===null){histCharger(function(){moisNavGo(HIST_IDX+1);});return;}moisNavGo(HIST_IDX+1);}
@@ -728,14 +757,14 @@ function buildCaDetail(c){
 }
 function caDetReflect(card){var b=document.getElementById('hm-detail');if(b)b.hidden=!CADET_OPEN;var ch=document.getElementById('hm-chev');if(ch)ch.style.transform=CADET_OPEN?'rotate(180deg)':'';if(card)card.setAttribute('aria-expanded',CADET_OPEN?'true':'false');}
 function goHome(){if(!ACCT)return;err('err-home');rpc('solo_ca',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(caFrais,caSecours).then(function(c){var now=new Date();document.getElementById('hm-date').textContent=JOURS[now.getDay()]+' '+now.getDate()+' '+MOIS[now.getMonth()];document.getElementById('hm-salut').textContent='Salut '+(ACCT.me.prenom||'')+' !';document.getElementById('hm-moislab').textContent='CA du mois — '+MOIS[now.getMonth()];var mt=parseFloat(c.mois_total)||0,pt=parseFloat(c.prec_total)||0;document.getElementById('hm-total').textContent=fmt(mt);var vs=document.getElementById('hm-vs');var pm=new Date(now.getFullYear(),now.getMonth()-1,1);if(pt>0){var pc=Math.round((mt-pt)/pt*100);vs.textContent=(pc>=0?'+':'')+pc+' % vs '+MOIS[pm.getMonth()];vs.style.display='inline-flex';}else{vs.style.display='none';}
-var jours=c.jours||[],max=1,i;for(i=0;i<jours.length;i++)max=Math.max(max,parseFloat(jours[i].t)||0);var bh='';for(i=0;i<jours.length;i++){var v=parseFloat(jours[i].t)||0;var pct=Math.max(6,Math.round(v/max*100));bh+='<i style="height:'+pct+'%" class="'+(i===jours.length-1?'hot':'')+'"></i>';}document.getElementById('hm-bars').innerHTML=bh;buildCaDetail(c);CA_CUR=c;CA_VS=(vs.style.display!=='none');HIST=null;HIST_IDX=0;caMoisRender();histCharger(function(){buildPdfMois();buildFacture();caMoisRender();},true);
+var jours=c.jours||[],max=1,i;for(i=0;i<jours.length;i++)max=Math.max(max,parseFloat(jours[i].t)||0);var bh='';for(i=0;i<jours.length;i++){var v=parseFloat(jours[i].t)||0;var pct=Math.max(6,Math.round(v/max*100));bh+='<i style="height:'+pct+'%" class="'+(i===jours.length-1?'hot':'')+'"></i>';}document.getElementById('hm-bars').innerHTML=bh;buildCaDetail(c);CA_CUR=c;CA_VS=(vs.style.display!=='none');HIST=null;HIST_IDX=0;caMoisRender();histCharger(function(){buildPdfMois();factNavInstall();caMoisRender();},true);
 document.getElementById('hm-auj').textContent=fmt(parseFloat(c.auj_total)||0);document.getElementById('hm-auj-n').textContent=(c.auj_n||0)+' intervention'+((c.auj_n||0)>1?'s':'');document.getElementById('hm-prec-lab').textContent=MOIS[pm.getMonth()].charAt(0).toUpperCase()+MOIS[pm.getMonth()].slice(1);document.getElementById('hm-prec').textContent=fmt(pt);document.getElementById('hm-prec-n').textContent=(c.prec_n||0)+' intervention'+((c.prec_n||0)>1?'s':'');
 var dl=c.dernieres||[],lh='';if(!dl.length){lh='<div style="padding:18px 16px;font-size:14px;color:var(--tx2)">Aucune saisie pour l’instant — commence par ta première intervention.</div>';}for(i=0;i<dl.length;i++){var d=dl[i];var dd=(d.date||'').split('-');lh+='<button class="hrow" onclick="openFiche('+parseInt(d.id,10)+')"><span><span class="j" style="display:block">'+esc(d.jeton)+'</span><span class="m" style="display:block">'+esc(TLBL[d.typo]||d.typo)+' · '+esc(SLBL[d.sect]||d.sect)+' · '+esc(dd[2]+'/'+dd[1])+'</span></span><span class="t">'+fmt(parseFloat(d.total)||0)+'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></button>';}document.getElementById('hm-list').innerHTML=lh;
 if(!document.getElementById('hm-pdf')){var pdiv=document.createElement('div');pdiv.id='hm-pdf';document.getElementById('hm-list').insertAdjacentElement('afterend',pdiv);}
 var cap=function(m){return m.charAt(0).toUpperCase()+m.slice(1);};
 document.getElementById('hm-pdf').innerHTML='<div class="lsthead"><div class="t">Relevé mensuel (PDF)</div></div><div style="display:flex;gap:10px"><button class="btn ghost" style="flex:1" onclick="openPdf(0)">'+PDFSVG+cap(MOIS[now.getMonth()])+'</button><button class="btn ghost" style="flex:1" onclick="openPdf(1)">'+PDFSVG+cap(MOIS[pm.getMonth()])+'</button></div>';
 if(!document.getElementById('hm-docs')){var ddiv=document.createElement('div');ddiv.id='hm-docs';document.getElementById('hm-pdf').insertAdjacentElement('afterend',ddiv);}document.getElementById('hm-docs').innerHTML='';
-buildFacture();
+factNavInstall();
 if(!document.getElementById('hm-abo')){var adiv=document.createElement('div');adiv.id='hm-abo';document.querySelector('#s-home .hmhead').insertAdjacentElement('afterend',adiv);}
 var ab=document.getElementById('hm-abo');
 if(aboLocked(ACCT.me)){ab.innerHTML='<button class="linkbtn" style="width:100%;text-align:center;background:var(--tint);border:1px solid var(--accent);border-radius:14px;padding:14px;color:var(--accent-l);font-weight:700" onclick="show(&quot;s-abo&quot;)">Essai terminé — la saisie est en pause. S’abonner</button>';}
@@ -965,7 +994,7 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='30';
+var APPV='31';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
