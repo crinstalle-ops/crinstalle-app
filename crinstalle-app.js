@@ -228,7 +228,26 @@ DICOS.ar={dir:'rtl',exact:{
  "Indique ton numéro de facture.":"أدخل رقم فاتورتك.",
  "Indique le montant de la facture (ex. 1250,50).":"أدخل مبلغ الفاتورة (مثال 1250,50).",
  "Complète tes infos de facturation (adresse, code postal + ville, SIRET).":"أكمل معلومات الفوترة (العنوان، الرمز البريدي + المدينة، SIRET).",
+ "Compta":"المحاسبة",
+ "Dépenses":"المصاريف",
+ "Note tes dépenses — carburant, repas, matériel…":"سجّل مصاريفك — وقود، وجبات، معدات…",
+ "Date de la dépense":"تاريخ المصروف",
+ "Catégorie":"الفئة",
+ "Carburant":"وقود",
+ "Repas":"وجبات",
+ "Matériel":"معدات",
+ "Autre":"أخرى",
+ "ex. 45,90":"مثال 45,90",
+ "Commentaire (facultatif)":"تعليق (اختياري)",
+ "Le carburant est divisé en deux — la moitié va dans les dépenses de ton binôme.":"يُقسم الوقود على اثنين — النصف يذهب إلى مصاريف زميلك.",
+ "Ajouter la dépense":"إضافة المصروف",
+ "Ce mois-ci":"هذا الشهر",
+ "Aucune dépense ce mois-ci.":"لا مصاريف هذا الشهر.",
+ "Choisis la date de la dépense.":"اختر تاريخ المصروف.",
+ "Indique le montant (ex. 45,90).":"أدخل المبلغ (مثال 45,90).",
 },motifs:[
+ [/^· binôme avec (.+)$/, "· مع الزميل $1"],
+ [/^· part de (.+)$/, "· حصة $1"],
  [/^Part de (.+)$/, "حصة $1"],
  [/^Binôme avec (.+) — total (.+) divisé en deux$/, "مع الزميل $1 — المجموع $2 مقسوم على اثنين"],
  [/^CA du mois — (.+)$/, "رقم أعمال الشهر — $1"],
@@ -637,7 +656,25 @@ function factNavInstall(){
   if(!ACCT||!ACCT.me||!ACCT.me.equipe||ACCT.me.acces==='controle')return;
   if(!document.getElementById('s-fact')){
     var s=document.createElement('section');s.className='screen';s.id='s-fact';
-    s.innerHTML='<div class="topbar"><button class="back" aria-label="Retour" onclick="goHome()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><div class="ttl">Facture</div><div style="width:34px"></div></div>'
+    s.innerHTML='<div class="topbar"><button class="back" aria-label="Retour" onclick="goHome()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><div class="ttl">Compta</div><div style="width:34px"></div></div>'
+     +'<div id="cp-seg" role="tablist" style="display:flex;gap:8px;margin:2px 0 14px"><button class="chip sel" id="cp-seg-dep" role="tab" aria-selected="true" onclick="cpSeg(\'dep\')">Dépenses</button><button class="chip" id="cp-seg-fact" role="tab" aria-selected="false" onclick="cpSeg(\'fact\')">Facture</button></div>'
+     +'<div id="cp-dep">'
+     +'<p class="sub" style="margin:2px 0 14px">Note tes dépenses — carburant, repas, matériel…</p>'
+     +'<div class="card" style="display:flex;flex-direction:column;gap:12px">'
+     +'<div class="field"><label class="lab" for="dp-date">Date de la dépense</label><input type="date" id="dp-date"></div>'
+     +'<div class="field"><div class="lab">Catégorie</div><div id="dp-cats" role="radiogroup" style="display:flex;flex-wrap:wrap;gap:8px">'
+     +'<button class="chip sel" role="radio" aria-checked="true" onclick="depPickCat(this,\'Carburant\')">Carburant</button>'
+     +'<button class="chip" role="radio" aria-checked="false" onclick="depPickCat(this,\'Repas\')">Repas</button>'
+     +'<button class="chip" role="radio" aria-checked="false" onclick="depPickCat(this,\'Materiel\')">Matériel</button>'
+     +'<button class="chip" role="radio" aria-checked="false" onclick="depPickCat(this,\'Autre\')">Autre</button></div></div>'
+     +'<div class="field"><label class="lab" for="dp-mt">Montant (€)</label><input type="text" id="dp-mt" inputmode="decimal" maxlength="10" placeholder="ex. 45,90"></div>'
+     +'<div class="field" id="dp-binrow" style="display:none"><div class="lab" id="lbl-dpbin">Binôme (optionnel)</div><select id="dp-bin" aria-labelledby="lbl-dpbin" style="width:100%;height:52px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:0 14px;color:var(--tx);font-size:16px;font-weight:600"></select><div class="note">Le carburant est divisé en deux — la moitié va dans les dépenses de ton binôme.</div></div>'
+     +'<div class="field"><label class="lab" for="dp-com">Commentaire (facultatif)</label><input type="text" id="dp-com" maxlength="120"></div>'
+     +'<div class="err" id="err-dep" role="alert"></div>'
+     +'<button class="btn" id="btn-dep" onclick="depAjouter()">Ajouter la dépense</button></div>'
+     +'<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="lab">Ce mois-ci</div><div id="dp-total" style="font-weight:800;font-size:18px">—</div></div><div id="dp-liste" style="display:flex;flex-direction:column;margin-top:6px"></div></div>'
+     +'</div>'
+     +'<div id="cp-fact" style="display:none">'
      +'<p class="sub" style="margin:2px 0 14px">Génère ta facture du mois pour Crinstalle.</p>'
      +'<div class="card" style="display:flex;flex-direction:column;gap:12px">'
      +'<div class="field"><div class="lab" id="lbl-famois">Mois</div><select id="fa-mois" aria-labelledby="lbl-famois" style="width:100%;height:52px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:0 14px;color:var(--tx);font-size:16px;font-weight:600"></select></div>'
@@ -648,27 +685,32 @@ function factNavInstall(){
      +'<div id="fa-profil" style="display:none;flex-direction:column;gap:12px"></div>'
      +'<div class="err" id="err-fact" role="alert"></div>'
      +'<button class="btn ghost" id="btn-fact" onclick="factGenerer()">'+PDFSVG+'Générer ma facture</button></div>'
+     +'</div>'
      +'<div class="grow"></div>';
     var tabs=document.getElementById('tabs');
     document.body.insertBefore(s,tabs);
     if(!document.getElementById('st-fact5')){var st=document.createElement('style');st.id='st-fact5';st.textContent='body.nav #tabs{grid-template-columns:repeat(5,1fr)}';document.head.appendChild(st);}
     NAVMAP['s-fact']='s-fact';
     var b=document.createElement('button');b.className='tab';b.setAttribute('data-tab','s-fact');b.setAttribute('onclick','openFact()');
-    b.innerHTML=FACTSVG+'<span>Facture</span>';
+    b.innerHTML=FACTSVG+'<span>Compta</span>';
     tabs.insertBefore(b,tabs.children[2]);
   }else{factMoisOptions();}
 }
 function openFact(){if(!ACCT)return;factNavInstall();var s=document.getElementById('s-fact');if(!s)return;
   factMoisOptions();factProfilRendu();
+  var n=new Date();var auj=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
   var dt=document.getElementById('fa-date');
-  if(dt&&!dt.value){var n=new Date();dt.value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+  if(dt&&!dt.value)dt.value=auj;
+  var dd=document.getElementById('dp-date');
+  if(dd&&!dd.value)dd.value=auj;
   var num=document.getElementById('fa-num');
   if(ACCT._factp){if(num&&!num.value&&ACCT._factp.dernier_num)num.value=factNumSuivant(ACCT._factp.dernier_num);}
   else{rpc('solo_facture_data',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:factMoisListe()[0]}).then(function(r){
     ACCT._factp=(r&&r.profil)||{};factProfilRendu();
     var n2=document.getElementById('fa-num');if(n2&&!n2.value&&ACCT._factp.dernier_num)n2.value=factNumSuivant(ACCT._factp.dernier_num);
   },function(){});}
-  err('err-fact');show('s-fact');}
+  depBinRendu();depCharger();
+  err('err-fact');err('err-dep');show('s-fact');}
 function factProfilRendu(){var d=document.getElementById('fa-profil');if(!d)return;var p=ACCT._factp||{};
   if(!d.getAttribute('data-built')){d.setAttribute('data-built','1');
     d.innerHTML='<div class="field"><label class="lab" for="fap-adr">Adresse</label><input type="text" id="fap-adr" maxlength="120" placeholder="ex. 12 rue des Lilas"></div>'
@@ -701,6 +743,50 @@ function factGenerer(){if(!ACCT)return;err('err-fact');
     b.disabled=false;
     location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-facture?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms+'&num='+encodeURIComponent(num)+'&mt='+encodeURIComponent(mtS)+'&dt='+encodeURIComponent(dt);
   },function(e){b.disabled=false;err('err-fact',(e&&e.message)||'Erreur');});}
+/* ---------- Dépenses (équipe, v33) : petite compta ---------- */
+var CATLBL={Carburant:'Carburant',Repas:'Repas',Materiel:'Matériel',Autre:'Autre'};
+var dpCat='Carburant';
+function cpSeg(w){var d=document.getElementById('cp-dep'),f=document.getElementById('cp-fact'),bd=document.getElementById('cp-seg-dep'),bf=document.getElementById('cp-seg-fact');if(!d||!f)return;
+  var dep=(w==='dep');d.style.display=dep?'':'none';f.style.display=dep?'none':'';
+  if(bd){bd.classList.toggle('sel',dep);bd.setAttribute('aria-selected',dep?'true':'false');}
+  if(bf){bf.classList.toggle('sel',!dep);bf.setAttribute('aria-selected',dep?'false':'true');}}
+function depPickCat(el,c){dpCat=c;var bs=document.querySelectorAll('#dp-cats .chip'),i;for(i=0;i<bs.length;i++){var on=bs[i]===el;bs[i].classList.toggle('sel',on);bs[i].setAttribute('aria-checked',on?'true':'false');}depBinVis();}
+function depBinVis(){var r=document.getElementById('dp-binrow');if(!r)return;var ok=(dpCat==='Carburant')&&ACCT&&ACCT._bins&&ACCT._bins.length;r.style.display=ok?'':'none';if(!ok){var s=document.getElementById('dp-bin');if(s)s.value='';}}
+function depBinRendu(){var s=document.getElementById('dp-bin');if(!s)return;
+  var fill=function(){var bs=ACCT._bins||[];var h='<option value="">Seul (sans binôme)</option>',i;for(i=0;i<bs.length;i++)h+='<option value="'+esc(bs[i].tid)+'">'+esc(bs[i].prenom+(bs[i].nom?' '+bs[i].nom:''))+'</option>';s.innerHTML=h;depBinVis();};
+  if(ACCT._bins)fill();
+  else rpc('solo_binomes',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){ACCT._bins=(r&&r.binomes)||[];fill();},function(){});}
+function depMoisCur(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');}
+function depCharger(){if(!ACCT)return;rpc('solo_depenses',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:depMoisCur()}).then(function(r){depRendu(r);},function(){});}
+function depRendu(r){var t=document.getElementById('dp-total'),l=document.getElementById('dp-liste');if(!t||!l)return;
+  var lg=(r&&r.lignes)||[];t.textContent=fmt(parseFloat((r&&r.total)||0)||0);
+  if(!lg.length){l.innerHTML='<div class="note" style="padding:6px 0">Aucune dépense ce mois-ci.</div>';return;}
+  var h='',i;for(i=0;i<lg.length;i++){var x=lg[i];var dd=String(x.d||'').slice(8,10)+'/'+String(x.d||'').slice(5,7);
+    var binTxt=x.bin?(x.gere?('· binôme avec '+x.bin):('· part de '+x.bin)):'';
+    h+='<div style="display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);padding:8px 0">'
+     +'<div style="flex:1;min-width:0"><div style="font-weight:600">'+esc(CATLBL[x.cat]||x.cat)+(binTxt?' <span class="note" style="font-weight:400">'+esc(binTxt)+'</span>':'')+'</div>'
+     +'<div class="note">'+esc(dd)+(x.com?' — '+esc(x.com):'')+'</div></div>'
+     +'<div style="font-weight:700;white-space:nowrap">'+fmt(parseFloat(x.mt)||0)+'</div>'
+     +(x.gere?'<button aria-label="Supprimer" onclick="depSupprimer('+parseInt(x.id,10)+')" style="background:none;border:none;color:var(--muted);font-size:20px;line-height:1;padding:4px 6px;cursor:pointer">×</button>':'<div style="width:24px"></div>')
+     +'</div>';}
+  l.innerHTML=h;}
+function depAjouter(){if(!ACCT)return;err('err-dep');
+  if(!navigator.onLine){err('err-dep',HORSLIGNE_MSG);return;}
+  var dt=((document.getElementById('dp-date')||{}).value||'').trim();
+  var mtS=((document.getElementById('dp-mt')||{}).value||'').trim().replace(',','.').replace(/[\s ]/g,'');
+  var mt=parseFloat(mtS);
+  var com=((document.getElementById('dp-com')||{}).value||'').trim();
+  var bin=((document.getElementById('dp-bin')||{}).value||'')||null;
+  if(dpCat!=='Carburant')bin=null;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dt)){err('err-dep','Choisis la date de la dépense.');return;}
+  if(!isFinite(mt)||mt<=0){err('err-dep','Indique le montant (ex. 45,90).');document.getElementById('dp-mt').focus();return;}
+  var b=document.getElementById('btn-dep');b.disabled=true;
+  rpc('solo_depense_saisie',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_date:dt,p_categorie:dpCat,p_montant:mt,p_commentaire:com,p_binome:bin}).then(function(){
+    b.disabled=false;document.getElementById('dp-mt').value='';document.getElementById('dp-com').value='';var s=document.getElementById('dp-bin');if(s)s.value='';
+    depCharger();
+  },function(e){b.disabled=false;err('err-dep',(e&&e.message)||'Erreur');});}
+function depSupprimer(id){if(!ACCT)return;if(!window.confirm('Supprimer cette dépense ?'))return;
+  rpc('solo_depense_supprimer',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id}).then(function(){depCharger();},function(e){err('err-dep',(e&&e.message)||'Erreur');});}
 function moisNav(delta,ev){if(ev){ev.stopPropagation();ev.preventDefault();}
   if(delta<0){if(HIST===null){histCharger(function(){moisNavGo(HIST_IDX+1);});return;}moisNavGo(HIST_IDX+1);}
   else moisNavGo(HIST_IDX-1);}
@@ -995,7 +1081,7 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='32';
+var APPV='33';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
