@@ -258,9 +258,14 @@ DICOS.ar={dir:'rtl',exact:{
  "Aucune dépense ce mois-ci.":"لا مصاريف هذا الشهر.",
  "Choisis la date de la dépense.":"اختر تاريخ المصروف.",
  "Indique le montant (ex. 45,90).":"أدخل المبلغ (مثال 45,90).",
+ "Traité":"تم",
+ "Réglé ✓":"تم ✓",
 },motifs:[
  [/^· binôme avec (.+)$/, "· مع الزميل $1"],
  [/^· part de (.+)$/, "· حصة $1"],
+ [/^· (.+) te doit (.+)$/, "· $1 مدين لك بـ $2"],
+ [/^· tu dois (.+) à (.+)$/, "· أنت مدين بـ $1 لـ $2"],
+ [/^· (.+) — remboursé ✓$/, "· $1 — تم السداد ✓"],
  [/^Part de (.+)$/, "حصة $1"],
  [/^Binôme avec (.+) — total (.+) divisé en deux$/, "مع الزميل $1 — المجموع $2 مقسوم على اثنين"],
  [/^CA du mois — (.+)$/, "رقم أعمال الشهر — $1"],
@@ -790,14 +795,30 @@ function depRendu(r){var t=document.getElementById('dp-total'),l=document.getEle
   var lg=(r&&r.lignes)||[];t.textContent=fmt(parseFloat((r&&r.total)||0)||0);
   if(!lg.length){l.innerHTML='<div class="note" style="padding:6px 0">Aucune dépense ce mois-ci.</div>';return;}
   var h='',i;for(i=0;i<lg.length;i++){var x=lg[i];var dd=String(x.d||'').slice(8,10)+'/'+String(x.d||'').slice(5,7);
-    var binTxt=x.bin?(x.gere?('· binôme avec '+x.bin):('· part de '+x.bin)):'';
+    var du=(x.du!==null&&x.du!==undefined)?(parseFloat(x.du)||0):null;
+    var binTxt='';
+    if(x.bin){
+      if(x.reg)binTxt='· '+x.bin+' — remboursé ✓';
+      else if(x.gere&&du!==null)binTxt='· '+x.bin+' te doit '+fmt(du);
+      else if(!x.gere&&du!==null)binTxt='· tu dois '+fmt(du)+' à '+x.bin;
+      else binTxt=x.gere?('· binôme avec '+x.bin):('· part de '+x.bin);
+    }
+    var droit='<div style="font-weight:700;white-space:nowrap">'+fmt(parseFloat(x.mt)||0)+'</div>';
+    if(x.gere&&x.bin){
+      droit='<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'+droit
+       +(x.reg?'<button class="chip sel" style="padding:3px 10px;font-size:12px" onclick="depRegler('+parseInt(x.id,10)+',false)">Réglé ✓</button>'
+              :'<button class="chip" style="padding:3px 10px;font-size:12px" onclick="depRegler('+parseInt(x.id,10)+',true)">Traité</button>')
+       +'</div>';
+    }
     h+='<div style="display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);padding:8px 0">'
      +'<div style="flex:1;min-width:0"><div style="font-weight:600">'+esc(CATLBL[x.cat]||x.cat)+(binTxt?' <span class="note" style="font-weight:400">'+esc(binTxt)+'</span>':'')+'</div>'
      +'<div class="note">'+esc(dd)+(x.com?' — '+esc(x.com):'')+'</div></div>'
-     +'<div style="font-weight:700;white-space:nowrap">'+fmt(parseFloat(x.mt)||0)+'</div>'
+     +droit
      +(x.gere?'<button aria-label="Supprimer" onclick="depSupprimer('+parseInt(x.id,10)+')" style="background:none;border:none;color:var(--muted);font-size:20px;line-height:1;padding:4px 6px;cursor:pointer">×</button>':'<div style="width:24px"></div>')
      +'</div>';}
   l.innerHTML=h;}
+function depRegler(id,reg){if(!ACCT)return;
+  rpc('solo_depense_regler',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id,p_regle:!!reg}).then(function(){depCharger();},function(e){err('err-dep',(e&&e.message)||'Erreur');});}
 function depAjouter(){if(!ACCT)return;err('err-dep');
   if(!navigator.onLine){err('err-dep',HORSLIGNE_MSG);return;}
   var dt=((document.getElementById('dp-date')||{}).value||'').trim();
@@ -1110,7 +1131,7 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='34';
+var APPV='35';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
