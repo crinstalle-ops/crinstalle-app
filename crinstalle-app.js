@@ -16,6 +16,7 @@ var FICHE=null;
 var ss={date:'auj',typo:null,sect:'APT',pp:false,editId:null};
 var REGL=false;
 var PAYLINK='https://buy.stripe.com/aFa8wQ0bj2Gs9f54gV43S01';
+var PAYLINK_PRO='https://buy.stripe.com/00wdRa4rzgxi76XaFj43S02';
 /* ---------- langues (v19) : mecanisme inerte tant qu'aucun dictionnaire n'est charge ---------- */
 var LANGCLE='crinstalle_lang';
 var DICOS={};  /* bloc 2 : DICOS.ar={dir:'rtl',exact:{...},motifs:[[re,gabarit],...]} */
@@ -229,6 +230,18 @@ DICOS.ar={dir:'rtl',exact:{
  "Indique le montant de la facture (ex. 1250,50).":"أدخل مبلغ الفاتورة (مثال 1250,50).",
  "Complète tes infos de facturation (adresse, code postal + ville, SIRET).":"أكمل معلومات الفوترة (العنوان، الرمز البريدي + المدينة، SIRET).",
  "Compta":"المحاسبة",
+ "Sans engagement. Tes données et tes relevés PDF restent accessibles.":"بدون التزام. بياناتك وكشوف PDF تبقى متاحة.",
+ "9,99 € / mois":"9,99 € / شهر",
+ "Tout Solo + Factures en 1 clic · Suivi des dépenses":"كل مزايا Solo + فواتير بنقرة واحدة · تتبع المصاريف",
+ "Passer Pro — 9,99 €/mois":"الترقية إلى Pro — 9,99 €/شهر",
+ "Génère ta facture du mois pour ton client.":"أنشئ فاتورتك الشهرية لعميلك.",
+ "Mon client (facturé à)":"عميلي (الفاتورة باسم)",
+ "Nom de l’entreprise cliente":"اسم الشركة العميلة",
+ "Adresse du client":"عنوان العميل",
+ "Code postal + ville du client":"الرمز البريدي + مدينة العميل",
+ "ex. FIBRE SUD SARL":"مثال: FIBRE SUD SARL",
+ "Ta facture lui sera adressée, et sa copie arrive sur ton email.":"ستوجَّه فاتورتك إليه، وتصل نسخة منها إلى بريدك الإلكتروني.",
+ "Complète les infos de ton client (nom, adresse, code postal + ville).":"أكمل معلومات عميلك (الاسم، العنوان، الرمز البريدي + المدينة).",
  "Dépenses":"المصاريف",
  "Note tes dépenses — carburant, repas, matériel…":"سجّل مصاريفك — وقود، وجبات، معدات…",
  "Date de la dépense":"تاريخ المصروف",
@@ -652,8 +665,11 @@ function factNumSuivant(last){last=String(last||'').trim();if(!last)return '';
   var m=last.match(/(\d+)(?!.*\d)/);if(!m)return last;
   var n=String(parseInt(m[1],10)+1);while(n.length<m[1].length)n='0'+n;
   return last.slice(0,m.index)+n+last.slice(m.index+m[1].length);}
+function comptaOk(){var m=ACCT&&ACCT.me;if(!m)return false;
+  if(m.equipe)return m.acces!=='controle';
+  return m.abo_plan==='pro'&&m.abo_statut==='actif';}
 function factNavInstall(){
-  if(!ACCT||!ACCT.me||!ACCT.me.equipe||ACCT.me.acces==='controle')return;
+  if(!comptaOk())return;
   if(!document.getElementById('s-fact')){
     var s=document.createElement('section');s.className='screen';s.id='s-fact';
     s.innerHTML='<div class="topbar"><button class="back" aria-label="Retour" onclick="goHome()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><div class="ttl">Compta</div><div style="width:34px"></div></div>'
@@ -675,7 +691,7 @@ function factNavInstall(){
      +'<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="lab">Ce mois-ci</div><div id="dp-total" style="font-weight:800;font-size:18px">—</div></div><div id="dp-liste" style="display:flex;flex-direction:column;margin-top:6px"></div></div>'
      +'</div>'
      +'<div id="cp-fact" style="display:none">'
-     +'<p class="sub" style="margin:2px 0 14px">Génère ta facture du mois pour Crinstalle.</p>'
+     +'<p class="sub" style="margin:2px 0 14px">'+(ACCT.me.equipe?'Génère ta facture du mois pour Crinstalle.':'Génère ta facture du mois pour ton client.')+'</p>'
      +'<div class="card" style="display:flex;flex-direction:column;gap:12px">'
      +'<div class="field"><div class="lab" id="lbl-famois">Mois</div><select id="fa-mois" aria-labelledby="lbl-famois" style="width:100%;height:52px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:0 14px;color:var(--tx);font-size:16px;font-weight:600"></select></div>'
      +'<div class="field"><label class="lab" for="fa-date">Date de la facture</label><input type="date" id="fa-date"></div>'
@@ -713,17 +729,24 @@ function openFact(){if(!ACCT)return;factNavInstall();var s=document.getElementBy
   err('err-fact');err('err-dep');show('s-fact');}
 function factProfilRendu(){var d=document.getElementById('fa-profil');if(!d)return;var p=ACCT._factp||{};
   if(!d.getAttribute('data-built')){d.setAttribute('data-built','1');
-    d.innerHTML='<div class="field"><label class="lab" for="fap-adr">Adresse</label><input type="text" id="fap-adr" maxlength="120" placeholder="ex. 12 rue des Lilas"></div>'
+    var hh='<div class="field"><label class="lab" for="fap-adr">Adresse</label><input type="text" id="fap-adr" maxlength="120" placeholder="ex. 12 rue des Lilas"></div>'
      +'<div class="field"><label class="lab" for="fap-cpv">Code postal + ville</label><input type="text" id="fap-cpv" maxlength="80" placeholder="ex. 84300 Cavaillon"></div>'
      +'<div class="field"><label class="lab" for="fap-siret">SIRET</label><input type="text" id="fap-siret" maxlength="20" placeholder="ex. 123 456 789 00012"></div>'
      +'<div class="field"><label class="lab" for="fap-tel">Téléphone (facultatif)</label><input type="text" id="fap-tel" maxlength="30" inputmode="tel"></div>'
-     +'<div class="field"><label class="lab" for="fap-email">Email (facultatif)</label><input type="text" id="fap-email" maxlength="120" autocomplete="email"></div>'
-     +'<div class="note">Enregistrées une seule fois — reprises automatiquement sur tes prochaines factures.</div>';}
+     +'<div class="field"><label class="lab" for="fap-email">Email (facultatif)</label><input type="text" id="fap-email" maxlength="120" autocomplete="email"></div>';
+    if(!ACCT.me.equipe){hh+='<div class="lab" style="margin-top:6px">Mon client (facturé à)</div>'
+     +'<div class="field"><label class="lab" for="fapc-nom">Nom de l’entreprise cliente</label><input type="text" id="fapc-nom" maxlength="120" placeholder="ex. FIBRE SUD SARL"></div>'
+     +'<div class="field"><label class="lab" for="fapc-adr">Adresse du client</label><input type="text" id="fapc-adr" maxlength="120"></div>'
+     +'<div class="field"><label class="lab" for="fapc-cpv">Code postal + ville du client</label><input type="text" id="fapc-cpv" maxlength="80"></div>'
+     +'<div class="note">Ta facture lui sera adressée, et sa copie arrive sur ton email.</div>';}
+    hh+='<div class="note">Enregistrées une seule fois — reprises automatiquement sur tes prochaines factures.</div>';
+    d.innerHTML=hh;}
   var set=function(id,v){var e=document.getElementById(id);if(e&&!e.value&&v)e.value=v;};
-  set('fap-adr',p.adresse);set('fap-cpv',p.cp_ville);set('fap-siret',p.siret);set('fap-tel',p.tel);set('fap-email',p.email);}
+  set('fap-adr',p.adresse);set('fap-cpv',p.cp_ville);set('fap-siret',p.siret);set('fap-tel',p.tel);set('fap-email',p.email);
+  set('fapc-nom',p.client_nom);set('fapc-adr',p.client_adresse);set('fapc-cpv',p.client_cp_ville);}
 function factProfilBascule(){var d=document.getElementById('fa-profil'),b=document.getElementById('fa-toggle');if(!d)return;var on=d.style.display==='none';d.style.display=on?'flex':'none';if(b)b.setAttribute('aria-expanded',on?'true':'false');}
 function factProfilOuvre(){var d=document.getElementById('fa-profil'),b=document.getElementById('fa-toggle');if(d&&d.style.display==='none'){d.style.display='flex';if(b)b.setAttribute('aria-expanded','true');}
-  var ids=['fap-adr','fap-cpv','fap-siret'],i;for(i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e&&!e.value.trim()){try{e.focus();}catch(_e){}break;}}}
+  var ids=['fap-adr','fap-cpv','fap-siret','fapc-nom','fapc-adr','fapc-cpv'],i;for(i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e&&!e.value.trim()){try{e.focus();}catch(_e){}break;}}}
 function factGenerer(){if(!ACCT)return;err('err-fact');
   if(!navigator.onLine){err('err-fact',HORSLIGNE_MSG);return;}
   var ms=(document.getElementById('fa-mois')||{}).value||'';
@@ -733,13 +756,18 @@ function factGenerer(){if(!ACCT)return;err('err-fact');
   var mt=parseFloat(mtS);
   var gv=function(id){var e=document.getElementById(id);return e?e.value.trim():'';};
   var p={adresse:gv('fap-adr'),cp_ville:gv('fap-cpv'),siret:gv('fap-siret'),tel:gv('fap-tel'),email:gv('fap-email')};
+  var solo=!ACCT.me.equipe;
+  var pc={nom:gv('fapc-nom'),adr:gv('fapc-adr'),cpv:gv('fapc-cpv')};
   if(!/^\d{4}-\d{2}-\d{2}$/.test(dt)){err('err-fact','Choisis la date de la facture.');document.getElementById('fa-date').focus();return;}
   if(!num){err('err-fact','Indique ton numéro de facture.');document.getElementById('fa-num').focus();return;}
   if(!isFinite(mt)||mt<=0){err('err-fact','Indique le montant de la facture (ex. 1250,50).');document.getElementById('fa-mt').focus();return;}
   if(!p.adresse||!p.cp_ville||!p.siret){err('err-fact','Complète tes infos de facturation (adresse, code postal + ville, SIRET).');factProfilOuvre();return;}
+  if(solo&&(!pc.nom||!pc.adr||!pc.cpv)){err('err-fact','Complète les infos de ton client (nom, adresse, code postal + ville).');factProfilOuvre();return;}
   var b=document.getElementById('btn-fact');b.disabled=true;
-  rpc('solo_facture_profil_save',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_adresse:p.adresse,p_cp_ville:p.cp_ville,p_siret:p.siret,p_tel:p.tel,p_email:p.email,p_num:num}).then(function(){
-    ACCT._factp={adresse:p.adresse,cp_ville:p.cp_ville,siret:p.siret,tel:p.tel,email:p.email,dernier_num:num};
+  var body={p_client:ACCT.client_id,p_cle:ACCT.cle,p_adresse:p.adresse,p_cp_ville:p.cp_ville,p_siret:p.siret,p_tel:p.tel,p_email:p.email,p_num:num};
+  if(solo){body.p_client_nom=pc.nom;body.p_client_adresse=pc.adr;body.p_client_cp_ville=pc.cpv;}
+  rpc('solo_facture_profil_save',body).then(function(){
+    ACCT._factp={adresse:p.adresse,cp_ville:p.cp_ville,siret:p.siret,tel:p.tel,email:p.email,dernier_num:num,client_nom:pc.nom,client_adresse:pc.adr,client_cp_ville:pc.cpv};
     b.disabled=false;
     location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-facture?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms+'&num='+encodeURIComponent(num)+'&mt='+encodeURIComponent(mtS)+'&dt='+encodeURIComponent(dt);
   },function(e){b.disabled=false;err('err-fact',(e&&e.message)||'Erreur');});}
@@ -861,8 +889,9 @@ buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);show('s-
 var PDFSVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:8px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 function openPdf(back){if(!ACCT)return;if(!navigator.onLine){err('err-home',HORSLIGNE_MSG);return;}var n=new Date();var m=new Date(n.getFullYear(),n.getMonth()-back,1);var ms=m.getFullYear()+'-'+((m.getMonth()+1)<10?'0':'')+(m.getMonth()+1);location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-pdf?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms;}
 function aboLocked(m){return (m.abo_statut==='essai'&&(parseInt(m.abo_jours,10)||0)<=0)||m.abo_statut==='annule';}
-function buildAbo(){if(document.getElementById('s-abo'))return;var s=document.createElement('section');s.className='screen';s.id='s-abo';s.innerHTML='<div class="grow"></div><div class="center"><img src="" alt="Logo Crinstalle IA" id="abo-logo" style="width:72px;height:72px;border-radius:18px"><div style="margin-top:14px"><span class="badge ko">Essai terminé</span></div><h1 style="margin-top:12px">On continue ensemble ?</h1><p class="sub" style="margin-top:8px">Ton mois d’essai gratuit est terminé.<br>Tes données et tes relevés PDF restent accessibles.</p></div><div class="card" style="padding:6px 18px;margin-top:18px"><div class="krow"><div class="k">Abonnement</div><div class="v">5,99 € / mois</div></div><div class="krow"><div class="k">Engagement</div><div class="v">Aucun</div></div><div class="krow"><div class="k">Inclus</div><div class="v" style="font-weight:500">Saisie illimitée · Mon CA · Relevés PDF</div></div></div><div class="err" id="err-abo" role="alert"></div><div class="grow"></div><button class="btn" onclick="openAbo()">S’abonner — 5,99 €/mois</button><button class="btn ghost" onclick="refreshAbo()">J’ai payé — actualiser</button><div class="center"><button class="linkbtn" onclick="goHome()">Voir mon CA (lecture)</button></div>';document.getElementById('s-accueil').parentNode.appendChild(s);var l=document.getElementById('abo-logo');if(l)l.src=LOGO;}
+function buildAbo(){if(document.getElementById('s-abo'))return;var s=document.createElement('section');s.className='screen';s.id='s-abo';s.innerHTML='<div class="grow"></div><div class="center"><img src="" alt="Logo Crinstalle IA" id="abo-logo" style="width:64px;height:64px;border-radius:16px"><div style="margin-top:12px"><span class="badge ko">Essai terminé</span></div><h1 style="margin-top:10px">On continue ensemble ?</h1><p class="sub" style="margin-top:6px">Sans engagement. Tes données et tes relevés PDF restent accessibles.</p></div><div class="card" style="padding:14px 18px;margin-top:14px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="font-weight:800">Solo</div><div style="font-weight:800">5,99 € / mois</div></div><div class="note" style="margin-top:4px">Saisie illimitée · Mon CA · Relevés PDF</div><button class="btn ghost" style="margin-top:10px" onclick="openAbo()">S’abonner — 5,99 €/mois</button></div><div class="card" style="padding:14px 18px;margin-top:10px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="font-weight:800">Pro</div><div style="font-weight:800">9,99 € / mois</div></div><div class="note" style="margin-top:4px">Tout Solo + Factures en 1 clic · Suivi des dépenses</div><button class="btn" style="margin-top:10px" onclick="openAboPro()">Passer Pro — 9,99 €/mois</button></div><div class="err" id="err-abo" role="alert"></div><div class="grow"></div><button class="btn ghost" onclick="refreshAbo()">J’ai payé — actualiser</button><div class="center"><button class="linkbtn" onclick="goHome()">Voir mon CA (lecture)</button></div>';document.getElementById('s-accueil').parentNode.appendChild(s);var l=document.getElementById('abo-logo');if(l)l.src=LOGO;}
 function openAbo(){if(!ACCT)return;location.href=PAYLINK+'?client_reference_id='+ACCT.client_id;}
+function openAboPro(){if(!ACCT)return;location.href=PAYLINK_PRO+'?client_reference_id='+ACCT.client_id;}
 function refreshAbo(){if(!ACCT)return;err('err-abo');rpc('solo_me',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(m){ACCT.me=m;if(!aboLocked(m)){goHome();}else{err('err-abo','Paiement pas encore reçu — réessaie dans quelques secondes.');}}).catch(function(e){err('err-abo',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
 function openFiche(id){if(!ACCT)return;rpc('solo_intervention',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id}).then(function(f){FICHE=f;err('err-fiche');document.getElementById('warn-del').classList.remove('on');document.getElementById('fi-jeton').textContent=f.jeton;var dd=(f.date||'').split('-');var sansPPM=SANS_PPM.indexOf(f.typo)>=0;var h='<div class="krow"><div class="k">Date</div><div class="v">'+esc(dd[2]+'/'+dd[1]+'/'+dd[0])+'</div></div><div class="krow"><div class="k">Typologie</div><div class="v">'+esc(TLBL[f.typo]||f.typo)+'</div></div><div class="krow"><div class="k">Secteur</div><div class="v">'+esc(SLBL[f.sect]||f.sect)+'</div></div>';if(sansPPM){h+='<div class="krow"><div class="k">Post-prod · Métrage</div><div class="v" style="font-weight:500;color:var(--tx2)">Non concerné</div></div>';}else{h+='<div class="krow"><div class="k">Post-prod</div><div class="v">'+(f.pp?'Oui':'Non')+'</div></div><div class="krow"><div class="k">Métrage</div><div class="v">'+(parseInt(f.metrage,10)||0)+' m</div></div>';}
 if(f.binome_avec){h+='<div class="krow"><div class="k">Binôme</div><div class="v">'+esc(f.binome_avec)+(f.binome_gere===false?' (gère cette saisie)':'')+'</div></div>';}if(f.commentaire){h+='<div class="krow"><div class="k">Commentaire</div><div class="v" style="font-weight:500">'+esc(f.commentaire)+'</div></div>';}
@@ -1081,7 +1110,7 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='33';
+var APPV='34';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
