@@ -15,7 +15,7 @@ var ACCT=null;
 var FICHE=null;
 var ss={date:'auj',typo:null,sect:'APT',pp:false,editId:null};
 var REGL=false;
-var PAYLINK='https://buy.stripe.com/00w28sbU13Kw4YP00F43S00';
+var PAYLINK='https://buy.stripe.com/aFa8wQ0bj2Gs9f54gV43S01';
 /* ---------- langues (v19) : mecanisme inerte tant qu'aucun dictionnaire n'est charge ---------- */
 var LANGCLE='crinstalle_lang';
 var DICOS={};  /* bloc 2 : DICOS.ar={dir:'rtl',exact:{...},motifs:[[re,gabarit],...]} */
@@ -173,8 +173,8 @@ DICOS.ar={dir:'rtl',exact:{
  "Aucun":"بدون",
  "Inclus":"يشمل",
  "Saisie illimitée · Mon CA · Relevés PDF":"تسجيل غير محدود · رقم أعمالي · كشوف PDF",
- "S’abonner — 4,99 €/mois":"اشترك — 4,99 €/شهر",
- "4,99 € / mois":"4,99 € / شهر",
+ "S’abonner — 5,99 €/mois":"اشترك — 5,99 €/شهر",
+ "5,99 € / mois":"5,99 € / شهر",
  "J’ai payé — actualiser":"دفعتُ — تحديث",
  "Voir mon CA (lecture)":"عرض رقم أعمالي (للاطلاع فقط)",
  "Paiement pas encore reçu — réessaie dans quelques secondes.":"لم يصل الدفع بعد — أعد المحاولة بعد ثوانٍ.",
@@ -775,7 +775,7 @@ buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);show('s-
 var PDFSVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:8px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 function openPdf(back){if(!ACCT)return;if(!navigator.onLine){err('err-home',HORSLIGNE_MSG);return;}var n=new Date();var m=new Date(n.getFullYear(),n.getMonth()-back,1);var ms=m.getFullYear()+'-'+((m.getMonth()+1)<10?'0':'')+(m.getMonth()+1);location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-pdf?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms;}
 function aboLocked(m){return (m.abo_statut==='essai'&&(parseInt(m.abo_jours,10)||0)<=0)||m.abo_statut==='annule';}
-function buildAbo(){if(document.getElementById('s-abo'))return;var s=document.createElement('section');s.className='screen';s.id='s-abo';s.innerHTML='<div class="grow"></div><div class="center"><img src="" alt="Logo Crinstalle IA" id="abo-logo" style="width:72px;height:72px;border-radius:18px"><div style="margin-top:14px"><span class="badge ko">Essai terminé</span></div><h1 style="margin-top:12px">On continue ensemble ?</h1><p class="sub" style="margin-top:8px">Ton mois d’essai gratuit est terminé.<br>Tes données et tes relevés PDF restent accessibles.</p></div><div class="card" style="padding:6px 18px;margin-top:18px"><div class="krow"><div class="k">Abonnement</div><div class="v">4,99 € / mois</div></div><div class="krow"><div class="k">Engagement</div><div class="v">Aucun</div></div><div class="krow"><div class="k">Inclus</div><div class="v" style="font-weight:500">Saisie illimitée · Mon CA · Relevés PDF</div></div></div><div class="err" id="err-abo" role="alert"></div><div class="grow"></div><button class="btn" onclick="openAbo()">S’abonner — 4,99 €/mois</button><button class="btn ghost" onclick="refreshAbo()">J’ai payé — actualiser</button><div class="center"><button class="linkbtn" onclick="goHome()">Voir mon CA (lecture)</button></div>';document.getElementById('s-accueil').parentNode.appendChild(s);var l=document.getElementById('abo-logo');if(l)l.src=LOGO;}
+function buildAbo(){if(document.getElementById('s-abo'))return;var s=document.createElement('section');s.className='screen';s.id='s-abo';s.innerHTML='<div class="grow"></div><div class="center"><img src="" alt="Logo Crinstalle IA" id="abo-logo" style="width:72px;height:72px;border-radius:18px"><div style="margin-top:14px"><span class="badge ko">Essai terminé</span></div><h1 style="margin-top:12px">On continue ensemble ?</h1><p class="sub" style="margin-top:8px">Ton mois d’essai gratuit est terminé.<br>Tes données et tes relevés PDF restent accessibles.</p></div><div class="card" style="padding:6px 18px;margin-top:18px"><div class="krow"><div class="k">Abonnement</div><div class="v">5,99 € / mois</div></div><div class="krow"><div class="k">Engagement</div><div class="v">Aucun</div></div><div class="krow"><div class="k">Inclus</div><div class="v" style="font-weight:500">Saisie illimitée · Mon CA · Relevés PDF</div></div></div><div class="err" id="err-abo" role="alert"></div><div class="grow"></div><button class="btn" onclick="openAbo()">S’abonner — 5,99 €/mois</button><button class="btn ghost" onclick="refreshAbo()">J’ai payé — actualiser</button><div class="center"><button class="linkbtn" onclick="goHome()">Voir mon CA (lecture)</button></div>';document.getElementById('s-accueil').parentNode.appendChild(s);var l=document.getElementById('abo-logo');if(l)l.src=LOGO;}
 function openAbo(){if(!ACCT)return;location.href=PAYLINK+'?client_reference_id='+ACCT.client_id;}
 function refreshAbo(){if(!ACCT)return;err('err-abo');rpc('solo_me',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(m){ACCT.me=m;if(!aboLocked(m)){goHome();}else{err('err-abo','Paiement pas encore reçu — réessaie dans quelques secondes.');}}).catch(function(e){err('err-abo',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
 function openFiche(id){if(!ACCT)return;rpc('solo_intervention',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id}).then(function(f){FICHE=f;err('err-fiche');document.getElementById('warn-del').classList.remove('on');document.getElementById('fi-jeton').textContent=f.jeton;var dd=(f.date||'').split('-');var sansPPM=SANS_PPM.indexOf(f.typo)>=0;var h='<div class="krow"><div class="k">Date</div><div class="v">'+esc(dd[2]+'/'+dd[1]+'/'+dd[0])+'</div></div><div class="krow"><div class="k">Typologie</div><div class="v">'+esc(TLBL[f.typo]||f.typo)+'</div></div><div class="krow"><div class="k">Secteur</div><div class="v">'+esc(SLBL[f.sect]||f.sect)+'</div></div>';if(sansPPM){h+='<div class="krow"><div class="k">Post-prod · Métrage</div><div class="v" style="font-weight:500;color:var(--tx2)">Non concerné</div></div>';}else{h+='<div class="krow"><div class="k">Post-prod</div><div class="v">'+(f.pp?'Oui':'Non')+'</div></div><div class="krow"><div class="k">Métrage</div><div class="v">'+(parseInt(f.metrage,10)||0)+' m</div></div>';}
@@ -995,7 +995,7 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='31';
+var APPV='32';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
