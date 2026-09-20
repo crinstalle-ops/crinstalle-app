@@ -677,13 +677,18 @@ function factNumSuivant(last){last=String(last||'').trim();if(!last)return '';
 function comptaOk(){var m=ACCT&&ACCT.me;if(!m)return false;
   if(m.equipe)return m.acces!=='controle';
   return m.abo_plan==='pro'&&m.abo_statut==='actif';}
+function tvaOk(){var m=ACCT&&ACCT.me;return !!(m&&m.equipe&&(m.acces==='admin'||m.acces==='controle'));}
 function factNavInstall(){
-  if(!comptaOk())return;
+  var _okC=comptaOk(),_okT=tvaOk();
+  if(!_okC&&!_okT)return;
   if(!document.getElementById('s-fact')){
     var s=document.createElement('section');s.className='screen';s.id='s-fact';
     s.innerHTML='<div class="topbar"><button class="back" aria-label="Retour" onclick="goHome()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><div class="ttl">Compta</div><div style="width:34px"></div></div>'
-     +'<div id="cp-seg" role="tablist" style="display:flex;gap:8px;margin:2px 0 14px"><button class="chip sel" id="cp-seg-dep" role="tab" aria-selected="true" onclick="cpSeg(\'dep\')">Dépenses</button><button class="chip" id="cp-seg-fact" role="tab" aria-selected="false" onclick="cpSeg(\'fact\')">Facture</button></div>'
-     +'<div id="cp-dep">'
+     +'<div id="cp-seg" role="tablist" style="display:flex;gap:8px;margin:2px 0 14px">'
+     +(_okC?'<button class="chip sel" id="cp-seg-dep" role="tab" aria-selected="true" onclick="cpSeg(\'dep\')">Dépenses</button><button class="chip" id="cp-seg-fact" role="tab" aria-selected="false" onclick="cpSeg(\'fact\')">Facture</button>':'')
+     +(_okT?'<button class="chip'+(_okC?'':' sel')+'" id="cp-seg-tva" role="tab" aria-selected="'+(_okC?'false':'true')+'" onclick="cpSeg(\'tva\')">TVA</button>':'')
+     +'</div>'
+     +(_okC?'<div id="cp-dep">'
      +'<p class="sub" style="margin:2px 0 14px">Note tes dépenses — carburant, repas, matériel…</p>'
      +'<div class="card" style="display:flex;flex-direction:column;gap:12px">'
      +'<div class="field"><label class="lab" for="dp-date">Date de la dépense</label><input type="date" id="dp-date"></div>'
@@ -712,7 +717,21 @@ function factNavInstall(){
      +'<button class="btn ghost" id="btn-fact" onclick="factGenerer()">'+PDFSVG+'Générer ma facture</button></div>'
      +'<div class="card" id="fa-arch" style="margin-top:12px;display:none"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="lab">Mes factures</div><div id="fa-archtot" style="font-weight:800;font-size:18px">—</div></div><div id="fa-archl" style="display:flex;flex-direction:column;margin-top:6px"></div></div>'
      +'<div class="card" id="fa-archeq" style="margin-top:12px;display:none"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="lab">Factures de l’équipe</div><div id="fa-archeqtot" style="font-weight:800;font-size:18px">—</div></div><div id="fa-archeql" style="display:flex;flex-direction:column;margin-top:6px"></div></div>'
-     +'</div>'
+     +'</div>':'')
+     +(_okT?'<div id="cp-tva"'+(_okC?' style="display:none"':'')+'>'
+     +'<p class="sub" style="margin:2px 0 14px">Tickets de caisse, captures d’écran, factures PDF — archivés et classés dans Gmail (🧾 Factures TVA).</p>'
+     +'<div class="card" style="display:flex;flex-direction:column;gap:12px">'
+     +'<div class="field"><div class="lab" id="lbl-tvamois">Mois comptable</div><select id="tva-mois" aria-labelledby="lbl-tvamois" onchange="tvaCharger()" style="width:100%;height:52px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:0 14px;color:var(--tx);font-size:16px;font-weight:600"></select></div>'
+     +'<input type="file" id="tva-file-cam" accept="image/*" capture="environment" style="display:none" onchange="tvaFichier(this)">'
+     +'<input type="file" id="tva-file-gal" accept="image/*,application/pdf" multiple style="display:none" onchange="tvaFichier(this)">'
+     +'<div style="display:flex;gap:10px"><button class="btn" style="flex:1" onclick="document.getElementById(\'tva-file-cam\').click()">📷 Photo</button><button class="btn" style="flex:1" onclick="document.getElementById(\'tva-file-gal\').click()">🖼️ Galerie / PDF</button></div>'
+     +'<div id="tva-docs" class="note" style="display:none"></div>'
+     +'<img id="tva-prev" alt="Aperçu" style="display:none;width:100%;max-height:260px;object-fit:contain;border-radius:var(--r-m);border:1px solid var(--border)">'
+     +'<div class="field"><label class="lab" for="tva-note">Note (facultatif, pour tout l’envoi)</label><input type="text" id="tva-note" maxlength="200" placeholder="ex. Brico Dépôt — visserie"></div>'
+     +'<div class="err" id="err-tva" role="alert"></div>'
+     +'<button class="btn ghost" id="btn-tva" onclick="tvaEnvoyer()" disabled>Envoyer</button></div>'
+     +'<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="lab" id="tva-lstlab">Tickets du mois</div><div id="tva-count" style="font-weight:800;font-size:18px">—</div></div><div id="tva-lst" style="display:flex;flex-direction:column;margin-top:6px"></div></div>'
+     +'</div>':'')
      +'<div class="grow"></div>';
     var tabs=document.getElementById('tabs');
     document.body.insertBefore(s,tabs);
@@ -731,13 +750,16 @@ function openFact(){if(!ACCT)return;factNavInstall();var s=document.getElementBy
   var dd=document.getElementById('dp-date');
   if(dd&&!dd.value)dd.value=auj;
   var num=document.getElementById('fa-num');
-  if(ACCT._factp){if(num&&!num.value&&ACCT._factp.dernier_num)num.value=factNumSuivant(ACCT._factp.dernier_num);}
-  else{rpc('solo_facture_data',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:factMoisListe()[0]}).then(function(r){
-    ACCT._factp=(r&&r.profil)||{};factProfilRendu();
-    var n2=document.getElementById('fa-num');if(n2&&!n2.value&&ACCT._factp.dernier_num)n2.value=factNumSuivant(ACCT._factp.dernier_num);
-  },function(){});}
-  depBinRendu();depCharger();factArchCharger();
-  err('err-fact');err('err-dep');show('s-fact');}
+  if(comptaOk()){
+    if(ACCT._factp){if(num&&!num.value&&ACCT._factp.dernier_num)num.value=factNumSuivant(ACCT._factp.dernier_num);}
+    else{rpc('solo_facture_data',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:factMoisListe()[0]}).then(function(r){
+      ACCT._factp=(r&&r.profil)||{};factProfilRendu();
+      var n2=document.getElementById('fa-num');if(n2&&!n2.value&&ACCT._factp.dernier_num)n2.value=factNumSuivant(ACCT._factp.dernier_num);
+    },function(){});}
+    depBinRendu();depCharger();factArchCharger();
+  }
+  if(tvaOk())tvaCharger();
+  err('err-fact');err('err-dep');err('err-tva');show('s-fact');}
 /* ---------- Archive des factures (v37) ---------- */
 var ARCHURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-facture-archive';
 function factMoisLabel(m){m=String(m||'');var y=parseInt(m.slice(0,4),10),mo=parseInt(m.slice(5,7),10)-1;var now=new Date();var s=MOIS[mo]||m;return s+(y&&y!==now.getFullYear()?' '+y:'');}
@@ -806,13 +828,98 @@ function factGenerer(){if(!ACCT)return;err('err-fact');
     b.disabled=false;
     location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-facture?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms+'&num='+encodeURIComponent(num)+'&mt='+encodeURIComponent(mtS)+'&dt='+encodeURIComponent(dt);
   },function(e){b.disabled=false;err('err-fact',(e&&e.message)||'Erreur');});}
+/* ---------- Tickets TVA (admin + contrôle, v38) ---------- */
+var TVAURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-ticket-tva';
+function jpegToPdf(b64,w,h){var bin=atob(b64);var W=595.28,H=841.89,M=20;
+  var sc=Math.min((W-2*M)/w,(H-2*M)/h);var iw=w*sc,ih=h*sc;var ix=(W-iw)/2,iy=(H-ih)/2;
+  var cont='q '+iw.toFixed(2)+' 0 0 '+ih.toFixed(2)+' '+ix.toFixed(2)+' '+iy.toFixed(2)+' cm /Im1 Do Q';
+  var objs=['<< /Type /Catalog /Pages 2 0 R >>',
+   '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+   '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /XObject << /Im1 4 0 R >> >> /Contents 5 0 R >>',
+   '<< /Type /XObject /Subtype /Image /Width '+w+' /Height '+h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+bin.length+' >>\nstream\n'+bin+'\nendstream',
+   '<< /Length '+cont.length+' >>\nstream\n'+cont+'\nendstream'];
+  var out='%PDF-1.4\n';var offs=[0],o;
+  for(o=0;o<objs.length;o++){offs.push(out.length);out+=(o+1)+' 0 obj\n'+objs[o]+'\nendobj\n';}
+  var xp=out.length;
+  out+='xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n';
+  for(o=1;o<=objs.length;o++){var z=String(offs[o]);while(z.length<10)z='0'+z;out+=z+' 00000 n \n';}
+  out+='trailer\n<< /Size '+(objs.length+1)+' /Root 1 0 R >>\nstartxref\n'+xp+'\n%%EOF';
+  return btoa(out);}
+function tvaMoisInit(){var s=document.getElementById('tva-mois');if(!s||s.options.length)return;
+  var l=factMoisListe(),h='',i;var now=new Date();var cap=function(m){return m.charAt(0).toUpperCase()+m.slice(1);};
+  for(i=0;i<l.length&&i<6;i++){var y=parseInt(l[i].slice(0,4),10),mo=parseInt(l[i].slice(5,7),10)-1;
+    h+='<option value="'+l[i]+'"'+(i===0?' selected':'')+'>'+cap(MOIS[mo])+(y!==now.getFullYear()?' '+y:'')+'</option>';}
+  s.innerHTML=h;}
+function tvaDocsMaj(){var d=window._tvaDocs||[];var z=document.getElementById('tva-docs'),b=document.getElementById('btn-tva');
+  if(z){z.style.display=d.length?'':'none';z.textContent=d.length?(d.length+' document'+(d.length>1?'s':'')+' prêt'+(d.length>1?'s':'')+' à envoyer'):'';}
+  if(b){b.disabled=!d.length;b.textContent=d.length>1?('Envoyer les '+d.length+' tickets'):'Envoyer';}}
+function tvaFichier(inp){var fs=inp.files;if(!fs||!fs.length)return;err('err-tva');
+  window._tvaDocs=window._tvaDocs||[];
+  var reste=fs.length;
+  var fini=function(){reste--;if(reste<=0){inp.value='';tvaDocsMaj();}};
+  Array.prototype.forEach.call(fs,function(f){
+    if(f.type==='application/pdf'){
+      if(f.size>5500000){err('err-tva','Un PDF dépasse 5 Mo — allège-le.');fini();return;}
+      var rd=new FileReader();
+      rd.onload=function(){var du=rd.result;window._tvaDocs.push(du.slice(du.indexOf(',')+1));fini();};
+      rd.onerror=function(){err('err-tva','Document illisible — réessaie.');fini();};
+      rd.readAsDataURL(f);
+      return;
+    }
+    var img=new Image();var url=URL.createObjectURL(f);
+    img.onload=function(){try{
+      var MAXL=1600;var w=img.naturalWidth,h=img.naturalHeight;var sc=Math.min(1,MAXL/Math.max(w,h));
+      var cw=Math.round(w*sc)||1,ch=Math.round(h*sc)||1;
+      var cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
+      cv.getContext('2d').drawImage(img,0,0,cw,ch);
+      var du=cv.toDataURL('image/jpeg',0.82);
+      window._tvaDocs.push(jpegToPdf(du.slice(du.indexOf(',')+1),cw,ch));
+      var pv=document.getElementById('tva-prev');if(pv){pv.src=du;pv.style.display='';}
+      URL.revokeObjectURL(url);fini();
+    }catch(e){err('err-tva','Photo illisible — réessaie.');fini();}};
+    img.onerror=function(){err('err-tva','Photo illisible — réessaie.');URL.revokeObjectURL(url);fini();};
+    img.src=url;});}
+function tvaEnvoyer(){if(!ACCT)return;var d=window._tvaDocs||[];if(!d.length)return;err('err-tva');
+  if(!navigator.onLine){err('err-tva',HORSLIGNE_MSG);return;}
+  var b=document.getElementById('btn-tva');b.disabled=true;
+  var mois=((document.getElementById('tva-mois')||{}).value||'');
+  var note=((document.getElementById('tva-note')||{}).value||'').trim();
+  var total=d.length,fait=0;
+  var un=function(){
+    if(!d.length){
+      window._tvaDocs=[];
+      var pv=document.getElementById('tva-prev');if(pv){pv.style.display='none';pv.src='';}
+      document.getElementById('tva-note').value='';
+      b.textContent='Envoyé ✓ ('+fait+'/'+total+')';
+      setTimeout(function(){tvaDocsMaj();},1800);
+      tvaCharger();return;
+    }
+    b.textContent='Envoi '+(fait+1)+'/'+total+'…';
+    fetch(TVAURL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({c:ACCT.client_id,k:ACCT.cle,b64:d[0],note:note,m:mois})})
+    .then(function(r){if(!r.ok)throw 0;return r.json();})
+    .then(function(){d.shift();fait++;un();})
+    .catch(function(){window._tvaDocs=d;tvaDocsMaj();b.disabled=false;
+      err('err-tva','Échec à l’envoi '+(fait+1)+'/'+total+' — les documents restants sont conservés, réessaie.');});};
+  un();}
+function tvaCharger(){if(!ACCT)return;tvaMoisInit();
+  var mois=((document.getElementById('tva-mois')||{}).value||'')||null;
+  rpc('tva_tickets',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:mois}).then(function(r){
+  var c=document.getElementById('tva-lst'),t=document.getElementById('tva-count');if(!c||!t)return;
+  var ts=(r&&r.tickets)||[];t.textContent=String((r&&r.n)||0);
+  if(!ts.length){c.innerHTML='<div class="note" style="padding:6px 0">Aucun ticket ce mois-ci.</div>';return;}
+  var h='',i;for(i=0;i<ts.length;i++){var x=ts[i];
+    h+='<div style="display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);padding:8px 0">'
+     +'<div style="flex:1;min-width:0"><div style="font-weight:600">'+esc(x.fname)+'</div>'
+     +'<div class="note">'+esc(String(x.le||'').slice(8,10)+'/'+String(x.le||'').slice(5,7))+' — '+esc(x.qui||'')+(x.note?' — '+esc(x.note):'')+'</div></div>'
+     +'</div>';}
+  c.innerHTML=h;},function(){});}
 /* ---------- Dépenses (équipe, v33) : petite compta ---------- */
 var CATLBL={Carburant:'Carburant',Repas:'Repas',Materiel:'Matériel',Autre:'Autre'};
 var dpCat='Carburant';
-function cpSeg(w){var d=document.getElementById('cp-dep'),f=document.getElementById('cp-fact'),bd=document.getElementById('cp-seg-dep'),bf=document.getElementById('cp-seg-fact');if(!d||!f)return;
-  var dep=(w==='dep');d.style.display=dep?'':'none';f.style.display=dep?'none':'';
-  if(bd){bd.classList.toggle('sel',dep);bd.setAttribute('aria-selected',dep?'true':'false');}
-  if(bf){bf.classList.toggle('sel',!dep);bf.setAttribute('aria-selected',dep?'false':'true');}}
+function cpSeg(w){var m={dep:'cp-dep',fact:'cp-fact',tva:'cp-tva'};
+  for(var k in m){var el=document.getElementById(m[k]);if(el)el.style.display=(k===w)?'':'none';
+    var b=document.getElementById('cp-seg-'+k);if(b){b.classList.toggle('sel',k===w);b.setAttribute('aria-selected',k===w?'true':'false');}}}
 function depPickCat(el,c){dpCat=c;var bs=document.querySelectorAll('#dp-cats .chip'),i;for(i=0;i<bs.length;i++){var on=bs[i]===el;bs[i].classList.toggle('sel',on);bs[i].setAttribute('aria-checked',on?'true':'false');}depBinVis();}
 function depBinVis(){var r=document.getElementById('dp-binrow');if(!r)return;var ok=(dpCat==='Carburant')&&ACCT&&ACCT._bins&&ACCT._bins.length;r.style.display=ok?'':'none';if(!ok){var s=document.getElementById('dp-bin');if(s)s.value='';}}
 function depBinRendu(){var s=document.getElementById('dp-bin');if(!s)return;
@@ -1161,7 +1268,7 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='37';
+var APPV='38';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
