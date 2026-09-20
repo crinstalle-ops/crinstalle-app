@@ -623,7 +623,8 @@ function togSect(el,s){st.sects[s]=!st.sects[s];el.classList.toggle('sel',!!st.s
 function lienPerso(cid,cle){return location.origin+location.pathname+'#c='+cid+'.'+cle;}
 function submit(){var t=collectTarifs();var sects=[];for(var i=0;i<SECTS.length;i++)if(st.sects[SECTS[i]])sects.push(SECTS[i]);
 if(REGL){var rb={p_client:ACCT.client_id,p_cle:ACCT.cle,p_operateur:st.op,p_tarifs:t.vals,p_options:{bonus_secteur:document.getElementById('sw-sect').classList.contains('on'),secteurs:sects,post_prod:document.getElementById('sw-pp').classList.contains('on'),metrage:document.getElementById('sw-met').classList.contains('on'),metrage_seuil:document.getElementById('in-seuil').value.trim(),metrage_tarif:document.getElementById('in-tm').value.trim(),bonus_taux:tauxVal('in-taux'),bonus_pp_taux:tauxVal('in-taux-pp')}};err('err-bonus');document.getElementById('wait-txt').textContent='Mise à jour de ta grille…';show('s-wait');rpc('solo_reglages_save',rb).then(function(){return rpc('solo_me',{p_client:ACCT.client_id,p_cle:ACCT.cle});}).then(function(m){ACCT.me=m;buildOkScreen({compte:m.compte,prenom:m.prenom,operateur:m.operateur,tarifs:m.tarifs,nouveau:false});document.getElementById('ok-badge').textContent='Grille mise à jour';document.getElementById('ok-sub').textContent='Ta nouvelle grille s’applique à tes prochaines saisies.';reglOff();show('s-ok');}).catch(function(e){show('s-bonus');err('err-bonus',e&&e.message?e.message:'Petit souci réseau, réessaie.');});return;}
-var body={p_prenom:document.getElementById('in-prenom').value.trim(),p_nom:document.getElementById('in-nom').value.trim(),p_operateur:st.op,p_tarifs:t.vals,p_options:{bonus_secteur:document.getElementById('sw-sect').classList.contains('on'),secteurs:sects,post_prod:document.getElementById('sw-pp').classList.contains('on'),metrage:document.getElementById('sw-met').classList.contains('on'),metrage_seuil:document.getElementById('in-seuil').value.trim(),metrage_tarif:document.getElementById('in-tm').value.trim(),bonus_taux:tauxVal('in-taux'),bonus_pp_taux:tauxVal('in-taux-pp')}};err('err-bonus');document.getElementById('wait-txt').textContent='Création de ton compte…';show('s-wait');rpc('solo_signup',body).then(function(r){try{localStorage.setItem('crinstalle',JSON.stringify({client_id:r.client_id,cle:r.cle,compte:r.compte}));}catch(e){}var em=document.getElementById('in-email').value.trim();var fin=function(){connect(r.client_id,r.cle,{nouveau:true,lien:lienPerso(r.client_id,r.cle)});};if(em){rpc('solo_profil_save',{p_client:r.client_id,p_cle:r.cle,p_email:em,p_departement:'',p_dispo:'non'}).then(fin,fin);}else{fin();}}).catch(function(e){show('s-bonus');err('err-bonus',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
+var body={p_prenom:document.getElementById('in-prenom').value.trim(),p_nom:document.getElementById('in-nom').value.trim(),p_operateur:st.op,p_tarifs:t.vals,p_options:{bonus_secteur:document.getElementById('sw-sect').classList.contains('on'),secteurs:sects,post_prod:document.getElementById('sw-pp').classList.contains('on'),metrage:document.getElementById('sw-met').classList.contains('on'),metrage_seuil:document.getElementById('in-seuil').value.trim(),metrage_tarif:document.getElementById('in-tm').value.trim(),bonus_taux:tauxVal('in-taux'),bonus_pp_taux:tauxVal('in-taux-pp')}};err('err-bonus');document.getElementById('wait-txt').textContent='Création de ton compte…';show('s-wait');try{var _par=localStorage.getItem('crinstalle_parrain');if(_par)body.p_parrain=_par;}catch(_e){}
+rpc('solo_signup',body).then(function(r){try{localStorage.setItem('crinstalle',JSON.stringify({client_id:r.client_id,cle:r.cle,compte:r.compte}));localStorage.removeItem('crinstalle_parrain');}catch(e){}var em=document.getElementById('in-email').value.trim();var fin=function(){connect(r.client_id,r.cle,{nouveau:true,lien:lienPerso(r.client_id,r.cle)});};if(em){rpc('solo_profil_save',{p_client:r.client_id,p_cle:r.cle,p_email:em,p_departement:'',p_dispo:'non'}).then(fin,fin);}else{fin();}}).catch(function(e){show('s-bonus');err('err-bonus',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
 function connect(cid,cle,opts){rpc('solo_me',{p_client:cid,p_cle:cle}).then(function(m){ACCT={client_id:cid,cle:cle,me:m};meSave(cid,m);if(opts&&opts.persist){try{localStorage.setItem('crinstalle',JSON.stringify({client_id:cid,cle:cle,compte:m.compte}));}catch(e2){}try{history.replaceState(null,'',location.pathname);}catch(e2){}}buildOkScreen({compte:m.compte,prenom:m.prenom,operateur:m.operateur,tarifs:m.tarifs,nouveau:opts&&opts.nouveau,lien:opts&&opts.lien});document.getElementById('btn-new').style.display='flex';document.getElementById('btn-home').style.display='flex';document.getElementById('btn-regl').style.display=m.equipe?'none':'flex';if(m.equipe){var op=document.getElementById('ok-profil');if(op)op.innerHTML='';if(opts&&opts.nouveau){document.getElementById('ok-sub').textContent='Ton accès est offert par ton responsable — bonne saisie !';}}buildAbo();if(opts&&opts.nouveau){show('s-ok');}else if(aboLocked(m)){show('s-abo');}else{goHome();}}).catch(function(e){var msg=e&&e.message?e.message:'';if(msg.indexOf('Accès refusé')>=0){try{localStorage.removeItem('crinstalle');}catch(_e){}meOublier(cid);err('err-accueil','Ce compte n’existe plus — tu peux en créer un nouveau.');show('s-accueil');return;}if(demarrerHorsLigne(cid,cle))return;err('err-accueil','Connexion impossible pour l’instant — vérifie ta connexion et recharge la page.');show('s-accueil');});}
 function rpc(fn,body){if(!navigator.onLine){var e0=new Error(HORSLIGNE_MSG);e0.reseau=true;return Promise.reject(e0);}var ctl=(typeof AbortController!=='undefined')?new AbortController():null;var min=setTimeout(function(){if(ctl)ctl.abort();},20000);return fetch(API+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY},body:JSON.stringify(body),signal:ctl?ctl.signal:undefined}).then(function(res){clearTimeout(min);
   /* v39 : un corps illisible (page HTML d'une passerelle, portail captif...) n'est PAS un refus
@@ -703,14 +704,17 @@ function comptaOk(){var m=ACCT&&ACCT.me;if(!m)return false;
   if(m.equipe)return m.acces!=='controle';
   return m.abo_plan==='pro'&&m.abo_statut==='actif';}
 function tvaOk(){var m=ACCT&&ACCT.me;return !!(m&&m.equipe&&(m.acces==='admin'||m.acces==='controle'));}
+/* v42 : parrainage — reserve aux techniciens equipe (hors controle) */
+function parOk(){var m=ACCT&&ACCT.me;return !!(m&&m.equipe&&m.acces!=='controle');}
 function factNavInstall(){
-  var _okC=comptaOk(),_okT=tvaOk();
-  if(!_okC&&!_okT)return;
+  var _okC=comptaOk(),_okT=tvaOk(),_okP=parOk();
+  if(!_okC&&!_okT&&!_okP)return;
   if(!document.getElementById('s-fact')){
     var s=document.createElement('section');s.className='screen';s.id='s-fact';
     s.innerHTML='<div class="topbar"><button class="back" aria-label="Retour" onclick="goHome()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><div class="ttl">Compta</div><div style="width:34px"></div></div>'
      +'<div id="cp-seg" role="tablist" style="display:flex;gap:8px;margin:2px 0 14px">'
      +(_okC?'<button class="chip sel" id="cp-seg-dep" role="tab" aria-selected="true" onclick="cpSeg(\'dep\')">Dépenses</button><button class="chip" id="cp-seg-fact" role="tab" aria-selected="false" onclick="cpSeg(\'fact\')">Facture</button>':'')
+     +(_okP?'<button class="chip" id="cp-seg-par" role="tab" aria-selected="false" onclick="cpSeg(\'par\')">Parrainage</button>':'')
      +(_okT?'<button class="chip'+(_okC?'':' sel')+'" id="cp-seg-tva" role="tab" aria-selected="'+(_okC?'false':'true')+'" onclick="cpSeg(\'tva\')">TVA</button>':'')
      +'</div>'
      +(_okC?'<div id="cp-dep">'
@@ -736,12 +740,27 @@ function factNavInstall(){
      +'<div class="field"><label class="lab" for="fa-date">Date de la facture</label><input type="date" id="fa-date"></div>'
      +'<div class="field"><label class="lab" for="fa-num">Numéro de facture</label><input type="text" id="fa-num" maxlength="30" placeholder="ex. 13"><div class="note">Proposé automatiquement à partir de ta dernière facture.</div></div>'
      +'<div class="field"><label class="lab" for="fa-mt">Montant (€)</label><input type="text" id="fa-mt" inputmode="decimal" maxlength="12" placeholder="ex. 1250,50"></div>'
+     +'<div class="note" id="fa-parnote" style="display:none"></div>'
      +'<button class="linkbtn" id="fa-toggle" style="text-align:left;padding:0;color:var(--accent-l);font-weight:600" aria-expanded="false" onclick="factProfilBascule()">Mes infos de facturation</button>'
      +'<div id="fa-profil" style="display:none;flex-direction:column;gap:12px"></div>'
      +'<div class="err" id="err-fact" role="alert"></div>'
      +'<button class="btn ghost" id="btn-fact" onclick="factGenerer()">'+PDFSVG+'Générer ma facture</button></div>'
      +'<div class="card" id="fa-arch" style="margin-top:12px;display:none"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="lab">Mes factures</div><div id="fa-archtot" style="font-weight:800;font-size:18px">—</div></div><div id="fa-archl" style="display:flex;flex-direction:column;margin-top:6px"></div></div>'
      +'<div class="card" id="fa-archeq" style="margin-top:12px;display:none"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="lab">Factures de l’équipe</div><div id="fa-archeqtot" style="font-weight:800;font-size:18px">—</div></div><div id="fa-archeql" style="display:flex;flex-direction:column;margin-top:6px"></div></div>'
+     +'</div>':'')
+     +(_okP?'<div id="cp-par" style="display:none">'
+     +'<p class="sub" style="margin:2px 0 14px">Partage ton lien : chaque abonn\u00e9 que tu ram\u00e8nes te rapporte 20\u202f% de son abonnement, chaque mois, tant qu\u2019il reste abonn\u00e9.</p>'
+     +'<div class="card" style="display:flex;flex-direction:column;gap:12px">'
+     +'<div class="lab">Ton lien de parrainage</div>'
+     +'<div id="par-lien" style="font-size:13px;word-break:break-all;font-weight:600">Chargement\u2026</div>'
+     +'<div style="display:flex;gap:8px"><button class="btn ghost" id="btn-par-copy" style="flex:1" onclick="parCopier()">Copier</button><button class="btn" id="btn-par-share" style="flex:1" onclick="parPartager()">Partager</button></div>'
+     +'<div class="err" id="err-par" role="alert"></div></div>'
+     +'<div class="card" style="margin-top:12px;display:flex;gap:8px;text-align:center">'
+     +'<div style="flex:1"><div class="lab">Inscrits</div><div id="par-n" style="font-weight:800;font-size:20px">\u2014</div></div>'
+     +'<div style="flex:1"><div class="lab">Abonn\u00e9s</div><div id="par-a" style="font-weight:800;font-size:20px">\u2014</div></div>'
+     +'<div style="flex:1"><div class="lab">Ce mois</div><div id="par-mt" style="font-weight:800;font-size:20px;color:var(--accent-l)">\u2014</div></div></div>'
+     +'<div class="card" style="margin-top:12px"><div class="lab">Tes filleuls</div><div id="par-lst" style="display:flex;flex-direction:column;margin-top:6px"></div></div>'
+     +'<p class="note" style="margin-top:10px">Tes commissions sont ajout\u00e9es automatiquement \u00e0 ta facture mensuelle.</p>'
      +'</div>':'')
      +(_okT?'<div id="cp-tva"'+(_okC?' style="display:none"':'')+'>'
      +'<p class="sub" style="margin:2px 0 14px">Tickets de caisse, captures d’écran, factures PDF — archivés et classés dans Gmail (🧾 Factures TVA).</p>'
@@ -779,12 +798,42 @@ function openFact(){if(!ACCT)return;factNavInstall();var s=document.getElementBy
     if(ACCT._factp){if(num&&!num.value&&ACCT._factp.dernier_num)num.value=factNumSuivant(ACCT._factp.dernier_num);}
     else{rpc('solo_facture_data',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:factMoisListe()[0]}).then(function(r){
       ACCT._factp=(r&&r.profil)||{};factProfilRendu();
+      var _pn=document.getElementById('fa-parnote');var _pp=(r&&r.parrainage)||{};
+      if(_pn){if(parseFloat(_pp.montant)>0){_pn.style.display='';_pn.textContent='Commissions parrainage : +'+fmt(parseFloat(_pp.montant))+' ('+_pp.n+' abonn\u00e9'+(_pp.n>1?'s':'')+') ajout\u00e9es automatiquement \u00e0 ta facture.';}else{_pn.style.display='none';}}
       var n2=document.getElementById('fa-num');if(n2&&!n2.value&&ACCT._factp.dernier_num)n2.value=factNumSuivant(ACCT._factp.dernier_num);
     },function(){});}
     depBinRendu();depCharger();factArchCharger();
   }
+  if(parOk())parCharger();
   if(tvaOk())tvaCharger();
   err('err-fact');err('err-dep');err('err-tva');show('s-fact');}
+/* ---------- Parrainage (v42) ---------- */
+function parCharger(){if(!ACCT)return;
+  rpc('solo_parrainage',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){
+    if(!r||!r.ok)return;window._PAR=r;
+    var l=document.getElementById('par-lien');if(l)l.textContent=r.lien;
+    var n=document.getElementById('par-n');if(n)n.textContent=String(r.inscrits||0);
+    var a=document.getElementById('par-a');if(a)a.textContent=String(r.actifs||0);
+    var m=document.getElementById('par-mt');if(m)m.textContent=fmt(parseFloat(r.commission)||0);
+    var el=document.getElementById('par-lst');if(!el)return;
+    var fs=r.filleuls||[],h='',i;
+    if(!fs.length){h='<div class="note" style="padding:14px 0">Personne pour l\u2019instant \u2014 partage ton lien !</div>';}
+    for(i=0;i<fs.length;i++){var f=fs[i];
+      var st=f.statut==='actif'?('Abonn\u00e9 '+(f.plan==='pro'?'Pro':'Solo')):(f.statut==='annule'?'D\u00e9sabonn\u00e9':'En essai');
+      var cl=f.statut==='actif'?'var(--accent-l)':'var(--tx2)';
+      h+='<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border);padding:9px 0">'
+       +'<div><div style="font-weight:700">'+esc(f.compte||'')+'</div><div class="note">depuis le '+esc(fmtD(f.depuis))+'</div></div>'
+       +'<div style="font-weight:700;color:'+cl+'">'+esc(st)+'</div></div>';}
+    el.innerHTML=h;
+  },function(e){err('err-par',(e&&e.message)||'Connexion impossible \u2014 r\u00e9essaie.');});}
+function parCopier(){var r=window._PAR;if(!r)return;err('err-par');
+  var fin=function(ok){var b=document.getElementById('btn-par-copy');if(b){b.textContent=ok?'Copi\u00e9 \u2713':'Copier';setTimeout(function(){b.textContent='Copier';},1600);}if(!ok)err('err-par','Copie impossible \u2014 recopie le lien \u00e0 la main.');};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(r.lien).then(function(){fin(true);},function(){fin(false);});}
+  else{try{var t=document.createElement('textarea');t.value=r.lien;document.body.appendChild(t);t.select();var ok=document.execCommand('copy');document.body.removeChild(t);fin(ok);}catch(_e){fin(false);}}}
+function parPartager(){var r=window._PAR;if(!r)return;
+  var msg='Je te conseille Crinstalle IA pour suivre ton CA fibre \u2014 1 mois d\u2019essai gratuit avec mon lien : '+r.lien;
+  if(navigator.share){navigator.share({title:'Crinstalle IA',text:msg,url:r.lien}).catch(function(){});}
+  else{parCopier();}}
 /* ---------- Archive des factures (v37) ---------- */
 var ARCHURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-facture-archive';
 function factMoisLabel(m){m=String(m||'');var y=parseInt(m.slice(0,4),10),mo=parseInt(m.slice(5,7),10)-1;var now=new Date();var s=MOIS[mo]||m;return s+(y&&y!==now.getFullYear()?' '+y:'');}
@@ -965,7 +1014,7 @@ function tvaCharger(){if(!ACCT)return;tvaMoisInit();
 /* ---------- Dépenses (équipe, v33) : petite compta ---------- */
 var CATLBL={Carburant:'Carburant',Repas:'Repas',Materiel:'Matériel',Autre:'Autre'};
 var dpCat='Carburant';
-function cpSeg(w){var m={dep:'cp-dep',fact:'cp-fact',tva:'cp-tva'};
+function cpSeg(w){var m={dep:'cp-dep',fact:'cp-fact',par:'cp-par',tva:'cp-tva'};
   for(var k in m){var el=document.getElementById(m[k]);if(el)el.style.display=(k===w)?'':'none';
     var b=document.getElementById('cp-seg-'+k);if(b){b.classList.toggle('sel',k===w);b.setAttribute('aria-selected',k===w?'true':'false');}}}
 function depPickCat(el,c){dpCat=c;var bs=document.querySelectorAll('#dp-cats .chip'),i;for(i=0;i<bs.length;i++){var on=bs[i]===el;bs[i].classList.toggle('sel',on);bs[i].setAttribute('aria-checked',on?'true':'false');}depBinVis();}
@@ -1169,7 +1218,12 @@ function saveSaisie(force){if(!ACCT)return;var j=document.getElementById('sa-jet
 var fn,body;if(ss.editId){fn='solo_modifier';body={p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:ss.editId,p_jeton:j,p_date:dt,p_typo:vtypo,p_secteur:ss.sect,p_pp:vpp,p_metrage:vm,p_commentaire:com,p_typoret:vret};}else{fn='solo_saisie';body={p_client:ACCT.client_id,p_cle:ACCT.cle,p_jeton:j,p_date:dt,p_typo:vtypo,p_secteur:ss.sect,p_pp:vpp,p_metrage:vm,p_force:!!force,p_commentaire:com,p_binome:(ss.binome||null),p_typoret:vret};}
 rpc(fn,body).then(function(r){b.disabled=false;if(r&&r.doublon){document.getElementById('warn-txt').textContent=r.message+' C’était bien une nouvelle intervention ?';document.getElementById('warn-doublon').classList.add('on');return;}var dd=dt.split('-');document.getElementById('sv-badge').textContent=ss.editId?'Saisie modifiée':'Intervention enregistrée';document.getElementById('sv-total').textContent=fmt(parseFloat(r.total));var h='<div class="krow"><div class="k">Jeton</div><div class="v">'+esc(j)+'</div></div><div class="krow"><div class="k">Date</div><div class="v">'+esc(dd[2]+'/'+dd[1]+'/'+dd[0])+'</div></div><div class="krow"><div class="k">Typologie</div><div class="v">'+esc(typoLabel(vtypo,vret))+'</div></div><div class="krow"><div class="k">Secteur</div><div class="v">'+esc(SLBL[ss.sect]||ss.sect)+'</div></div><div class="krow"><div class="k">Base</div><div class="v">'+fmt(parseFloat(r.base))+'</div></div>';if(parseFloat(r.bonus_secteur)>0)h+='<div class="krow"><div class="k">Bonus secteur</div><div class="v">+'+fmt(parseFloat(r.bonus_secteur))+'</div></div>';if(parseFloat(r.bonus_pp)>0)h+='<div class="krow"><div class="k">Post-prod</div><div class="v">+'+fmt(parseFloat(r.bonus_pp))+'</div></div>';if(parseFloat(r.bonus_met)>0)h+='<div class="krow"><div class="k">Métrage</div><div class="v">+'+fmt(parseFloat(r.bonus_met))+'</div></div>';if(parseFloat(r.reclamation)>0)h+='<div class="krow"><div class="k">Réclamation (M+1)</div><div class="v">+'+fmt(parseFloat(r.reclamation))+'</div></div>';h+='<div class="krow"><div class="k">'+(r.binome?'Ta part':'Total')+'</div><div class="v">'+fmt(parseFloat(r.total))+'</div></div>';if(r.binome){h+='<div class="krow"><div class="k">Binôme</div><div class="v">'+esc(r.binome.prenom)+'</div></div><div class="krow"><div class="k">Part de '+esc(r.binome.prenom)+'</div><div class="v">'+fmt(parseFloat(r.binome.part))+'</div></div>';}if(com)h+='<div class="krow"><div class="k">Commentaire</div><div class="v" style="font-weight:500">'+esc(com)+'</div></div>';document.getElementById('sv-recap').innerHTML=h;show('s-saved');}).catch(function(e){b.disabled=false;if(!ss.editId&&e&&e.reseau){var q=fileEnfiler(j,dt,vtypo,ss.sect,vpp,vm,com,!!force,ss.binome,vret);if(q){fileConfirmer(q);return;}err('err-saisie','Trop de saisies en attente sur ce téléphone — reconnecte-toi au réseau pour les envoyer.');return;}err('err-saisie',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
 buildUI();rechInit();
-(function(){var inv=(location.hash||'').match(/^#i=([0-9a-f]{20,64})$/);
+(function(){
+/* v42 : lien de parrainage #p=CODE \u2014 memorise pour l'inscription puis nettoye */
+function parCapter(){var pm=(location.hash||'').match(/^#p=([A-Za-z0-9]{3,12})$/);
+if(pm){try{localStorage.setItem('crinstalle_parrain',pm[1].toUpperCase());}catch(_e){}try{history.replaceState(null,'',location.pathname);}catch(_e){}return true;}return false;}
+parCapter();window.addEventListener('hashchange',parCapter);
+var inv=(location.hash||'').match(/^#i=([0-9a-f]{20,64})$/);
 if(inv){document.getElementById('wait-txt').textContent='Activation de ton accès…';show('s-wait');rpc('solo_invite_signup',{p_code:inv[1]}).then(function(r){try{localStorage.setItem('crinstalle',JSON.stringify({client_id:r.client_id,cle:r.cle,compte:r.compte}));}catch(e){}try{history.replaceState(null,'',location.pathname);}catch(e){}connect(r.client_id,r.cle,{nouveau:true,lien:lienPerso(r.client_id,r.cle)});}).catch(function(e){show('s-accueil');err('err-accueil',e&&e.message?e.message:'Invitation invalide.');});return;}
 var m=(location.hash||'').match(/^#c=([0-9a-f-]{36})\.([0-9a-f]{20,64})$/);var saved=null;if(m){saved={client_id:m[1],cle:m[2]};}else{try{saved=JSON.parse(localStorage.getItem('crinstalle'));}catch(e){}}
 if(saved&&saved.client_id&&saved.cle){if(!m&&meLire(saved.client_id)&&demarrerHorsLigne(saved.client_id,saved.cle)){rafraichirProfil();return;}connect(saved.client_id,saved.cle,{nouveau:false,persist:!!m});}})();
@@ -1347,7 +1401,7 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='41';
+var APPV='42';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
