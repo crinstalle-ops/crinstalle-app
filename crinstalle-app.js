@@ -853,6 +853,7 @@ function factGenerer(){if(!ACCT)return;err('err-fact');
   },function(e){b.disabled=false;err('err-fact',(e&&e.message)||'Erreur');});}
 /* ---------- Tickets TVA (admin + contrôle, v38) ---------- */
 var TVAURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-ticket-tva';
+var TVALOTURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-tva-lot';
 function jpegToPdf(b64,w,h){var bin=atob(b64);var W=595.28,H=841.89,M=20;
   var sc=Math.min((W-2*M)/w,(H-2*M)/h);var iw=w*sc,ih=h*sc;var ix=(W-iw)/2,iy=(H-ih)/2;
   var cont='q '+iw.toFixed(2)+' 0 0 '+ih.toFixed(2)+' '+ix.toFixed(2)+' '+iy.toFixed(2)+' cm /Im1 Do Q';
@@ -875,7 +876,9 @@ function tvaMoisInit(){var s=document.getElementById('tva-mois');if(!s||s.option
   s.innerHTML=h;}
 function tvaDocsMaj(){var d=window._tvaDocs||[];var z=document.getElementById('tva-docs'),b=document.getElementById('btn-tva');
   if(z){z.style.display=d.length?'':'none';z.textContent=d.length?(d.length+' document'+(d.length>1?'s':'')+' prêt'+(d.length>1?'s':'')+' à envoyer'):'';}
-  if(b){b.disabled=!d.length;b.textContent=d.length>1?('Envoyer les '+d.length+' tickets'):'Envoyer';}}
+  if(b){
+    if(!d.length&&window._tvaLotIds&&window._tvaLotIds.length){b.disabled=false;b.textContent='Renvoyer l’email';}
+    else{b.disabled=!d.length;b.textContent=d.length>1?('Envoyer les '+d.length+' tickets'):'Envoyer';}}}
 function tvaFichier(inp){var fs=inp.files;if(!fs||!fs.length)return;err('err-tva');
   window._tvaDocs=window._tvaDocs||[];
   var reste=fs.length;
@@ -903,28 +906,47 @@ function tvaFichier(inp){var fs=inp.files;if(!fs||!fs.length)return;err('err-tva
     }catch(e){err('err-tva','Photo illisible — réessaie.');fini();}};
     img.onerror=function(){err('err-tva','Photo illisible — réessaie.');URL.revokeObjectURL(url);fini();};
     img.src=url;});}
-function tvaEnvoyer(){if(!ACCT)return;var d=window._tvaDocs||[];if(!d.length)return;err('err-tva');
+/* v40 : chaque document est d'abord archive en base (jamais perdu), puis UN SEUL email
+   part avec toutes les pieces jointes et arrive deja classe dans le dossier Gmail du mois */
+function tvaLotMail(ids,b){
+  return fetch(TVALOTURL,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({c:ACCT.client_id,k:ACCT.cle,ids:ids,
+      note:((document.getElementById('tva-note')||{}).value||'').trim()})})
+  .then(function(r){if(!r.ok)throw 0;return r.json();})
+  .then(function(j){if(!j||!j.ok)throw 0;
+    window._tvaLotIds=null;
+    var pv=document.getElementById('tva-prev');if(pv){pv.style.display='none';pv.src='';}
+    document.getElementById('tva-note').value='';
+    b.textContent='Envoyé ✓ ('+ids.length+' ticket'+(ids.length>1?'s':'')+', 1 email)';
+    setTimeout(function(){tvaDocsMaj();},1800);
+    tvaCharger();
+  },function(){
+    window._tvaLotIds=ids;tvaDocsMaj();b.disabled=false;b.textContent='Renvoyer l’email';
+    err('err-tva','Tickets bien enregistrés ✓ mais l’email n’est pas parti — appuie sur « Renvoyer l’email ».');
+  });}
+function tvaEnvoyer(){if(!ACCT)return;err('err-tva');
   if(!navigator.onLine){err('err-tva',HORSLIGNE_MSG);return;}
-  var b=document.getElementById('btn-tva');b.disabled=true;
+  var b=document.getElementById('btn-tva');
+  if(window._tvaLotIds&&window._tvaLotIds.length&&!(window._tvaDocs||[]).length){
+    b.disabled=true;b.textContent='Envoi de l’email…';tvaLotMail(window._tvaLotIds,b);return;}
+  var d=window._tvaDocs||[];if(!d.length)return;
+  b.disabled=true;
   var mois=((document.getElementById('tva-mois')||{}).value||'');
   var note=((document.getElementById('tva-note')||{}).value||'').trim();
-  var total=d.length,fait=0;
+  var total=d.length,fait=0,ids=[];
   var un=function(){
     if(!d.length){
       window._tvaDocs=[];
-      var pv=document.getElementById('tva-prev');if(pv){pv.style.display='none';pv.src='';}
-      document.getElementById('tva-note').value='';
-      b.textContent='Envoyé ✓ ('+fait+'/'+total+')';
-      setTimeout(function(){tvaDocsMaj();},1800);
-      tvaCharger();return;
+      b.textContent='Envoi de l’email…';
+      tvaLotMail(ids,b);return;
     }
-    b.textContent='Envoi '+(fait+1)+'/'+total+'…';
+    b.textContent='Enregistrement '+(fait+1)+'/'+total+'…';
     fetch(TVAURL,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({c:ACCT.client_id,k:ACCT.cle,b64:d[0],note:note,m:mois})})
     .then(function(r){if(!r.ok)throw 0;return r.json();})
-    .then(function(){d.shift();fait++;un();})
+    .then(function(j){if(!j||!j.ok||!j.id)throw 0;ids.push(j.id);d.shift();fait++;un();})
     .catch(function(){window._tvaDocs=d;tvaDocsMaj();b.disabled=false;
-      err('err-tva','Échec à l’envoi '+(fait+1)+'/'+total+' — les documents restants sont conservés, réessaie.');});};
+      err('err-tva','Échec à l’enregistrement '+(fait+1)+'/'+total+' — les documents restants sont conservés, réessaie.');});};
   un();}
 function tvaCharger(){if(!ACCT)return;tvaMoisInit();
   var mois=((document.getElementById('tva-mois')||{}).value||'')||null;
@@ -1298,7 +1320,7 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='39';
+var APPV='40';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
