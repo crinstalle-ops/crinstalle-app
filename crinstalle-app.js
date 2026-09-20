@@ -260,6 +260,9 @@ DICOS.ar={dir:'rtl',exact:{
  "Indique le montant (ex. 45,90).":"أدخل المبلغ (مثال 45,90).",
  "Traité":"تم",
  "Réglé ✓":"تم ✓",
+ "Mes factures":"فواتيري",
+ "Factures de l’équipe":"فواتير الفريق",
+ "Aucune facture pour l’instant.":"لا فواتير حتى الآن.",
 },motifs:[
  [/^· binôme avec (.+)$/, "· مع الزميل $1"],
  [/^· part de (.+)$/, "· حصة $1"],
@@ -707,6 +710,8 @@ function factNavInstall(){
      +'<div id="fa-profil" style="display:none;flex-direction:column;gap:12px"></div>'
      +'<div class="err" id="err-fact" role="alert"></div>'
      +'<button class="btn ghost" id="btn-fact" onclick="factGenerer()">'+PDFSVG+'Générer ma facture</button></div>'
+     +'<div class="card" id="fa-arch" style="margin-top:12px;display:none"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="lab">Mes factures</div><div id="fa-archtot" style="font-weight:800;font-size:18px">—</div></div><div id="fa-archl" style="display:flex;flex-direction:column;margin-top:6px"></div></div>'
+     +'<div class="card" id="fa-archeq" style="margin-top:12px;display:none"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="lab">Factures de l’équipe</div><div id="fa-archeqtot" style="font-weight:800;font-size:18px">—</div></div><div id="fa-archeql" style="display:flex;flex-direction:column;margin-top:6px"></div></div>'
      +'</div>'
      +'<div class="grow"></div>';
     var tabs=document.getElementById('tabs');
@@ -731,8 +736,32 @@ function openFact(){if(!ACCT)return;factNavInstall();var s=document.getElementBy
     ACCT._factp=(r&&r.profil)||{};factProfilRendu();
     var n2=document.getElementById('fa-num');if(n2&&!n2.value&&ACCT._factp.dernier_num)n2.value=factNumSuivant(ACCT._factp.dernier_num);
   },function(){});}
-  depBinRendu();depCharger();
+  depBinRendu();depCharger();factArchCharger();
   err('err-fact');err('err-dep');show('s-fact');}
+/* ---------- Archive des factures (v37) ---------- */
+var ARCHURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-facture-archive';
+function factMoisLabel(m){m=String(m||'');var y=parseInt(m.slice(0,4),10),mo=parseInt(m.slice(5,7),10)-1;var now=new Date();var s=MOIS[mo]||m;return s+(y&&y!==now.getFullYear()?' '+y:'');}
+function openFactPdf(id){if(!ACCT)return;location.href=ARCHURL+'?c='+ACCT.client_id+'&k='+ACCT.cle+'&id='+parseInt(id,10);}
+function factArchLigne(x,avecTech){
+  return '<div style="display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);padding:8px 0;cursor:pointer" onclick="openFactPdf('+parseInt(x.id,10)+')">'
+   +'<div style="flex:1;min-width:0"><div style="font-weight:600">'+(avecTech?esc(x.tech||'')+' — ':'')+'N° '+esc(x.num)+'</div>'
+   +'<div class="note">'+esc(factMoisLabel(x.mois))+(x.dt?' — '+esc(String(x.dt).slice(8,10)+'/'+String(x.dt).slice(5,7)):'')+'</div></div>'
+   +'<div style="font-weight:700;white-space:nowrap">'+fmt(parseFloat(x.mt)||0)+'</div>'
+   +'</div>';}
+function factArchRendu(cid,tid,lid,fs,total,avecTech){
+  var c=document.getElementById(cid),t=document.getElementById(tid),l=document.getElementById(lid);if(!c)return;
+  c.style.display='';t.textContent=fmt(parseFloat(total||0)||0);
+  if(!fs.length){l.innerHTML='<div class="note" style="padding:6px 0">Aucune facture pour l’instant.</div>';return;}
+  var h='',i;for(i=0;i<fs.length;i++)h+=factArchLigne(fs[i],avecTech);
+  l.innerHTML=h;}
+function factArchCharger(){if(!ACCT)return;
+  rpc('solo_factures',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){
+    factArchRendu('fa-arch','fa-archtot','fa-archl',(r&&r.factures)||[],(r&&r.total)||0,false);
+  },function(){});
+  if(ACCT.me&&ACCT.me.acces==='admin'){
+    rpc('solo_factures_equipe',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){
+      factArchRendu('fa-archeq','fa-archeqtot','fa-archeql',(r&&r.factures)||[],(r&&r.total)||0,true);
+    },function(){});}}
 function factProfilRendu(){var d=document.getElementById('fa-profil');if(!d)return;var p=ACCT._factp||{};
   if(!d.getAttribute('data-built')){d.setAttribute('data-built','1');
     var hh='<div class="field"><label class="lab" for="fap-adr">Adresse</label><input type="text" id="fap-adr" maxlength="120" placeholder="ex. 12 rue des Lilas"></div>'
@@ -1132,7 +1161,7 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='36';
+var APPV='37';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
