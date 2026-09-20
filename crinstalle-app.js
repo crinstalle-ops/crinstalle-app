@@ -659,11 +659,12 @@ function buildPdfMois(){
 function openPdfM(ms){if(!ACCT)return;if(!navigator.onLine){err('err-home',HORSLIGNE_MSG);return;}location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-pdf?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms;}
 /* ---------- Facture (équipe, v31) : onglet + écran dédiés ---------- */
 var FACTSVG='<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18l-2.33-1.75L14.33 21 12 19.25 9.67 21 7.33 19.25 5 21z"/><path d="M9 8h6M9 12h6"/></svg>';
-function factMoisListe(){var now=new Date();var cur=now.getFullYear()+'-'+((now.getMonth()+1)<10?'0':'')+(now.getMonth()+1);var l=[cur],i;
+function factMoisListe(){var now=new Date();var fm=function(d){return d.getFullYear()+'-'+((d.getMonth()+1)<10?'0':'')+(d.getMonth()+1);};
+  var l=[fm(now),fm(new Date(now.getFullYear(),now.getMonth()-1,1)),fm(new Date(now.getFullYear(),now.getMonth()-2,1))],i;
   if(HIST&&HIST.length){for(i=0;i<HIST.length;i++)if(l.indexOf(HIST[i].m)<0)l.push(HIST[i].m);}
-  else{var pm=new Date(now.getFullYear(),now.getMonth()-1,1);l.push(pm.getFullYear()+'-'+((pm.getMonth()+1)<10?'0':'')+(pm.getMonth()+1));}
   return l;}
 function factMoisOptions(){var s=document.getElementById('fa-mois');if(!s)return;var v=s.value;var l=factMoisListe(),h='',i;var now=new Date();var cap=function(m){return m.charAt(0).toUpperCase()+m.slice(1);};
+  if(!v)v=(ACCT&&ACCT.me&&ACCT.me.equipe)?l[2]:l[0]; // équipe : payée à M+2 → on facture le mois M−2 par défaut
   for(i=0;i<l.length;i++){var y=parseInt(l[i].slice(0,4),10),mo=parseInt(l[i].slice(5,7),10)-1;h+='<option value="'+l[i]+'"'+(l[i]===v?' selected':'')+'>'+cap(MOIS[mo])+(y!==now.getFullYear()?' '+y:'')+'</option>';}
   s.innerHTML=h;}
 function factNumSuivant(last){last=String(last||'').trim();if(!last)return '';
@@ -1131,7 +1132,7 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='35';
+var APPV='36';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
