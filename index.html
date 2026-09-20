@@ -557,6 +557,14 @@ body.hl.nav .screen.on{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
     <div class="lab" id="lbl-typo">Typologie</div>
     <div class="grid3" id="sa-typos" role="radiogroup" aria-labelledby="lbl-typo"></div>
   </div>
+  <div class="card swrow" id="row-ret" style="display:none">
+    <div><div class="swname" id="lbl-ret">Retirage</div><div class="swsub">Payé au tarif SAV — la différence avec le support part en réclamation (M+1).</div></div>
+    <button class="sw" id="sw-ret" role="switch" aria-checked="false" aria-labelledby="lbl-ret" onclick="togRet(this)"></button>
+  </div>
+  <div class="field" id="row-rets" style="display:none">
+    <div class="lab" id="lbl-rets">Support du retirage</div>
+    <div class="grid3" id="sa-rets" role="radiogroup" aria-labelledby="lbl-rets"></div>
+  </div>
   <div class="field">
     <div class="lab" id="lbl-sect2">Secteur</div>
     <div class="grid3" id="sa-sects" role="radiogroup" aria-labelledby="lbl-sect2"></div>
