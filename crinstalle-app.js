@@ -918,13 +918,22 @@ function factGenerer(){if(!ACCT)return;err('err-fact');
   var b=document.getElementById('btn-fact');b.disabled=true;
   var body={p_client:ACCT.client_id,p_cle:ACCT.cle,p_adresse:p.adresse,p_cp_ville:p.cp_ville,p_siret:p.siret,p_tel:p.tel,p_email:p.email,p_num:num};
   if(solo){body.p_client_nom=pc.nom;body.p_client_adresse=pc.adr;body.p_client_cp_ville=pc.cpv;}
-  rpc('solo_facture_profil_save',body).then(function(){
-    ACCT._factp={adresse:p.adresse,cp_ville:p.cp_ville,siret:p.siret,tel:p.tel,email:p.email,dernier_num:num,client_nom:pc.nom,client_adresse:pc.adr,client_cp_ville:pc.cpv};
+  /* v46 : un numero ne sert qu'a UN mois. Meme numero + meme mois = correction (sur confirmation),
+     numero deja pris pour un autre mois = refuse par le serveur (message clair). */
+  var numAvant=(ACCT._factp&&ACCT._factp.dernier_num)||'';
+  var msLbl=(function(){var y=parseInt(ms.slice(0,4),10),mo=parseInt(ms.slice(5,7),10)-1;return (MOIS[mo]||ms)+' '+y;})();
+  rpc('solo_facture_num_check',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_num:num,p_mois:ms}).then(function(ck){
+    var corr=!!(ck&&ck.etat==='correction');
+    if(corr&&!window.confirm('La facture n° '+(ck.num||num)+' de '+msLbl+' existe déjà ('+fmt(parseFloat(ck.montant)||0)+').\n\nLa remplacer par cette version corrigée ?')){b.disabled=false;return;}
+    /* correction : le « dernier numero » ne recule pas */
+    var numProfil=(corr&&numAvant)?numAvant:num;body.p_num=numProfil;
+    return rpc('solo_facture_profil_save',body).then(function(){
+    ACCT._factp={adresse:p.adresse,cp_ville:p.cp_ville,siret:p.siret,tel:p.tel,email:p.email,dernier_num:numProfil,client_nom:pc.nom,client_adresse:pc.adr,client_cp_ville:pc.cpv};
     b.disabled=false;
     /* v45 : le champ passe au numero suivant — une 2e facture ne reprend jamais le meme */
-    try{var _nx=factNumSuivant(num);if(_nx)document.getElementById('fa-num').value=_nx;}catch(_e){}
+    try{var _nx=factNumSuivant(numProfil);if(_nx)document.getElementById('fa-num').value=_nx;}catch(_e){}
     location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-facture?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms+'&num='+encodeURIComponent(num)+'&mt='+encodeURIComponent(mtS)+'&dt='+encodeURIComponent(dt);
-  },function(e){b.disabled=false;err('err-fact',(e&&e.message)||'Erreur');});}
+  });}).catch(function(e){b.disabled=false;err('err-fact',(e&&e.message)||'Erreur');});}
 /* ---------- Tickets TVA (admin + contrôle, v38) ---------- */
 var TVAURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-ticket-tva';
 var TVALOTURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-tva-lot';
@@ -1454,7 +1463,7 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='45';
+var APPV='46';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
