@@ -1107,6 +1107,17 @@ function moisNav(delta,ev){if(ev){ev.stopPropagation();ev.preventDefault();}
   if(delta<0){if(HIST===null){histCharger(function(){moisNavGo(HIST_IDX+1);});return;}moisNavGo(HIST_IDX+1);}
   else moisNavGo(HIST_IDX-1);}
 function moisNavGo(idx){if(idx<0)idx=0;if(HIST&&idx>HIST.length)idx=HIST.length;HIST_IDX=idx;caMoisRender();}
+/* v47 : projection du CA de fin de mois (moyenne par jour ecoule x jours du mois).
+   Jour en cours compte seulement s'il a deja des saisies ; masquee avant 5 jours de recul ou si CA nul. */
+function projCalc(mt,auj,now){mt=Number(mt)||0;auj=Number(auj)||0;
+  var jm=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();var ec=now.getDate()-1+(auj>0?1:0);
+  if(mt<=0||ec<5)return null;var p=mt/ec*jm;if(p<mt)p=mt;return Math.round(p/10)*10;}
+function projMaj(now){var tot=document.getElementById('hm-total');if(!tot)return;
+  var el=document.getElementById('hm-proj');
+  if(!el){el=document.createElement('div');el.id='hm-proj';el.className='note';el.style.cssText='margin:2px 0 8px;display:none';tot.insertAdjacentElement('afterend',el);}
+  var p=(HIST_IDX===0&&CA_CUR)?projCalc(CA_CUR.mois_total,CA_CUR.auj_total,now||new Date()):null;
+  if(p===null){el.style.display='none';el.textContent='';return;}
+  el.innerHTML='À ce rythme : <b>~'+esc(fmt(p).replace(/,00(\s*€)$/,'$1'))+'</b> fin '+esc(MOIS[(now||new Date()).getMonth()]);el.style.display='block';}
 function caMoisRender(){
   var lab=document.getElementById('hm-moislab'),tot=document.getElementById('hm-total'),vs=document.getElementById('hm-vs'),bars=document.getElementById('hm-bars');
   if(!lab||!tot)return;
@@ -1115,6 +1126,7 @@ function caMoisRender(){
   if(!info&&bars){info=document.createElement('div');info.id='hm-histn';info.className='note';info.style.cssText='padding:4px 0 0;display:none';(cap7||bars).insertAdjacentElement('afterend',info);}
   var box=document.getElementById('hm-detail');
   var now=new Date();
+  projMaj(now);
   if(HIST_IDX===0){
     if(CA_CUR){lab.textContent='CA du mois — '+MOIS[now.getMonth()];tot.textContent=fmt(parseFloat(CA_CUR.mois_total)||0);
       if(box)box.innerHTML=caDetHTML(CA_CUR.detail||null);}
@@ -1463,7 +1475,7 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='46';
+var APPV='47';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
