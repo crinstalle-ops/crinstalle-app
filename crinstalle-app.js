@@ -1185,7 +1185,7 @@ var ab=document.getElementById('hm-abo');
 if(aboLocked(ACCT.me)){ab.innerHTML='<button class="linkbtn" style="width:100%;text-align:center;background:var(--tint);border:1px solid var(--accent);border-radius:14px;padding:14px;color:var(--accent-l);font-weight:700" onclick="show(&quot;s-abo&quot;)">Essai terminé — la saisie est en pause. S’abonner</button>';}
 else if(ACCT.me.abo_statut==='essai'){var aj=parseInt(ACCT.me.abo_jours,10)||0;ab.innerHTML='<div class="note center" style="padding:2px 0 10px'+(aj<=5?';color:var(--accent-l);font-weight:600':'')+'">'+(aj<=0?'Essai gratuit — dernier jour aujourd’hui':'Essai gratuit — '+aj+' jour'+(aj>1?'s':'')+' restant'+(aj>1?'s':''))+'</div>';}
 else{ab.innerHTML='';}
-buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);show('s-home');if(AVIS){err('err-home',AVIS);AVIS=null;}}).catch(function(e){
+buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);try{pmInstall();}catch(_ePm){}show('s-home');if(AVIS){err('err-home',AVIS);AVIS=null;}}).catch(function(e){
   /* v39 : un compte revoque est renvoye a l'accueil (comme connect), les autres erreurs sont AFFICHEES */
   var msg=(e&&e.message)||'';
   if(msg.indexOf('Accès refusé')>=0){try{var _st=JSON.parse(localStorage.getItem('crinstalle'));if(!_st||_st.client_id===ACCT.client_id)localStorage.removeItem('crinstalle');}catch(_e){}try{meOublier(ACCT.client_id);}catch(_e2){}ACCT=null;err('err-accueil','Ce compte n’existe plus — tu peux en créer un nouveau.');show('s-accueil');return;}
@@ -1475,7 +1475,44 @@ function togTheme(){var h=document.documentElement;var clair=h.getAttribute('dat
   hh.insertBefore(g,bt);}
 })();
 /* ---------- tirer pour rafraichir (v25) : balayage vers le bas sur l'accueil -> rechargement complet ---------- */
-var APPV='47';
+
+/* ---------- v48 : Aller à un PM (équipe) — réf. FI-xxxxx-xxxx → itinéraire Google Maps / Waze ---------- */
+var PMSVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+var PMREC='crinstalle_pm_recents',PM_T=null,PM_SEQ=0;
+function pmNum(x){x=Number(x);return isFinite(x)?x:null;}
+function pmLiens(p){var la=pmNum(p.lat),lo=pmNum(p.lng);if(la===null||lo===null||la<41||la>46||lo<3||lo>8.5)return '';
+  var ll=la.toFixed(6)+','+lo.toFixed(6);
+  return '<div style="display:flex;gap:8px;margin-top:10px">'
+   +'<a class="btn" style="flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center" target="_blank" rel="noopener" onclick="pmRetenir('+esc(JSON.stringify(p.i))+')" href="https://www.google.com/maps/dir/?api=1&destination='+ll+'&travelmode=driving">Google Maps</a>'
+   +'<a class="btn ghost" style="flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center" target="_blank" rel="noopener" onclick="pmRetenir('+esc(JSON.stringify(p.i))+')" href="https://waze.com/ul?ll='+ll+'&navigate=yes">Waze</a></div>';}
+function pmCarte(p){var titre=p.ref||p.code||'';var sous=[p.site,p.statut,p.nro?('NRO '+p.nro):'',p.insee].filter(function(x){return x;}).join(' · ');
+  return '<div class="card" style="padding:12px 14px;margin-top:10px"><div style="font-weight:700;letter-spacing:.3px">'+esc(titre)+'</div>'
+   +(p.ref&&p.code?'<div class="note">'+esc(p.code)+'</div>':'')+(sous?'<div class="note">'+esc(sous)+'</div>':'')+pmLiens(p)+'</div>';}
+var PM_LISTE=[];
+function pmRendu(list,info){PM_LISTE=list||[];var r=document.getElementById('pm-res'),n=document.getElementById('pm-info');if(!r||!n)return;
+  n.textContent=info||'';var h='';for(var i=0;i<PM_LISTE.length;i++){PM_LISTE[i].i=i;h+=pmCarte(PM_LISTE[i]);}r.innerHTML=h;}
+function pmRecents(){try{var a=JSON.parse(localStorage.getItem(PMREC)||'[]');return Array.isArray(a)?a.filter(function(p){return p&&pmNum(p.lat)!==null&&pmNum(p.lng)!==null;}).slice(0,5):[];}catch(e){return [];}}
+function pmRetenir(i){var p=PM_LISTE[i];if(!p)return;var a=pmRecents().filter(function(x){return (x.ref||x.code)!==(p.ref||p.code);});
+  a.unshift({ref:p.ref||'',code:p.code||'',lat:p.lat,lng:p.lng,site:p.site||'',statut:p.statut||'',nro:p.nro||'',insee:p.insee||''});
+  try{localStorage.setItem(PMREC,JSON.stringify(a.slice(0,5)));}catch(e){}}
+function pmChercher(){var q=((document.getElementById('pm-q')||{}).value||'').trim();clearTimeout(PM_T);
+  var nq=q.toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^FI/,'');
+  if(nq.length<3){var rc=pmRecents();pmRendu(rc,rc.length?'Derniers PM consultés :':'Tape la référence du PM (au moins 3 caractères).');return;}
+  if(!navigator.onLine){var rc2=pmRecents().filter(function(p){return (p.ref+p.code).toUpperCase().replace(/[^A-Z0-9]/g,'').indexOf(nq)>=0;});
+    pmRendu(rc2,rc2.length?'Hors ligne — PM déjà consultés :':'Hors ligne — la recherche revient avec le réseau.');return;}
+  var seq=++PM_SEQ;
+  PM_T=setTimeout(function(){pmRendu(PM_LISTE,'Recherche…');
+    rpc('solo_pm_cherche',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_q:q.slice(0,40)}).then(function(r){if(seq!==PM_SEQ)return;
+      var l=(r&&Array.isArray(r.pm))?r.pm:[];pmRendu(l,l.length?(l.length>=8?'8 premiers résultats — précise la référence.':''):'Aucun PM trouvé pour « '+q+' ».');
+    },function(e){if(seq!==PM_SEQ)return;pmRendu([],(e&&e.message)||RESEAU_MSG);});},300);}
+function pmInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe)return;if(document.getElementById('hm-pm'))return;
+  var t=document.querySelector('#s-home .tiles');if(!t)return;var d=document.createElement('div');d.id='hm-pm';d.className='card';d.style.cssText='padding:14px 16px;margin-top:14px';
+  d.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:10px">'+PMSVG+'<span>Aller à un PM</span></div>'
+   +'<div class="srchfield">'+PMSVG+'<input type="search" id="pm-q" placeholder="Réf. du PM — ex. FI-84007-0027" aria-label="Référence du PM" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" maxlength="40" enterkeyhint="search" style="padding-left:44px;direction:ltr"></div>'
+   +'<div class="note" id="pm-info" role="status" aria-live="polite" style="margin-top:8px"></div><div id="pm-res"></div>';
+  t.insertAdjacentElement('afterend',d);var inp=document.getElementById('pm-q');inp.addEventListener('input',pmChercher);
+  inp.addEventListener('focus',function(){if(!inp.value)pmChercher();});}
+var APPV='48';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
