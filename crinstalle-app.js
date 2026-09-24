@@ -1496,7 +1496,7 @@ function pmRetenir(i){var p=PM_LISTE[i];if(!p)return;var a=pmRecents().filter(fu
   a.unshift({ref:p.ref||'',code:p.code||'',lat:p.lat,lng:p.lng,site:p.site||'',statut:p.statut||'',nro:p.nro||'',insee:p.insee||''});
   try{localStorage.setItem(PMREC,JSON.stringify(a.slice(0,5)));}catch(e){}}
 function pmChercher(){var q=((document.getElementById('pm-q')||{}).value||'').trim();clearTimeout(PM_T);
-  var nq=q.toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^FI/,'');
+  var nq=q.toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^FI(?=\d)/,''); /* v49 : « FIKU » reste FIKU (seul FI suivi d'un chiffre est un préfixe) */
   if(nq.length<3){var rc=pmRecents();pmRendu(rc,rc.length?'Derniers PM consultés :':'Tape la référence du PM (au moins 3 caractères).');return;}
   if(!navigator.onLine){var rc2=pmRecents().filter(function(p){return (p.ref+p.code).toUpperCase().replace(/[^A-Z0-9]/g,'').indexOf(nq)>=0;});
     pmRendu(rc2,rc2.length?'Hors ligne — PM déjà consultés :':'Hors ligne — la recherche revient avec le réseau.');return;}
@@ -1512,7 +1512,7 @@ function pmInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe)return;if(document.getE
    +'<div class="note" id="pm-info" role="status" aria-live="polite" style="margin-top:8px"></div><div id="pm-res"></div>';
   t.insertAdjacentElement('afterend',d);var inp=document.getElementById('pm-q');inp.addEventListener('input',pmChercher);
   inp.addEventListener('focus',function(){if(!inp.value)pmChercher();});}
-var APPV='48';
+var APPV='49';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
