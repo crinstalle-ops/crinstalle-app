@@ -1504,16 +1504,31 @@ function pmSigBoutons(p){if(typeof p.i!=='number')return '';var h='';
     h='<div style="display:flex;gap:8px;margin-top:8px"><button type="button" class="btn ghost" style="flex:1" data-pmsig="confirme" data-pmi="'+p.i+'">Nom confirmé sur place</button>'
      +'<button type="button" class="btn ghost" style="flex:1" data-pmsig="refuse" data-pmi="'+p.i+'">Pas le bon PM</button></div>';}
   return h;}
-function pmSignaler(i,a){var p=PM_LISTE[i];if(!p||(a!=='confirme'&&a!=='refuse'))return;
+var PM_SIG_EC=false;
+/* v53 : position du téléphone demandée UNE fois, au moment où le tech confirme. Seule la distance à l'armoire est gardée côté serveur ; jamais de suivi ni d'historique. */
+function pmPosition(cb){var fini=false,t=null;function fin(pos){if(fini)return;fini=true;if(t)clearTimeout(t);cb(pos);}
+  if(!navigator.geolocation||typeof navigator.geolocation.getCurrentPosition!=='function'){fin(null);return;}
+  t=setTimeout(function(){fin(null);},15000);
+  try{navigator.geolocation.getCurrentPosition(function(g){var c=g&&g.coords;if(!c){fin(null);return;}var la=Number(c.latitude),lo=Number(c.longitude),ac=Number(c.accuracy);
+      if(!isFinite(la)||!isFinite(lo)){fin(null);return;}fin({lat:Math.round(la*1e6)/1e6,lng:Math.round(lo*1e6)/1e6,prec:isFinite(ac)&&ac>=0?Math.round(ac):null});},
+    function(){fin(null);},{enableHighAccuracy:true,timeout:10000,maximumAge:0});}catch(e){fin(null);}}
+function pmDistTxt(d){d=Number(d);return d>=1000?(d/1000).toFixed(1).replace('.',',')+' km':Math.round(d)+' m';}
+function pmSignaler(i,a){var p=PM_LISTE[i];if(!p||(a!=='confirme'&&a!=='refuse')||PM_SIG_EC)return;
   var ref=(typeof p.dist==='number')?(PM_ZONE&&PM_ZONE.ref):p.deduit;if(!ref||!p.code)return;
   if(!navigator.onLine){pmSigMsg('Pas de réseau — réessaie une fois connecté.');return;}
   var q=(a==='confirme')?('Tu es sur place et tu confirmes que cette armoire ('+p.code+') est bien le PM '+ref+' ?\n\nZo validera avant que ce soit enregistré.'):('Tu es sur place et cette armoire ('+p.code+') n’est PAS le PM '+ref+' ?\n\nZo validera avant toute modification.');
+  q+='\n\nTon téléphone va donner ta position une seule fois pour vérifier que tu es devant l’armoire (seule la distance est gardée).';
   if(!window.confirm(q))return;
-  pmSigMsg('Envoi…');
-  rpc('solo_pm_signaler',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_code:String(p.code).slice(0,40),p_ref:String(ref).slice(0,40),p_action:a}).then(function(r){
-    if(r&&r.ok){PM_SIG[pmSigCle(p,a)]=1;pmRendu(PM_LISTE,(r.deja?'Déjà signalé — Zo va valider.':'Merci ! Zo reçoit ton signalement et va le valider.'));}
-    else pmSigMsg((r&&r.message)||RESEAU_MSG);
-  },function(e){pmSigMsg((e&&e.message)||RESEAU_MSG);});}
+  PM_SIG_EC=true;pmSigMsg('Localisation…');
+  pmPosition(function(pos){pmSigMsg('Envoi…');
+    var args={p_client:ACCT.client_id,p_cle:ACCT.cle,p_code:String(p.code).slice(0,40),p_ref:String(ref).slice(0,40),p_action:a};
+    if(pos){args.p_lat=pos.lat;args.p_lng=pos.lng;if(pos.prec!==null)args.p_prec=pos.prec;}
+    rpc('solo_pm_signaler',args).then(function(r){PM_SIG_EC=false;
+      if(r&&r.ok){PM_SIG[pmSigCle(p,a)]=1;var d=(typeof r.dist==='number'&&isFinite(r.dist))?r.dist:null;
+        var m=r.deja?'Déjà signalé — Zo va valider.':(d===null?'Merci ! Position non vérifiée (GPS refusé ou indisponible) — Zo reçoit ton signalement et va le valider.':(d<=200?'Merci ! Tu étais à '+pmDistTxt(d)+' de l’armoire. Zo reçoit ton signalement et va le valider.':'Merci ! Attention : ta position est à '+pmDistTxt(d)+' de l’armoire — Zo va vérifier avant de valider.'));
+        pmRendu(PM_LISTE,m);}
+      else pmSigMsg((r&&r.message)||RESEAU_MSG);
+    },function(e){PM_SIG_EC=false;pmSigMsg((e&&e.message)||RESEAU_MSG);});});}
 function pmSigMsg(t){var n=document.getElementById('pm-info');if(n)n.textContent=t;}
 var PM_LISTE=[];
 function pmRendu(list,info){PM_LISTE=list||[];var r=document.getElementById('pm-res'),n=document.getElementById('pm-info');if(!r||!n)return;
@@ -1548,7 +1563,7 @@ function pmInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe)return;if(document.getE
   t.insertAdjacentElement('afterend',d);var inp=document.getElementById('pm-q');inp.addEventListener('input',pmChercher);
   document.getElementById('pm-res').addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-pmsig]'):null;if(!b)return;pmSignaler(parseInt(b.getAttribute('data-pmi'),10),b.getAttribute('data-pmsig'));});
   inp.addEventListener('focus',function(){if(!inp.value)pmChercher();});}
-var APPV='52';
+var APPV='53';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
