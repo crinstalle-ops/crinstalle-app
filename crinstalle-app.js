@@ -1491,7 +1491,30 @@ function pmCarte(p){var titre=p.ref||p.code||'';var al=String(p.alias||'');var a
   var prob=(typeof p.dist==='number'&&isFinite(p.dist))?('<div class="note" style="font-weight:700;color:#b45309">PM probable n°'+(Number(p.rang)+1)+' — '+(p.dist<=0?'dans la zone':('à '+Math.round(p.dist)+' m de la zone'))+'</div>'):'';
   var conf=p.confirmer?'<div class="note" style="color:#b45309">Nom déduit des données ARCEP — à confirmer sur place</div>':'';
   return '<div class="card" style="padding:12px 14px;margin-top:10px">'+prob+'<div style="font-weight:700;letter-spacing:.3px">'+esc(titre)+'</div>'
-   +(p.ref&&p.code?'<div class="note">'+esc(p.code)+'</div>':'')+(adr?'<div class="note">Réf. projet : '+esc(adr)+'</div>':'')+(sro?'<div class="note">Réf. SFR : '+esc(sro.toUpperCase())+'</div>':'')+conf+(sous?'<div class="note">'+esc(sous)+'</div>':'')+pmLiens(p)+'</div>';}
+   +(p.ref&&p.code?'<div class="note">'+esc(p.code)+'</div>':'')+(adr?'<div class="note">Réf. projet : '+esc(adr)+'</div>':'')+(sro?'<div class="note">Réf. SFR : '+esc(sro.toUpperCase())+'</div>':'')+conf+(sous?'<div class="note">'+esc(sous)+'</div>':'')+pmLiens(p)+pmSigBoutons(p)+'</div>';}
+/* v52 : confirmation sur place (le tech signale, Zo valide sur Telegram, puis le nom est enregistré) */
+var PM_ZONE=null,PM_SIG={};
+function pmSigCle(p,a){var r=(typeof p.dist==='number')?(PM_ZONE&&PM_ZONE.ref):p.deduit;return String(p.code||'')+'|'+String(r||'')+'|'+a;}
+function pmSigBoutons(p){if(typeof p.i!=='number')return '';var h='';
+  if(typeof p.dist==='number'&&PM_ZONE&&PM_ZONE.ref){
+    if(PM_SIG[pmSigCle(p,'confirme')])return '<div class="note" style="margin-top:8px">Signalé — Zo va valider. Merci !</div>';
+    h='<button type="button" class="btn ghost" style="margin-top:8px" data-pmsig="confirme" data-pmi="'+p.i+'">Je suis dessus : c’est bien ce PM</button>';}
+  else if(p.confirmer&&p.deduit){
+    if(PM_SIG[pmSigCle(p,'confirme')]||PM_SIG[pmSigCle(p,'refuse')])return '<div class="note" style="margin-top:8px">Signalé — Zo va valider. Merci !</div>';
+    h='<div style="display:flex;gap:8px;margin-top:8px"><button type="button" class="btn ghost" style="flex:1" data-pmsig="confirme" data-pmi="'+p.i+'">Nom confirmé sur place</button>'
+     +'<button type="button" class="btn ghost" style="flex:1" data-pmsig="refuse" data-pmi="'+p.i+'">Pas le bon PM</button></div>';}
+  return h;}
+function pmSignaler(i,a){var p=PM_LISTE[i];if(!p||(a!=='confirme'&&a!=='refuse'))return;
+  var ref=(typeof p.dist==='number')?(PM_ZONE&&PM_ZONE.ref):p.deduit;if(!ref||!p.code)return;
+  if(!navigator.onLine){pmSigMsg('Pas de réseau — réessaie une fois connecté.');return;}
+  var q=(a==='confirme')?('Tu es sur place et tu confirmes que cette armoire ('+p.code+') est bien le PM '+ref+' ?\n\nZo validera avant que ce soit enregistré.'):('Tu es sur place et cette armoire ('+p.code+') n’est PAS le PM '+ref+' ?\n\nZo validera avant toute modification.');
+  if(!window.confirm(q))return;
+  pmSigMsg('Envoi…');
+  rpc('solo_pm_signaler',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_code:String(p.code).slice(0,40),p_ref:String(ref).slice(0,40),p_action:a}).then(function(r){
+    if(r&&r.ok){PM_SIG[pmSigCle(p,a)]=1;pmRendu(PM_LISTE,(r.deja?'Déjà signalé — Zo va valider.':'Merci ! Zo reçoit ton signalement et va le valider.'));}
+    else pmSigMsg((r&&r.message)||RESEAU_MSG);
+  },function(e){pmSigMsg((e&&e.message)||RESEAU_MSG);});}
+function pmSigMsg(t){var n=document.getElementById('pm-info');if(n)n.textContent=t;}
 var PM_LISTE=[];
 function pmRendu(list,info){PM_LISTE=list||[];var r=document.getElementById('pm-res'),n=document.getElementById('pm-info');if(!r||!n)return;
   n.textContent=info||'';var h='';for(var i=0;i<PM_LISTE.length;i++){PM_LISTE[i].i=i;h+=pmCarte(PM_LISTE[i]);}r.innerHTML=h;}
@@ -1508,7 +1531,8 @@ function pmChercher(){var q=((document.getElementById('pm-q')||{}).value||'').tr
   PM_T=setTimeout(function(){pmRendu(PM_LISTE,'Recherche…');
     rpc('solo_pm_cherche',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_q:q.slice(0,40)}).then(function(r){if(seq!==PM_SEQ)return;
       var l=(r&&Array.isArray(r.pm))?r.pm:[];
-      if(!l.length&&r&&Array.isArray(r.probables)&&r.probables.length&&r.zone){var pr=r.probables.slice(0,3).map(function(x,k){var o={};for(var c in x)o[c]=x[c];o.dist=Number(x.dist);if(!isFinite(o.dist))o.dist=0;o.rang=k;return o;});
+      PM_ZONE=null;
+      if(!l.length&&r&&Array.isArray(r.probables)&&r.probables.length&&r.zone){PM_ZONE={ref:String(r.zone.ref||'').slice(0,40),commune:String(r.zone.commune||'')};var pr=r.probables.slice(0,3).map(function(x,k){var o={};for(var c in x)o[c]=x[c];o.dist=Number(x.dist);if(!isFinite(o.dist))o.dist=0;o.rang=k;return o;});
         pmRendu(pr,'« '+String(r.zone.ref||q)+' » n’est pas encore nommé sur la carte. PM probables autour de sa zone'+(r.zone.commune?(' ('+r.zone.commune+')'):'')+' — vérifie le nom sur place avant d’intervenir :');return;}
       if(!l.length&&r&&Array.isArray(r.zones)&&r.zones.length){pmRendu([],'Plusieurs références correspondent — choisis :');pmZones(r.zones);return;}
       pmRendu(l,l.length?(l.length>=8?'8 premiers résultats — précise la référence.':''):'Aucun PM trouvé pour « '+q+' ».');
@@ -1522,8 +1546,9 @@ function pmInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe)return;if(document.getE
    +'<div class="srchfield">'+PMSVG+'<input type="search" id="pm-q" placeholder="Réf. du PM — ex. FI-84007-0027" aria-label="Référence du PM" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" maxlength="40" enterkeyhint="search" style="padding-left:44px;direction:ltr"></div>'
    +'<div class="note" id="pm-info" role="status" aria-live="polite" style="margin-top:8px"></div><div id="pm-res"></div>';
   t.insertAdjacentElement('afterend',d);var inp=document.getElementById('pm-q');inp.addEventListener('input',pmChercher);
+  document.getElementById('pm-res').addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-pmsig]'):null;if(!b)return;pmSignaler(parseInt(b.getAttribute('data-pmi'),10),b.getAttribute('data-pmsig'));});
   inp.addEventListener('focus',function(){if(!inp.value)pmChercher();});}
-var APPV='51';
+var APPV='52';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
