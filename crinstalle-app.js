@@ -1485,15 +1485,19 @@ function pmLiens(p){var la=pmNum(p.lat),lo=pmNum(p.lng);if(la===null||lo===null|
   return '<div style="display:flex;gap:8px;margin-top:10px">'
    +'<a class="btn" style="flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center" target="_blank" rel="noopener" onclick="pmRetenir('+esc(JSON.stringify(p.i))+')" href="https://www.google.com/maps/dir/?api=1&destination='+ll+'&travelmode=driving">Google Maps</a>'
    +'<a class="btn ghost" style="flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center" target="_blank" rel="noopener" onclick="pmRetenir('+esc(JSON.stringify(p.i))+')" href="https://waze.com/ul?ll='+ll+'&navigate=yes">Waze</a></div>';}
-function pmCarte(p){var titre=p.ref||p.code||'';var adr=(String(p.alias||'').match(/ADR[ _-]?[A-Za-z0-9_]{3,20}/g)||[]).slice(0,3).join(', ');var sous=[p.site,p.statut,p.nro?('NRO '+p.nro):'',p.insee].filter(function(x){return x;}).join(' · ');
-  return '<div class="card" style="padding:12px 14px;margin-top:10px"><div style="font-weight:700;letter-spacing:.3px">'+esc(titre)+'</div>'
-   +(p.ref&&p.code?'<div class="note">'+esc(p.code)+'</div>':'')+(adr?'<div class="note">Réf. projet : '+esc(adr)+'</div>':'')+(sous?'<div class="note">'+esc(sous)+'</div>':'')+pmLiens(p)+'</div>';}
+function pmCarte(p){var titre=p.ref||p.code||'';var al=String(p.alias||'');var adr=(al.match(/ADR[ _-]?[A-Za-z0-9_]{3,20}/g)||[]).slice(0,3).join(', ');
+  var sro=(al.match(/SRO-?BPI-?\d{5,10}/gi)||[]).slice(0,2).join(', ');
+  var sous=[p.site,p.statut,p.nro?('NRO '+p.nro):'',p.insee].filter(function(x){return x;}).join(' · ');
+  var prob=(typeof p.dist==='number'&&isFinite(p.dist))?('<div class="note" style="font-weight:700;color:#b45309">PM probable n°'+(Number(p.rang)+1)+' — '+(p.dist<=0?'dans la zone':('à '+Math.round(p.dist)+' m de la zone'))+'</div>'):'';
+  var conf=p.confirmer?'<div class="note" style="color:#b45309">Nom déduit des données ARCEP — à confirmer sur place</div>':'';
+  return '<div class="card" style="padding:12px 14px;margin-top:10px">'+prob+'<div style="font-weight:700;letter-spacing:.3px">'+esc(titre)+'</div>'
+   +(p.ref&&p.code?'<div class="note">'+esc(p.code)+'</div>':'')+(adr?'<div class="note">Réf. projet : '+esc(adr)+'</div>':'')+(sro?'<div class="note">Réf. SFR : '+esc(sro.toUpperCase())+'</div>':'')+conf+(sous?'<div class="note">'+esc(sous)+'</div>':'')+pmLiens(p)+'</div>';}
 var PM_LISTE=[];
 function pmRendu(list,info){PM_LISTE=list||[];var r=document.getElementById('pm-res'),n=document.getElementById('pm-info');if(!r||!n)return;
   n.textContent=info||'';var h='';for(var i=0;i<PM_LISTE.length;i++){PM_LISTE[i].i=i;h+=pmCarte(PM_LISTE[i]);}r.innerHTML=h;}
 function pmRecents(){try{var a=JSON.parse(localStorage.getItem(PMREC)||'[]');return Array.isArray(a)?a.filter(function(p){return p&&pmNum(p.lat)!==null&&pmNum(p.lng)!==null;}).slice(0,5):[];}catch(e){return [];}}
-function pmRetenir(i){var p=PM_LISTE[i];if(!p)return;var a=pmRecents().filter(function(x){return (x.ref||x.code)!==(p.ref||p.code);});
-  a.unshift({ref:p.ref||'',code:p.code||'',lat:p.lat,lng:p.lng,site:p.site||'',statut:p.statut||'',nro:p.nro||'',insee:p.insee||''});
+function pmRetenir(i){var p=PM_LISTE[i];if(!p||typeof p.dist==='number')return;var a=pmRecents().filter(function(x){return (x.ref||x.code)!==(p.ref||p.code);});
+  a.unshift({ref:p.ref||'',code:p.code||'',alias:String(p.alias||'').slice(0,120),confirmer:!!p.confirmer,lat:p.lat,lng:p.lng,site:p.site||'',statut:p.statut||'',nro:p.nro||'',insee:p.insee||''});
   try{localStorage.setItem(PMREC,JSON.stringify(a.slice(0,5)));}catch(e){}}
 function pmChercher(){var q=((document.getElementById('pm-q')||{}).value||'').trim();clearTimeout(PM_T);
   var nq=q.toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^FI(?=\d)/,''); /* v49 : « FIKU » reste FIKU (seul FI suivi d'un chiffre est un préfixe) */
@@ -1503,8 +1507,15 @@ function pmChercher(){var q=((document.getElementById('pm-q')||{}).value||'').tr
   var seq=++PM_SEQ;
   PM_T=setTimeout(function(){pmRendu(PM_LISTE,'Recherche…');
     rpc('solo_pm_cherche',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_q:q.slice(0,40)}).then(function(r){if(seq!==PM_SEQ)return;
-      var l=(r&&Array.isArray(r.pm))?r.pm:[];pmRendu(l,l.length?(l.length>=8?'8 premiers résultats — précise la référence.':''):'Aucun PM trouvé pour « '+q+' ».');
+      var l=(r&&Array.isArray(r.pm))?r.pm:[];
+      if(!l.length&&r&&Array.isArray(r.probables)&&r.probables.length&&r.zone){var pr=r.probables.slice(0,3).map(function(x,k){var o={};for(var c in x)o[c]=x[c];o.dist=Number(x.dist);if(!isFinite(o.dist))o.dist=0;o.rang=k;return o;});
+        pmRendu(pr,'« '+String(r.zone.ref||q)+' » n’est pas encore nommé sur la carte. PM probables autour de sa zone'+(r.zone.commune?(' ('+r.zone.commune+')'):'')+' — vérifie le nom sur place avant d’intervenir :');return;}
+      if(!l.length&&r&&Array.isArray(r.zones)&&r.zones.length){pmRendu([],'Plusieurs références correspondent — choisis :');pmZones(r.zones);return;}
+      pmRendu(l,l.length?(l.length>=8?'8 premiers résultats — précise la référence.':''):'Aucun PM trouvé pour « '+q+' ».');
     },function(e){if(seq!==PM_SEQ)return;pmRendu([],(e&&e.message)||RESEAU_MSG);});},300);}
+function pmZones(zs){var r=document.getElementById('pm-res');if(!r)return;var w=document.createElement('div');w.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px';
+  zs.slice(0,8).forEach(function(z){if(typeof z!=='string'||!z)return;var b=document.createElement('button');b.type='button';b.className='btn ghost';b.style.cssText='flex:0 0 auto;padding:8px 12px;width:auto';b.textContent=z;
+    b.addEventListener('click',function(){var i=document.getElementById('pm-q');if(i){i.value=z;pmChercher();}});w.appendChild(b);});r.appendChild(w);}
 function pmInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe)return;if(document.getElementById('hm-pm'))return;
   var t=document.querySelector('#s-home .tiles');if(!t)return;var d=document.createElement('div');d.id='hm-pm';d.className='card';d.style.cssText='padding:14px 16px;margin-top:14px';
   d.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:10px">'+PMSVG+'<span>Aller à un PM</span></div>'
@@ -1512,7 +1523,7 @@ function pmInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe)return;if(document.getE
    +'<div class="note" id="pm-info" role="status" aria-live="polite" style="margin-top:8px"></div><div id="pm-res"></div>';
   t.insertAdjacentElement('afterend',d);var inp=document.getElementById('pm-q');inp.addEventListener('input',pmChercher);
   inp.addEventListener('focus',function(){if(!inp.value)pmChercher();});}
-var APPV='50';
+var APPV='51';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
