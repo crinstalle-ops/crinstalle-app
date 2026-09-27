@@ -1185,7 +1185,7 @@ var ab=document.getElementById('hm-abo');
 if(aboLocked(ACCT.me)){ab.innerHTML='<button class="linkbtn" style="width:100%;text-align:center;background:var(--tint);border:1px solid var(--accent);border-radius:14px;padding:14px;color:var(--accent-l);font-weight:700" onclick="show(&quot;s-abo&quot;)">Essai terminé — la saisie est en pause. S’abonner</button>';}
 else if(ACCT.me.abo_statut==='essai'){var aj=parseInt(ACCT.me.abo_jours,10)||0;ab.innerHTML='<div class="note center" style="padding:2px 0 10px'+(aj<=5?';color:var(--accent-l);font-weight:600':'')+'">'+(aj<=0?'Essai gratuit — dernier jour aujourd’hui':'Essai gratuit — '+aj+' jour'+(aj>1?'s':'')+' restant'+(aj>1?'s':''))+'</div>';}
 else{ab.innerHTML='';}
-buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);try{pmInstall();}catch(_ePm){}show('s-home');if(AVIS){err('err-home',AVIS);AVIS=null;}}).catch(function(e){
+buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);try{pmInstall();}catch(_ePm){}try{cjInstall();}catch(_eCj){}show('s-home');if(AVIS){err('err-home',AVIS);AVIS=null;}}).catch(function(e){
   /* v39 : un compte revoque est renvoye a l'accueil (comme connect), les autres erreurs sont AFFICHEES */
   var msg=(e&&e.message)||'';
   if(msg.indexOf('Accès refusé')>=0){try{var _st=JSON.parse(localStorage.getItem('crinstalle'));if(!_st||_st.client_id===ACCT.client_id)localStorage.removeItem('crinstalle');}catch(_e){}try{meOublier(ACCT.client_id);}catch(_e2){}ACCT=null;err('err-accueil','Ce compte n’existe plus — tu peux en créer un nouveau.');show('s-accueil');return;}
@@ -1563,7 +1563,61 @@ function pmInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe)return;if(document.getE
   t.insertAdjacentElement('afterend',d);var inp=document.getElementById('pm-q');inp.addEventListener('input',pmChercher);
   document.getElementById('pm-res').addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-pmsig]'):null;if(!b)return;pmSignaler(parseInt(b.getAttribute('data-pmi'),10),b.getAttribute('data-pmsig'));});
   inp.addEventListener('focus',function(){if(!inp.value)pmChercher();});}
-var APPV='53';
+/* v54 : « Client par jeton » (équipe) — le tech tape un jeton EXACT : nom, téléphone, adresse (portefeuille clients DEP 84).
+   Si l'adresse est vide, il peut l'ajouter (jamais la modifier). Serveur : workflow n8n APP_Client_Jeton (accès vérifié, 50 recherches/jour, historique). */
+var CJURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-client-jeton',CJ_EC=false,CJ_RES=null;
+var CJSVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1.9.4 1.8.7 2.7a2 2 0 01-.5 2.1L8 9.8a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.7.7a2 2 0 011.7 2z"/></svg>';
+var CJ_INPUT='width:100%;height:48px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border-s);color:var(--tx);padding:0 14px;font-size:16px;box-sizing:border-box';
+function cjJeton(v){return String(v||'').toUpperCase().replace(/\s/g,'');}
+function cjMsg(t){var n=document.getElementById('cj-info');if(n)n.textContent=t||'';}
+function cjAppel(body){body.c=ACCT.client_id;body.k=ACCT.cle;
+  return fetchT(CJURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)},25000).then(function(r){return r.json().catch(function(){return {ok:false,message:RESEAU_MSG};});});}
+function cjTelHref(t){var d=String(t||'').replace(/\D/g,'');return (d.length>=9&&d.length<=15)?('tel:'+d):'';}
+function cjCarte(c,i){c=c||{};var h='<div class="card" style="padding:12px 14px;margin-top:10px"><div style="font-weight:700">'+esc(c.nom||'Nom non communiqué')+'</div>';
+  var tels=Array.isArray(c.tels)?c.tels.slice(0,3):[];
+  if(tels.length){h+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">';for(var k=0;k<tels.length;k++){var hr=cjTelHref(tels[k]);
+    h+=hr?('<a class="btn" style="flex:1 1 150px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px" href="'+esc(hr)+'">'+CJSVG+'<span>'+esc(tels[k])+'</span></a>'):('<div class="note">'+esc(tels[k])+'</div>');}
+    h+='</div>';}else h+='<div class="note">Pas de téléphone enregistré</div>';
+  if(c.adresse){h+='<div class="note" style="margin-top:10px;color:var(--tx)">📍 '+esc(c.adresse)+'</div>'+(c.par?'<div class="note">Adresse ajoutée par '+esc(c.par)+'</div>':'')
+    +'<a class="btn ghost" style="margin-top:8px;text-decoration:none;display:flex;align-items:center;justify-content:center" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(String(c.adresse).slice(0,200))+'&travelmode=driving">Itinéraire vers l’adresse</a>';}
+  else if(c.cle){h+='<div class="note" style="margin-top:10px">Pas encore d’adresse pour ce client. Tu es sur place ? Ajoute-la :</div>'
+    +'<input type="text" id="cj-adr-'+i+'" maxlength="200" autocomplete="off" enterkeyhint="done" placeholder="12 rue Exemple 84000 Avignon" aria-label="Adresse du client" style="'+CJ_INPUT+';margin-top:8px">'
+    +'<button class="btn" type="button" data-cjadd="'+i+'" style="width:100%;margin-top:8px">Enregistrer l’adresse</button>';}
+  return h+'</div>';}
+function cjRendu(info){var r=document.getElementById('cj-res');if(!r)return;var h='';var cl=(CJ_RES&&Array.isArray(CJ_RES.clients))?CJ_RES.clients:[];
+  for(var i=0;i<cl.length&&i<3;i++)h+=cjCarte(cl[i],i);r.innerHTML=h;cjMsg(info);}
+function cjChercher(){if(CJ_EC)return;var inp=document.getElementById('cj-q');var j=cjJeton(inp&&inp.value);
+  if(!/^[A-Z0-9]{4,20}$/.test(j)){CJ_RES=null;cjRendu('Tape le numéro de jeton complet (ex. 23841383).');return;}
+  if(!navigator.onLine){cjMsg('Pas de réseau — réessaie une fois connecté.');return;}
+  CJ_EC=true;CJ_RES=null;cjRendu('Recherche…');
+  cjAppel({action:'lecture',jeton:j}).then(function(r){CJ_EC=false;
+    if(!r||!r.ok){cjRendu((r&&r.message)||RESEAU_MSG);return;}
+    CJ_RES={jeton:String(r.jeton||j),clients:Array.isArray(r.clients)?r.clients.slice(0,3):[]};
+    cjRendu(CJ_RES.clients.length?(CJ_RES.clients.length>1?CJ_RES.clients.length+' clients pour ce jeton :':''):('Aucun client trouvé pour le jeton '+CJ_RES.jeton+'.'));
+  },function(){CJ_EC=false;cjRendu(RESEAU_MSG);});}
+function cjAjouter(i){if(CJ_EC||!CJ_RES)return;var c=CJ_RES.clients[i];if(!c||c.adresse||!c.cle)return;
+  var f=document.getElementById('cj-adr-'+i);var a=String((f&&f.value)||'').replace(/\s+/g,' ').trim();
+  if(a.length<8||!/[a-zA-ZÀ-ÿ]/.test(a)){cjMsg('Adresse incomplète : écris le numéro, la rue, le code postal et la ville.');return;}
+  if(!/\b\d{5}\s*,?\s*[A-Za-zÀ-ÿ'’\- ]+$/.test(a)){cjMsg('Termine par le code postal et la ville (ex : 12 rue Exemple 84000 Avignon).');return;}
+  if(!navigator.onLine){cjMsg('Pas de réseau — réessaie une fois connecté.');return;}
+  CJ_EC=true;cjMsg('Enregistrement…');
+  cjAppel({action:'adresse',jeton:CJ_RES.jeton,tel:c.cle,adresse:a}).then(function(r){CJ_EC=false;
+    if(r&&r.client&&(r.ok||r.deja)){CJ_RES.clients[i]=r.client;}
+    if(r&&r.ok){cjRendu('Adresse enregistrée ✓ — merci ! Le call center ne la redemandera pas.');return;}
+    if(r&&r.deja){cjRendu(r.message||'Ce client a déjà une adresse.');return;}
+    cjMsg((r&&r.message)||RESEAU_MSG);
+  },function(){CJ_EC=false;cjMsg(RESEAU_MSG);});}
+function cjInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe)return;if(document.getElementById('hm-cj'))return;var pm=document.getElementById('hm-pm');if(!pm)return;
+  var d=document.createElement('div');d.id='hm-cj';d.className='card';d.style.cssText='padding:14px 16px;margin-top:14px';
+  d.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:10px">'+CJSVG+'<span>Client par jeton</span></div>'
+   +'<div class="srchfield">'+CJSVG+'<input type="search" id="cj-q" inputmode="numeric" placeholder="N° de jeton — ex. 23841383" aria-label="Numéro de jeton" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="24" enterkeyhint="search" style="padding-left:44px;direction:ltr"></div>'
+   +'<button class="btn" type="button" id="cj-go" style="width:100%;margin-top:8px">Chercher le client</button>'
+   +'<div class="note" id="cj-info" role="status" aria-live="polite" style="margin-top:8px"></div><div id="cj-res"></div>';
+  pm.insertAdjacentElement('afterend',d);
+  document.getElementById('cj-go').addEventListener('click',cjChercher);
+  document.getElementById('cj-q').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();cjChercher();}});
+  document.getElementById('cj-res').addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cjadd]'):null;if(!b)return;cjAjouter(parseInt(b.getAttribute('data-cjadd'),10));});}
+var APPV='54';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
