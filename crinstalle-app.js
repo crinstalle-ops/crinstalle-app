@@ -237,6 +237,16 @@ DICOS.ar={dir:'rtl',exact:{
  "Tout Solo + Factures en 1 clic · Suivi des dépenses":"كل مزايا Solo + فواتير بنقرة واحدة · تتبع المصاريف","Tout Solo + Factures en 1 clic · Suivi des dépenses · Itinéraire vers les PM de France":"كل مزايا Solo + فواتير بنقرة واحدة · تتبع المصاريف · الطريق إلى نقاط PM في فرنسا",
  "Passer Pro — 9,99 €/mois":"الترقية إلى Pro — 9,99 €/شهر",
  "Génère ta facture du mois pour ton client.":"أنشئ فاتورتك الشهرية لعميلك.",
+ "Type de facture":"نوع الفاتورة",
+ "Facture du mois":"فاتورة الشهر",
+ "Facture libre":"فاتورة حرة",
+ "Ce que tu factures":"ما تفوتره",
+ "Écris ce que tu veux : il apparaîtra tel quel sur la facture (600 caractères maximum).":"اكتب ما تريد: سيظهر كما هو على الفاتورة (600 حرف كحد أقصى).",
+ "Facture ce que tu veux à Crinstalle : tu écris le détail et le montant.":"فوتر ما تريد لـ Crinstalle: تكتب التفاصيل والمبلغ.",
+ "Facture ce que tu veux à ton client : tu écris le détail et le montant.":"فوتر ما تريد لعميلك: تكتب التفاصيل والمبلغ.",
+ "Écris ce que tu factures.":"اكتب ما تفوتره.",
+ "Ta description est trop longue (600 caractères maximum).":"وصفك طويل جدًا (600 حرف كحد أقصى).",
+ "Ta description a trop de lignes (9 maximum).":"وصفك يحتوي على أسطر كثيرة (9 كحد أقصى).",
  "Mon client (facturé à)":"عميلي (الفاتورة باسم)",
  "Nom de l’entreprise cliente":"اسم الشركة العميلة",
  "Adresse du client":"عنوان العميل",
@@ -741,9 +751,13 @@ function factNavInstall(){
      +'<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="lab">Ce mois-ci</div><div id="dp-total" style="font-weight:800;font-size:18px">—</div></div><div id="dp-liste" style="display:flex;flex-direction:column;margin-top:6px"></div></div>'
      +'</div>'
      +'<div id="cp-fact" style="display:none">'
-     +'<p class="sub" style="margin:2px 0 14px">'+(ACCT.me.equipe?'Génère ta facture du mois pour Crinstalle.':'Génère ta facture du mois pour ton client.')+'</p>'
+     +'<p class="sub" id="fa-sub" style="margin:2px 0 14px">'+(ACCT.me.equipe?'Génère ta facture du mois pour Crinstalle.':'Génère ta facture du mois pour ton client.')+'</p>'
      +'<div class="card" style="display:flex;flex-direction:column;gap:12px">'
-     +'<div class="field"><div class="lab" id="lbl-famois">Mois</div><select id="fa-mois" aria-labelledby="lbl-famois" style="width:100%;height:52px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:0 14px;color:var(--tx);font-size:16px;font-weight:600"></select></div>'
+     +'<div class="field"><div class="lab" id="lbl-famode">Type de facture</div><div class="chips" id="fa-modes" role="radiogroup" aria-labelledby="lbl-famode">'
+     +'<button class="chip sel" role="radio" aria-checked="true" data-mode="mois" onclick="factMode(\'mois\')">Facture du mois</button>'
+     +'<button class="chip" role="radio" aria-checked="false" data-mode="libre" onclick="factMode(\'libre\')">Facture libre</button></div></div>'
+     +'<div class="field" id="fa-librow" style="display:none"><label class="lab" for="fa-lib">Ce que tu factures</label><textarea id="fa-lib" maxlength="600" rows="4" placeholder="ex. Interventions fibre semaine 38, secteur Cavaillon" style="'+DECH_TA+'"></textarea><div class="note">Écris ce que tu veux : il apparaîtra tel quel sur la facture (600 caractères maximum).</div></div>'
+     +'<div class="field" id="fa-moisrow"><div class="lab" id="lbl-famois">Mois</div><select id="fa-mois" aria-labelledby="lbl-famois" style="width:100%;height:52px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:0 14px;color:var(--tx);font-size:16px;font-weight:600"></select></div>'
      +'<div class="field"><label class="lab" for="fa-date">Date de la facture</label><input type="date" id="fa-date"></div>'
      +'<div class="field"><label class="lab" for="fa-num">Numéro de facture</label><input type="text" id="fa-num" maxlength="30" placeholder="ex. 13"><div class="note">Proposé automatiquement à partir de ta dernière facture.</div></div>'
      +'<div class="field"><label class="lab" for="fa-mt">Montant (€)</label><input type="text" id="fa-mt" inputmode="decimal" maxlength="12" placeholder="ex. 1250,50"></div>'
@@ -808,7 +822,7 @@ function openFact(){if(!ACCT)return;factNavInstall();var s=document.getElementBy
     else{rpc('solo_facture_data',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:factMoisListe()[0]}).then(function(r){
       ACCT._factp=(r&&r.profil)||{};factProfilRendu();
       var _pn=document.getElementById('fa-parnote');var _pp=(r&&r.parrainage)||{};
-      if(_pn){if(parseFloat(_pp.montant)>0){_pn.style.display='';_pn.textContent='Commissions parrainage : +'+fmt(parseFloat(_pp.montant))+' ('+_pp.n+' abonn\u00e9'+(_pp.n>1?'s':'')+') ajout\u00e9es automatiquement \u00e0 ta facture.';}else{_pn.style.display='none';}}
+      if(_pn){if(parseFloat(_pp.montant)>0){_pn.style.display=FACTMODE==='libre'?'none':'';_pn.textContent='Commissions parrainage : +'+fmt(parseFloat(_pp.montant))+' ('+_pp.n+' abonn\u00e9'+(_pp.n>1?'s':'')+') ajout\u00e9es automatiquement \u00e0 ta facture.';}else{_pn.style.display='none';}}
       var n2=document.getElementById('fa-num');if(n2&&!n2.value&&ACCT._factp.dernier_num)n2.value=factNumSuivant(ACCT._factp.dernier_num);
     },function(){});}
     depBinRendu();depCharger();factArchCharger();
@@ -899,10 +913,21 @@ function factProfilRendu(){var d=document.getElementById('fa-profil');if(!d)retu
 function factProfilBascule(){var d=document.getElementById('fa-profil'),b=document.getElementById('fa-toggle');if(!d)return;var on=d.style.display==='none';d.style.display=on?'flex':'none';if(b)b.setAttribute('aria-expanded',on?'true':'false');}
 function factProfilOuvre(){var d=document.getElementById('fa-profil'),b=document.getElementById('fa-toggle');if(d&&d.style.display==='none'){d.style.display='flex';if(b)b.setAttribute('aria-expanded','true');}
   var ids=['fap-adr','fap-cpv','fap-siret','fapc-nom','fapc-adr','fapc-cpv'],i;for(i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e&&!e.value.trim()){try{e.focus();}catch(_e){}break;}}}
+/* v59 : facture libre = description + montant tapés par le tech, même numérotation que la facture du mois */
+var FACTMODE='mois';
+function factMode(m){FACTMODE=(m==='libre')?'libre':'mois';var lib=FACTMODE==='libre';
+  var bs=document.querySelectorAll('#fa-modes .chip'),i;for(i=0;i<bs.length;i++){var on=bs[i].getAttribute('data-mode')===FACTMODE;bs[i].classList.toggle('sel',on);bs[i].setAttribute('aria-checked',on?'true':'false');}
+  var mr=document.getElementById('fa-moisrow');if(mr)mr.style.display=lib?'none':'';
+  var lr=document.getElementById('fa-librow');if(lr)lr.style.display=lib?'':'none';
+  var pn=document.getElementById('fa-parnote');if(pn){if(lib)pn.style.display='none';else if(pn.textContent)pn.style.display='';}
+  var sb=document.getElementById('fa-sub');if(sb)sb.textContent=lib?(ACCT&&ACCT.me&&ACCT.me.equipe?'Facture ce que tu veux à Crinstalle : tu écris le détail et le montant.':'Facture ce que tu veux à ton client : tu écris le détail et le montant.'):(ACCT&&ACCT.me&&ACCT.me.equipe?'Génère ta facture du mois pour Crinstalle.':'Génère ta facture du mois pour ton client.');
+  err('err-fact');}
 function factGenerer(){if(!ACCT)return;err('err-fact');
   if(!navigator.onLine){err('err-fact',HORSLIGNE_MSG);return;}
+  var libre=FACTMODE==='libre';
   var ms=(document.getElementById('fa-mois')||{}).value||'';
   var dt=((document.getElementById('fa-date')||{}).value||'').trim();
+  var lib=libre?((document.getElementById('fa-lib')||{}).value||'').replace(/\r\n?/g,'\n').trim():'';
   var num=((document.getElementById('fa-num')||{}).value||'').trim();
   var mtS=mtNorm(((document.getElementById('fa-mt')||{}).value||''));
   var mt=parseFloat(mtS);
@@ -911,6 +936,10 @@ function factGenerer(){if(!ACCT)return;err('err-fact');
   var solo=!ACCT.me.equipe;
   var pc={nom:gv('fapc-nom'),adr:gv('fapc-adr'),cpv:gv('fapc-cpv')};
   if(!/^\d{4}-\d{2}-\d{2}$/.test(dt)){err('err-fact','Choisis la date de la facture.');document.getElementById('fa-date').focus();return;}
+  if(libre){ms=dt.slice(0,7);
+    if(!lib){err('err-fact','Écris ce que tu factures.');document.getElementById('fa-lib').focus();return;}
+    if(lib.length>600){err('err-fact','Ta description est trop longue (600 caractères maximum).');document.getElementById('fa-lib').focus();return;}
+    if(lib.split('\n').length>9){err('err-fact','Ta description a trop de lignes (9 maximum).');document.getElementById('fa-lib').focus();return;}}
   if(!num){err('err-fact','Indique ton numéro de facture.');document.getElementById('fa-num').focus();return;}
   if(mtS===null||!isFinite(mt)||mt<=0){err('err-fact','Indique le montant de la facture — écris-le comme 1250,50 (sans point des milliers).');document.getElementById('fa-mt').focus();return;}
   if(!p.adresse||!p.cp_ville||!p.siret){err('err-fact','Complète tes infos de facturation (adresse, code postal + ville, SIRET).');factProfilOuvre();return;}
@@ -932,7 +961,7 @@ function factGenerer(){if(!ACCT)return;err('err-fact');
     b.disabled=false;
     /* v45 : le champ passe au numero suivant — une 2e facture ne reprend jamais le meme */
     try{var _nx=factNumSuivant(numProfil);if(_nx)document.getElementById('fa-num').value=_nx;}catch(_e){}
-    location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-facture?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms+'&num='+encodeURIComponent(num)+'&mt='+encodeURIComponent(mtS)+'&dt='+encodeURIComponent(dt);
+    location.href='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-facture?c='+ACCT.client_id+'&k='+ACCT.cle+'&m='+ms+'&num='+encodeURIComponent(num)+'&mt='+encodeURIComponent(mtS)+'&dt='+encodeURIComponent(dt)+(libre?'&mode=libre&lib='+encodeURIComponent(lib):'');
   });}).catch(function(e){b.disabled=false;err('err-fact',(e&&e.message)||'Erreur');});}
 /* ---------- Tickets TVA (admin + contrôle, v38) ---------- */
 var TVAURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-ticket-tva';
@@ -1824,7 +1853,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='58';
+var APPV='59';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
