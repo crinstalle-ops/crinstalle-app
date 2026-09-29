@@ -1185,7 +1185,7 @@ var ab=document.getElementById('hm-abo');
 if(aboLocked(ACCT.me)){ab.innerHTML='<button class="linkbtn" style="width:100%;text-align:center;background:var(--tint);border:1px solid var(--accent);border-radius:14px;padding:14px;color:var(--accent-l);font-weight:700" onclick="show(&quot;s-abo&quot;)">Essai terminé — la saisie est en pause. S’abonner</button>';}
 else if(ACCT.me.abo_statut==='essai'){var aj=parseInt(ACCT.me.abo_jours,10)||0;ab.innerHTML='<div class="note center" style="padding:2px 0 10px'+(aj<=5?';color:var(--accent-l);font-weight:600':'')+'">'+(aj<=0?'Essai gratuit — dernier jour aujourd’hui':'Essai gratuit — '+aj+' jour'+(aj>1?'s':'')+' restant'+(aj>1?'s':''))+'</div>';}
 else{ab.innerHTML='';}
-buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);try{pmInstall();}catch(_ePm){}try{cjInstall();}catch(_eCj){}show('s-home');if(AVIS){err('err-home',AVIS);AVIS=null;}}).catch(function(e){
+buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);try{pmInstall();}catch(_ePm){}try{cjInstall();}catch(_eCj){}try{dechInstall();}catch(_eD){}show('s-home');if(AVIS){err('err-home',AVIS);AVIS=null;}}).catch(function(e){
   /* v39 : un compte revoque est renvoye a l'accueil (comme connect), les autres erreurs sont AFFICHEES */
   var msg=(e&&e.message)||'';
   if(msg.indexOf('Accès refusé')>=0){try{var _st=JSON.parse(localStorage.getItem('crinstalle'));if(!_st||_st.client_id===ACCT.client_id)localStorage.removeItem('crinstalle');}catch(_e){}try{meOublier(ACCT.client_id);}catch(_e2){}ACCT=null;err('err-accueil','Ce compte n’existe plus — tu peux en créer un nouveau.');show('s-accueil');return;}
@@ -1575,15 +1575,16 @@ function cjAppel(body){body.c=ACCT.client_id;body.k=ACCT.cle;
   return fetchT(CJURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)},25000).then(function(r){return r.json().catch(function(){return {ok:false,message:RESEAU_MSG};});});}
 function cjTelHref(t){var d=String(t||'').replace(/\D/g,'');return (d.length>=9&&d.length<=15)?('tel:'+d):'';}
 function cjCarte(c,i){c=c||{};var h='<div class="card" style="padding:12px 14px;margin-top:10px"><div style="font-weight:700">'+esc(c.nom||'Nom non communiqué')+'</div>';
+  if(c.cpRequis){return h+'<div class="note" style="margin-top:8px;color:var(--tx)">🔒 Pour voir le numéro, tape le code postal de la commune du client.</div>'
+    +'<input type="text" id="cj-cp-'+i+'" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" enterkeyhint="done" placeholder="Code postal — ex. 84000" aria-label="Code postal de la commune du client" style="'+CJ_INPUT+';margin-top:8px;letter-spacing:2px">'
+    +'<button class="btn" type="button" data-cjcp="'+i+'" style="width:100%;margin-top:8px">Valider et voir le numéro</button></div>';}
   var tels=Array.isArray(c.tels)?c.tels.slice(0,3):[];
   if(tels.length){h+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">';for(var k=0;k<tels.length;k++){var hr=cjTelHref(tels[k]);
     h+=hr?('<a class="btn" style="flex:1 1 150px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px" href="'+esc(hr)+'">'+CJSVG+'<span>'+esc(tels[k])+'</span></a>'):('<div class="note">'+esc(tels[k])+'</div>');}
     h+='</div>';}else h+='<div class="note">Pas de téléphone enregistré</div>';
   if(c.adresse){h+='<div class="note" style="margin-top:10px;color:var(--tx)">📍 '+esc(c.adresse)+'</div>'+(c.par?'<div class="note">Adresse ajoutée par '+esc(c.par)+'</div>':'')
     +'<a class="btn ghost" style="margin-top:8px;text-decoration:none;display:flex;align-items:center;justify-content:center" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(String(c.adresse).slice(0,200))+'&travelmode=driving">Itinéraire vers l’adresse</a>';}
-  else if(c.cle){h+='<div class="note" style="margin-top:10px">Pas encore d’adresse pour ce client. Tu es sur place ? Ajoute-la :</div>'
-    +'<input type="text" id="cj-adr-'+i+'" maxlength="200" autocomplete="off" enterkeyhint="done" placeholder="12 rue Exemple 84000 Avignon" aria-label="Adresse du client" style="'+CJ_INPUT+';margin-top:8px">'
-    +'<button class="btn" type="button" data-cjadd="'+i+'" style="width:100%;margin-top:8px">Enregistrer l’adresse</button>';}
+  else if(c.cp){h+='<div class="note" style="margin-top:10px">📮 Code postal : '+esc(c.cp)+(c.par?' — ajouté par '+esc(c.par):'')+'</div>';}
   return h+'</div>';}
 function cjRendu(info){var r=document.getElementById('cj-res');if(!r)return;var h='';var cl=(CJ_RES&&Array.isArray(CJ_RES.clients))?CJ_RES.clients:[];
   for(var i=0;i<cl.length&&i<3;i++)h+=cjCarte(cl[i],i);r.innerHTML=h;cjMsg(info);}
@@ -1608,6 +1609,15 @@ function cjAjouter(i){if(CJ_EC||!CJ_RES)return;var c=CJ_RES.clients[i];if(!c||c.
     if(r&&r.deja){cjRendu(r.message||'Ce client a déjà une adresse.');return;}
     cjMsg((r&&r.message)||RESEAU_MSG);
   },function(){CJ_EC=false;cjMsg(RESEAU_MSG);});}
+function cjCp(i){if(CJ_EC||!CJ_RES)return;var c=CJ_RES.clients[i];if(!c||!c.cpRequis)return;
+  var f=document.getElementById('cj-cp-'+i);var v=String((f&&f.value)||'').replace(/[\s.]/g,'');
+  if(!/^\d{5}$/.test(v)){cjMsg('Tape les 5 chiffres du code postal (ex. 84000).');if(f)f.focus();return;}
+  if(!navigator.onLine){cjMsg('Pas de réseau — réessaie une fois connecté.');return;}
+  CJ_EC=true;cjMsg('Vérification…');
+  cjAppel({action:'cp',jeton:CJ_RES.jeton,i:(typeof c.i==='number'?c.i:i),cp:v}).then(function(r){CJ_EC=false;
+    if(r&&r.ok&&r.client){CJ_RES.clients[i]=r.client;cjRendu(r.deja?'Ce client avait déjà un code postal.':'Code postal enregistré ✓ — voici le numéro.');return;}
+    cjMsg((r&&r.message)||RESEAU_MSG);if(f)f.focus();
+  },function(){CJ_EC=false;cjMsg(RESEAU_MSG);});}
 function cjInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe)return;if(document.getElementById('hm-cj'))return;var pm=document.getElementById('hm-pm');if(!pm)return;
   var d=document.createElement('div');d.id='hm-cj';d.className='card';d.style.cssText='padding:14px 16px;margin-top:14px';
   d.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:10px">'+CJSVG+'<span>Client par jeton</span></div>'
@@ -1617,8 +1627,204 @@ function cjInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe)return;if(document.getE
   pm.insertAdjacentElement('afterend',d);
   document.getElementById('cj-go').addEventListener('click',cjChercher);
   document.getElementById('cj-q').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();cjChercher();}});
-  document.getElementById('cj-res').addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cjadd]'):null;if(!b)return;cjAjouter(parseInt(b.getAttribute('data-cjadd'),10));});}
-var APPV='55';
+  var res=document.getElementById('cj-res');
+  res.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cjcp]'):null;if(!b)return;cjCp(parseInt(b.getAttribute('data-cjcp'),10));});
+  res.addEventListener('keydown',function(ev){var t=ev.target;if(ev.key!=='Enter'||!t||!t.id||t.id.indexOf('cj-cp-')!==0)return;ev.preventDefault();cjCp(parseInt(t.id.slice(6),10));});}
+/* === v56/v57 : Décharge PTO (formulaire Free « pose PTO à un emplacement non recommandé ») ===
+   Équipe seulement. Le technicien remplit, le client coche « Lu et approuvé » et signe du doigt.
+   Le PDF = le formulaire Free ORIGINAL rempli dans le téléphone (aucune clé dans une URL, aucun serveur de rendu). */
+var DECH_EC=false,DECH_SIG=null,DECH_OUT=null;
+var DECH_P=['Pour une utilisation optimale de nos services, nous conseillons à nos clients l’installation de la prise optique à proximité du téléviseur principal.',
+ 'Toutefois, le Freenaute peut, dans l’emprise de son logement privé, demander la pose de la prise optique à un endroit différent contre signature de cette décharge (à condition que cet emplacement soit à une distance maximum d’1m50 d’une prise électrique déjà existante).',
+ 'Tout autre déplacement de la prise optique ne pourra être demandé à Free.'];
+var DECHSVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/><path d="M8 17c1.5-2 2.5-2 3 0s1.5 1 2.5-1 2-1 2.5.5"/></svg>';
+var DECH_TA='width:100%;min-height:84px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:12px 14px;color:var(--tx);font-size:16px;line-height:1.4;resize:vertical;box-sizing:border-box';
+var DECH_CK='display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--border-s);border-radius:var(--r-m);background:var(--surface);cursor:pointer;line-height:1.4;font-size:15px';
+
+/* ---------- PDF : on remplit le FORMULAIRE FREE ORIGINAL (aucune modification du document) ----------
+   Modèle = fichier B.10 fourni par Zo, servi tel quel et contrôlé par empreinte SHA-256.
+   Remplissage avec pdf-lib (MIT, hébergé sur crinstalle.app, intégrité SRI). */
+var DECH_LIB_URL='https://crinstalle.app/pdf-lib.min.js',DECH_LIB_SRI='sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI';
+var DECH_MODELE_URL='https://crinstalle.app/decharge-pto-modele.pdf',DECH_MODELE_SHA='0033aa816a9cf45416084b5bd94de95a4373bde6fd7ec4adccd40967b7a31806';
+var DECH_LIBP=null;
+/* Emplacements des pointillés du modèle (points PDF, origine en bas à gauche) — relevés sur le fichier original */
+var DECH_ZONES={
+  nom:[{x:147,y:447.3,w:360}],
+  adresse:[{x:120,y:382.6,w:395},{x:72,y:361,w:444}],
+  prise:[{x:181,y:317.9,w:332}],
+  emplacement:[{x:72,y:253,w:444},{x:72,y:231.4,w:444}],
+  lieu:[{x:83,y:145.2,w:76}]};
+var DECH_WINANSI='€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
+function dechNettoie(s){s=String(s==null?'':s).normalize('NFC').replace(/[  \t\r\n]/g,' ');var o='';
+  for(var i=0;i<s.length;i++){var ch=s[i],c=s.charCodeAt(i);o+=((c>=32&&c<=126)||(c>=160&&c<=255)||DECH_WINANSI.indexOf(ch)>=0)?ch:(c>=0xD800&&c<=0xDBFF?(i++,'?'):'?');}
+  return o.replace(/\s+/g,' ').trim();}
+function dechB64(s){var bin=atob(s),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
+function dechDateFr(s){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||''));return m?(m[3]+'/'+m[2]+'/'+m[1]):String(s||'');}
+function dechHex(buf){return Array.prototype.map.call(new Uint8Array(buf),function(b){return ('0'+b.toString(16)).slice(-2);}).join('');}
+function dechLib(){if(window.PDFLib)return Promise.resolve(window.PDFLib);if(DECH_LIBP)return DECH_LIBP;
+  DECH_LIBP=new Promise(function(ok,ko){var s=document.createElement('script');s.src=DECH_LIB_URL;s.integrity=DECH_LIB_SRI;s.crossOrigin='anonymous';
+    s.onload=function(){if(window.PDFLib)ok(window.PDFLib);else{DECH_LIBP=null;ko(new Error('Générateur PDF indisponible.'));}};
+    s.onerror=function(){DECH_LIBP=null;ko(new Error('Impossible de charger le générateur PDF — vérifie le réseau et réessaie.'));};
+    document.head.appendChild(s);});
+  return DECH_LIBP;}
+function dechModele(){return fetch(DECH_MODELE_URL,{cache:'no-cache'}).then(function(r){if(!r.ok)throw new Error('Modèle de décharge introuvable.');return r.arrayBuffer();})
+  .then(function(buf){return crypto.subtle.digest('SHA-256',buf).then(function(h){if(dechHex(h)!==DECH_MODELE_SHA)throw new Error('Le modèle de décharge ne correspond pas à l’original — PDF non généré.');return buf;});});}
+/* Répartit le texte dans les zones (lignes pointillées), en réduisant la taille si besoin (11 → 6 pt). */
+function dechRepartir(val,zones,largeur){for(var s=11;s>=6;s-=0.5){var mots=val.split(' ').filter(Boolean),out=[],z=0,cur='',ok=true;
+    for(var i=0;i<mots.length&&ok;i++){var m=mots[i],t=cur?cur+' '+m:m;
+      if(largeur(t,s)<=zones[z].w){cur=t;continue;}
+      if(cur){out.push(cur);cur='';z++;if(z>=zones.length){ok=false;break;}}
+      while(largeur(m,s)>zones[z].w){var k=m.length;while(k>1&&largeur(m.slice(0,k),s)>zones[z].w)k--;out.push(m.slice(0,k));m=m.slice(k);z++;if(z>=zones.length){ok=false;break;}}
+      cur=m;}
+    if(ok){if(cur)out.push(cur);return {s:s,lignes:out};}}
+  // dernier recours (ne devrait pas arriver avec les longueurs autorisées) : 6 pt tronqué
+  var L=[],reste=val;for(var j=0;j<zones.length;j++){var k2=reste.length;while(k2>0&&largeur(reste.slice(0,k2),6)>zones[j].w)k2--;L.push(reste.slice(0,k2));reste=reste.slice(k2).trim();}
+  if(reste&&L.length){var d=L[L.length-1];L[L.length-1]=d.slice(0,Math.max(0,d.length-1))+'…';}
+  return {s:6,lignes:L};}
+function dechRemplir(d){return Promise.all([dechLib(),dechModele()]).then(function(r){var L=r[0];
+  return L.PDFDocument.load(r[1]).then(function(doc){
+    var sig=dechB64(String(d.signature||'').replace(/^data:image\/jpeg;base64,/,''));
+    return Promise.all([doc.embedFont(L.StandardFonts.Helvetica),doc.embedJpg(sig)]).then(function(x){
+      var f=x[0],img=x[1],pg=doc.getPages()[0],encre=L.rgb(0.05,0.15,0.55);
+      function larg(t,s){return f.widthOfTextAtSize(t,s);}
+      function ecrire(t,xx,yy,s){if(t)pg.drawText(t,{x:xx,y:yy,size:s,font:f,color:encre});}
+      function champ(val,zones){var v=dechNettoie(val);if(!v)return;var R=dechRepartir(v,zones,larg);for(var i=0;i<R.lignes.length;i++)ecrire(R.lignes[i],zones[i].x,zones[i].y,R.s);}
+      champ(d.client_nom,DECH_ZONES.nom);champ(d.adresse,DECH_ZONES.adresse);champ(d.num_prise,DECH_ZONES.prise);
+      champ(d.emplacement,DECH_ZONES.emplacement);champ(d.lieu,DECH_ZONES.lieu);
+      // date : chiffres centrés sur __ / __ / ____
+      var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d.date||''));
+      if(m){[[m[3],187.6],[m[2],203.0],[m[1],227.6]].forEach(function(p){ecrire(p[0],p[1]-larg(p[0],11)/2,145.2,11);});}
+      // mention manuscrite puis signature du client, sous « Signature précédée de la mention… : »
+      ecrire('Lu et approuvé',352,102,11);
+      var bw=220,bh=74,sc=Math.min(bw/img.width,bh/img.height),iw=img.width*sc,ih=img.height*sc;
+      pg.drawImage(img,{x:72,y:92-ih,width:iw,height:ih});
+      // traçabilité dans les propriétés du fichier uniquement (invisible, le document reste identique)
+      try{doc.setTitle('Décharge PTO — jeton '+dechNettoie(d.jeton));
+        doc.setSubject('Réf. D-'+d.id+' — signée le '+(d.signe_le||dechDateFr(d.date))+' via Crinstalle IA — technicien : '+dechNettoie(d.tech||'—'));
+        doc.setProducer('Crinstalle IA');}catch(_e){}
+      return doc.save();});});});}
+function dechNomFichier(d){return 'decharge-PTO-'+String(d.jeton||'').replace(/[^A-Za-z0-9._-]/g,'')+'-'+String(d.date||'').slice(0,10)+'.pdf';}
+
+/* ---------- écrans ---------- */
+function dechMsg(id,t){var n=document.getElementById(id);if(n)n.textContent=t||'';}
+function dechInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe||ACCT.me.acces==='controle')return;
+  if(!document.getElementById('s-dech'))dechEcrans();
+  if(document.getElementById('hm-dech'))return;
+  var ref=document.getElementById('hm-cj')||document.getElementById('hm-pm');if(!ref)return;
+  var d=document.createElement('div');d.id='hm-dech';d.className='card';d.style.cssText='padding:14px 16px;margin-top:14px';
+  d.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:4px">'+DECHSVG+'<span>Décharge PTO</span></div>'
+   +'<div class="note" style="margin-bottom:10px">Le client veut sa prise ailleurs qu’à côté de la TV ? Fais-lui signer la décharge.</div>'
+   +'<div style="display:flex;gap:8px"><button class="btn" type="button" id="dech-go" style="margin-top:0;flex:1.3">Nouvelle décharge</button>'
+   +'<button class="btn ghost" type="button" id="dech-voir" style="margin-top:0;flex:1">Voir</button></div>';
+  ref.insertAdjacentElement('afterend',d);
+  document.getElementById('dech-go').addEventListener('click',dechNouvelle);
+  document.getElementById('dech-voir').addEventListener('click',function(){dechListe('');});}
+function dechEcrans(){var BACK='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  var s1=document.createElement('section');s1.className='screen';s1.id='s-dech';
+  s1.innerHTML='<div class="topbar"><button class="back" type="button" aria-label="Retour" id="dech-b1">'+BACK+'</button><div class="ttl">Décharges PTO</div><div style="width:34px"></div></div>'
+   +'<p class="sub" id="dech-sub" style="margin:2px 0 14px">Tes décharges signées. Touche une décharge pour son PDF.</p>'
+   +'<div class="note" id="dech-info" role="status" aria-live="polite" style="margin-bottom:10px;color:var(--ok)"></div>'
+   +'<div class="err" id="err-dech" role="alert"></div><div id="dech-out"></div><div id="dech-list"></div><div class="grow"></div>'
+   +'<button class="btn" type="button" id="dech-new2">Nouvelle décharge</button>';
+  var s2=document.createElement('section');s2.className='screen';s2.id='s-dechadd';
+  var p='';for(var i=0;i<DECH_P.length;i++)p+='<p style="margin:0 0 8px">'+esc(DECH_P[i])+'</p>';
+  s2.innerHTML='<div class="topbar"><button class="back" type="button" aria-label="Retour" id="dech-b2">'+BACK+'</button><div class="ttl">Nouvelle décharge</div><div style="width:34px"></div></div>'
+   +'<p class="sub" style="margin:2px 0 14px">Remplis les cases, fais lire le texte au client, puis fais-le signer.</p>'
+   +'<div class="field"><label class="lab" for="dech-jeton">Jeton</label><input type="text" id="dech-jeton" maxlength="30" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="characters" placeholder="ex. 23841383" style="direction:ltr"></div>'
+   +'<div class="field"><label class="lab" for="dech-nom">Nom et prénom du client</label><input type="text" id="dech-nom" maxlength="80" autocomplete="off" autocapitalize="words" placeholder="Je soussigné…"></div>'
+   +'<div class="field"><label class="lab" for="dech-adr">Adresse du logement</label><textarea id="dech-adr" maxlength="200" rows="2" placeholder="ex. 12 rue des Lilas, bât. B, 84000 Avignon" style="'+DECH_TA+'"></textarea></div>'
+   +'<div class="field"><label class="lab" for="dech-prise">N° de la prise (PTO)</label><input type="text" id="dech-prise" maxlength="40" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="characters" placeholder="ex. FI-1234-5678" style="direction:ltr"></div>'
+   +'<div class="field"><label class="lab" for="dech-empl">Endroit demandé par le client</label><textarea id="dech-empl" maxlength="300" rows="3" placeholder="ex. Chambre du fond, mur de gauche, à côté du bureau" style="'+DECH_TA+'"></textarea></div>'
+   +'<div class="field"><label class="lab" for="dech-lieu">Fait à (commune)</label><input type="text" id="dech-lieu" maxlength="60" autocomplete="off" autocapitalize="words" placeholder="ex. Avignon"></div>'
+   +'<div class="field"><label style="'+DECH_CK+'"><input type="checkbox" id="dech-elec" style="width:24px;height:24px;flex:none;margin:0;accent-color:var(--accent)"><span>J’ai vérifié : il y a une <b>prise électrique à 1,50 m maximum</b> de cet endroit.</span></label></div>'
+   +'<div class="lab" style="margin-top:22px">À faire lire au client</div>'
+   +'<div class="card" style="font-size:14px;line-height:1.5;color:var(--tx2)"><div style="font-weight:700;color:var(--tx);margin-bottom:8px">FORMULAIRE DE DÉCHARGE</div>'+p
+   +'<p style="margin:0">En signant, le client demande la pose de la prise à l’endroit décrit ci-dessus et reconnaît avoir pris connaissance des conséquences de cette décision.</p></div>'
+   +'<div class="field"><label style="'+DECH_CK+'"><input type="checkbox" id="dech-lu" style="width:24px;height:24px;flex:none;margin:0;accent-color:var(--accent)"><span><b>Lu et approuvé</b> — à cocher par le client</span></label></div>'
+   +'<div class="field"><div style="display:flex;justify-content:space-between;align-items:center"><span class="lab" style="margin:0">Signature du client</span>'
+   +'<button type="button" id="dech-eff" style="background:none;border:none;color:var(--accent-l);font-weight:600;font-size:14px;padding:8px 0;cursor:pointer">Effacer</button></div>'
+   +'<div style="position:relative;margin-top:6px"><canvas id="dech-sig" width="900" height="300" aria-label="Zone de signature du client : signe avec le doigt" role="img" style="display:block;width:100%;aspect-ratio:3/1;background:#fff;border-radius:var(--r-m);border:1px solid var(--border-s);touch-action:none;cursor:crosshair"></canvas>'
+   +'<div id="dech-sigph" aria-hidden="true" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9aa0a6;font-size:15px;pointer-events:none">Signe ici avec le doigt</div></div></div>'
+   +'<div class="err" id="err-dechadd" role="alert"></div>'
+   +'<button class="btn" type="button" id="dech-save">Enregistrer la décharge</button><div style="height:24px"></div>';
+  var tabs=document.getElementById('tabs');
+  if(tabs){document.body.insertBefore(s1,tabs);document.body.insertBefore(s2,tabs);}else{document.body.appendChild(s1);document.body.appendChild(s2);}
+  try{NAVMAP['s-dech']='s-home';NAVMAP['s-dechadd']='s-home';}catch(_e){}
+  document.getElementById('dech-b1').addEventListener('click',function(){goHome();});
+  document.getElementById('dech-b2').addEventListener('click',function(){dechListe('');});
+  document.getElementById('dech-new2').addEventListener('click',dechNouvelle);
+  document.getElementById('dech-save').addEventListener('click',dechEnregistrer);
+  document.getElementById('dech-eff').addEventListener('click',dechEffacer);
+  document.getElementById('dech-list').addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-dech]'):null;if(b)dechOuvrir(parseInt(b.getAttribute('data-dech'),10));});
+  dechPad(document.getElementById('dech-sig'));}
+function dechPad(cv){var ctx=cv.getContext('2d'),on=false,last=null;DECH_SIG={cv:cv,pts:0,x0:1e9,x1:-1e9};
+  function pos(e){var r=cv.getBoundingClientRect();return {x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height};}
+  function trait(p){ctx.lineWidth=5;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#111';ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+    last=p;DECH_SIG.pts++;if(p.x<DECH_SIG.x0)DECH_SIG.x0=p.x;if(p.x>DECH_SIG.x1)DECH_SIG.x1=p.x;}
+  cv.addEventListener('pointerdown',function(e){e.preventDefault();on=true;last=pos(e);try{cv.setPointerCapture(e.pointerId);}catch(_e){}
+    var ph=document.getElementById('dech-sigph');if(ph)ph.style.display='none';trait({x:last.x+0.1,y:last.y+0.1});});
+  cv.addEventListener('pointermove',function(e){if(!on)return;e.preventDefault();var ev=e.getCoalescedEvents?e.getCoalescedEvents():[e];for(var i=0;i<ev.length;i++)trait(pos(ev[i]));});
+  function fin(){on=false;last=null;}
+  cv.addEventListener('pointerup',fin);cv.addEventListener('pointercancel',fin);cv.addEventListener('pointerleave',fin);}
+function dechEffacer(){if(!DECH_SIG)return;var cv=DECH_SIG.cv;cv.getContext('2d').clearRect(0,0,cv.width,cv.height);DECH_SIG.pts=0;DECH_SIG.x0=1e9;DECH_SIG.x1=-1e9;
+  var ph=document.getElementById('dech-sigph');if(ph)ph.style.display='flex';}
+function dechNouvelle(){if(!document.getElementById('s-dech'))dechEcrans();
+  var ids=['dech-jeton','dech-nom','dech-adr','dech-prise','dech-empl','dech-lieu'];for(var i=0;i<ids.length;i++)document.getElementById(ids[i]).value='';
+  document.getElementById('dech-elec').checked=false;document.getElementById('dech-lu').checked=false;dechEffacer();
+  var b=document.getElementById('dech-save');b.disabled=false;b.textContent='Enregistrer la décharge';err('err-dechadd','');DECH_EC=false;show('s-dechadd');}
+function dechSignatureJpeg(){var cv=DECH_SIG.cv,o=document.createElement('canvas');o.width=cv.width;o.height=cv.height;
+  var x=o.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,o.width,o.height);x.drawImage(cv,0,0);
+  var q=[0.85,0.7,0.5];for(var i=0;i<q.length;i++){var u=o.toDataURL('image/jpeg',q[i]);if(u.length<290000)return u;}return '';}
+function dechEnregistrer(){if(DECH_EC)return;err('err-dechadd','');
+  function v(id){return String(document.getElementById(id).value||'').replace(/\s+/g,' ').trim();}
+  function stop(m,id){err('err-dechadd',m);if(id){var f=document.getElementById(id);if(f&&f.focus)f.focus();}}
+  var d={jeton:v('dech-jeton').replace(/\s/g,'').toUpperCase(),client_nom:v('dech-nom'),adresse:v('dech-adr'),num_prise:v('dech-prise').toUpperCase(),
+    emplacement:v('dech-empl'),lieu:v('dech-lieu'),prise_elec_ok:document.getElementById('dech-elec').checked,lu_approuve:document.getElementById('dech-lu').checked};
+  if(!/^[A-Za-z0-9._-]{1,30}$/.test(d.jeton))return stop('Indique le numéro de jeton.','dech-jeton');
+  if(d.client_nom.length<2)return stop('Indique le nom et le prénom du client.','dech-nom');
+  if(d.adresse.length<8)return stop('Indique l’adresse complète du logement.','dech-adr');
+  if(!/^[A-Z0-9][A-Z0-9 ._\/-]{2,39}$/.test(d.num_prise))return stop('Indique le numéro de la prise (ex. FI-1234-5678).','dech-prise');
+  if(d.emplacement.length<3)return stop('Décris l’endroit demandé par le client.','dech-empl');
+  if(d.lieu.length<2)return stop('Indique la commune (« Fait à »).','dech-lieu');
+  var bad=/[<>\\{}]/;if(bad.test(d.client_nom+d.adresse+d.emplacement+d.lieu))return stop('Retire les caractères < > { } \\ des champs.');
+  if(!d.prise_elec_ok)return stop('Coche la case : une prise électrique doit être à 1,50 m maximum. Sinon, la décharge n’est pas possible.','dech-elec');
+  if(!d.lu_approuve)return stop('Le client doit cocher « Lu et approuvé ».','dech-lu');
+  if(!DECH_SIG||DECH_SIG.pts<15||(DECH_SIG.x1-DECH_SIG.x0)<60)return stop('Le client doit signer dans le cadre blanc.');
+  d.signature=dechSignatureJpeg();if(!d.signature)return stop('Signature trop lourde : efface et fais signer à nouveau.');
+  if(!navigator.onLine)return stop('Pas de réseau — la décharge sera à enregistrer une fois connecté (ne ferme pas cet écran).');
+  DECH_EC=true;var b=document.getElementById('dech-save');b.disabled=true;b.textContent='Enregistrement…';
+  rpc('solo_decharge_creer',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_d:d}).then(function(r){DECH_EC=false;
+    if(r&&r.ok){dechListe('Décharge enregistrée ✓ — touche-la pour ouvrir ou partager le PDF.',r.id);return;}
+    b.disabled=false;b.textContent='Enregistrer la décharge';stop((r&&r.message)||RESEAU_MSG);
+  },function(e){DECH_EC=false;b.disabled=false;b.textContent='Enregistrer la décharge';stop((e&&e.message)||RESEAU_MSG);});}
+function dechListe(info,focusId){if(!document.getElementById('s-dech'))dechEcrans();show('s-dech');err('err-dech','');dechMsg('dech-info',info||'');dechSortie(null);
+  var el=document.getElementById('dech-list');el.innerHTML='<div class="note center" style="padding:22px 0">Chargement…</div>';
+  rpc('solo_decharge_liste',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){
+    var L=(r&&r.decharges)||[];dechMsg('dech-sub',r&&r.admin?'Toutes les décharges de l’équipe. Touche une décharge pour son PDF.':'Tes décharges signées. Touche une décharge pour son PDF.');
+    if(!L.length){el.innerHTML='<div class="note center" style="padding:22px 0">Aucune décharge pour l’instant.</div>';return;}
+    var h='';for(var i=0;i<L.length;i++){var x=L[i];
+      h+='<button type="button" class="card" data-dech="'+esc(x.id)+'" style="display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;color:var(--tx);cursor:pointer'+(x.id===focusId?';border-color:var(--accent)':'')+'">'
+        +'<div style="display:flex;justify-content:space-between;gap:10px"><span style="font-weight:700">'+esc(x.client||'')+'</span><span class="note">'+esc(dechDateFr(x.date))+'</span></div>'
+        +'<div class="note" style="margin-top:2px">Jeton '+esc(x.jeton||'')+(r.admin&&x.tech?' · '+esc(x.tech):'')+'</div></button>';}
+    el.innerHTML=h;
+  },function(e){el.innerHTML='';err('err-dech',(e&&e.message)||RESEAU_MSG);});}
+function dechSortie(html){var o=document.getElementById('dech-out');if(!o)return;
+  if(DECH_OUT&&DECH_OUT.url){try{URL.revokeObjectURL(DECH_OUT.url);}catch(_e){}DECH_OUT=null;}
+  o.innerHTML=html||'';}
+function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class="note center" style="padding:10px 0">Préparation du PDF…</div>');
+  rpc('solo_decharge_get',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id}).then(function(d){
+    return dechRemplir(d).then(function(bytes){var nom=dechNomFichier(d),blob=new Blob([bytes],{type:'application/pdf'}),url=URL.createObjectURL(blob);
+    dechSortie('');DECH_OUT={url:url,blob:blob,nom:nom};
+    var peutPartager=false;try{peutPartager=!!(navigator.canShare&&navigator.canShare({files:[new File([blob],nom,{type:'application/pdf'})]}));}catch(_e){}
+    document.getElementById('dech-out').innerHTML='<div class="card" style="padding:14px 16px;border-color:var(--accent)">'
+      +'<div style="font-weight:700">'+esc(d.client_nom||'')+'</div><div class="note" style="margin:2px 0 10px">Jeton '+esc(d.jeton)+' · '+esc(dechDateFr(d.date))+'</div>'
+      +'<div style="display:flex;gap:8px"><a class="btn" id="dech-dl" href="'+url+'" download="'+esc(nom)+'" target="_blank" rel="noopener" style="margin-top:0;flex:1;text-decoration:none">Ouvrir le PDF</a>'
+      +(peutPartager?'<button class="btn ghost" type="button" id="dech-share" style="margin-top:0;flex:1">Partager</button>':'')+'</div></div>';
+    var sh=document.getElementById('dech-share');
+    if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
+    });
+  }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
+var APPV='58';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
