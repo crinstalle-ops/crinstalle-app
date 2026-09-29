@@ -1629,9 +1629,9 @@ function cjInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe)return;if(document.getE
   var res=document.getElementById('cj-res');
   res.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cjcp]'):null;if(!b)return;cjCp(parseInt(b.getAttribute('data-cjcp'),10));});
   res.addEventListener('keydown',function(ev){var t=ev.target;if(ev.key!=='Enter'||!t||!t.id||t.id.indexOf('cj-cp-')!==0)return;ev.preventDefault();cjCp(parseInt(t.id.slice(6),10));});}
-/* === v56 : Décharge PTO (formulaire Free « pose PTO à un emplacement non recommandé ») ===
+/* === v56/v57 : Décharge PTO (formulaire Free « pose PTO à un emplacement non recommandé ») ===
    Équipe seulement. Le technicien remplit, le client coche « Lu et approuvé » et signe du doigt.
-   Le PDF est fabriqué ICI, dans le téléphone (aucune clé dans une URL, aucun serveur de rendu). */
+   Le PDF = le formulaire Free ORIGINAL rempli dans le téléphone (aucune clé dans une URL, aucun serveur de rendu). */
 var DECH_EC=false,DECH_SIG=null,DECH_OUT=null;
 var DECH_P=['Pour une utilisation optimale de nos services, nous conseillons à nos clients l’installation de la prise optique à proximité du téléviseur principal.',
  'Toutefois, le Freenaute peut, dans l’emprise de son logement privé, demander la pose de la prise optique à un endroit différent contre signature de cette décharge (à condition que cet emplacement soit à une distance maximum d’1m50 d’une prise électrique déjà existante).',
@@ -1640,84 +1640,68 @@ var DECHSVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke=
 var DECH_TA='width:100%;min-height:84px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:12px 14px;color:var(--tx);font-size:16px;line-height:1.4;resize:vertical;box-sizing:border-box';
 var DECH_CK='display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--border-s);border-radius:var(--r-m);background:var(--surface);cursor:pointer;line-height:1.4;font-size:15px';
 
-/* ---------- PDF (Helvetica / WinAnsi, sans dépendance) ---------- */
-var DECH_W=[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
-function dechPdfTxt(s){return String(s==null?'':s).replace(/€/g,'\x80').replace(/’/g,'\x92').replace(/‘/g,'\x91').replace(/“/g,'\x93').replace(/”/g,'\x94')
-  .replace(/—/g,'\x97').replace(/–/g,'\x96').replace(/…/g,'\x85').replace(/œ/g,'\x9c').replace(/Œ/g,'\x8c').replace(/[\u00a0\u202f]/g,' ').replace(/[^\x00-\xff]/g,'?');}
-function dechPdfEsc(s){return dechPdfTxt(s).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)').replace(/[\r\n\t]/g,' ');}
-function dechLarg(s,size,gras){var w=0,t=dechPdfTxt(s);for(var i=0;i<t.length;i++){var c=t.charCodeAt(i),v;
-    if(c>=32&&c<=126)v=DECH_W[c-32];else if(c===0x97)v=1000;else if(c===0x92||c===0x91)v=222;else if(c===0xab||c===0xbb)v=556;else if(c===0x80)v=556;
-    else{var b=String.fromCharCode(c).normalize('NFD').charCodeAt(0);v=(b>=32&&b<=126)?DECH_W[b-32]:556;}
-    w+=v;}
-  return w*size/1000*(gras?1.06:1);}
-function dechCouper(s,size,gras,w1,wN){var mots=String(s||'').split(/\s+/).filter(Boolean),lignes=[],cur='',lim=w1;
-  for(var i=0;i<mots.length;i++){var m=mots[i],t=cur?cur+' '+m:m;
-    if(dechLarg(t,size,gras)<=lim){cur=t;continue;}
-    if(cur){lignes.push(cur);lim=wN;cur='';}
-    while(dechLarg(m,size,gras)>lim){var k=m.length;while(k>1&&dechLarg(m.slice(0,k),size,gras)>lim)k--;lignes.push(m.slice(0,k));m=m.slice(k);lim=wN;}
-    cur=m;}
-  if(cur)lignes.push(cur);return lignes.length?lignes:[''];}
-function dechJpegInfo(b){var i=2;while(i+9<b.length){if(b[i]!==0xFF){i++;continue;}var m=b[i+1];
-    if(m===0xD8||m===0x01||(m>=0xD0&&m<=0xD7)){i+=2;continue;}
-    var len=(b[i+2]<<8)|b[i+3];
-    if((m>=0xC0&&m<=0xC3)||(m>=0xC5&&m<=0xC7)||(m>=0xC9&&m<=0xCB)||(m>=0xCD&&m<=0xCF))return {h:(b[i+5]<<8)|b[i+6],w:(b[i+7]<<8)|b[i+8],n:b[i+9]};
-    i+=2+len;}
-  return null;}
+/* ---------- PDF : on remplit le FORMULAIRE FREE ORIGINAL (aucune modification du document) ----------
+   Modèle = fichier B.10 fourni par Zo, servi tel quel et contrôlé par empreinte SHA-256.
+   Remplissage avec pdf-lib (MIT, hébergé sur crinstalle.app, intégrité SRI). */
+var DECH_LIB_URL='https://crinstalle.app/pdf-lib.min.js',DECH_LIB_SRI='sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI';
+var DECH_MODELE_URL='https://crinstalle.app/decharge-pto-modele.pdf',DECH_MODELE_SHA='0033aa816a9cf45416084b5bd94de95a4373bde6fd7ec4adccd40967b7a31806';
+var DECH_LIBP=null;
+/* Emplacements des pointillés du modèle (points PDF, origine en bas à gauche) — relevés sur le fichier original */
+var DECH_ZONES={
+  nom:[{x:147,y:447.3,w:360}],
+  adresse:[{x:120,y:382.6,w:395},{x:72,y:361,w:444}],
+  prise:[{x:181,y:317.9,w:332}],
+  emplacement:[{x:72,y:253,w:444},{x:72,y:231.4,w:444}],
+  lieu:[{x:83,y:145.2,w:76}]};
+var DECH_WINANSI='€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
+function dechNettoie(s){s=String(s==null?'':s).normalize('NFC').replace(/[  \t\r\n]/g,' ');var o='';
+  for(var i=0;i<s.length;i++){var ch=s[i],c=s.charCodeAt(i);o+=((c>=32&&c<=126)||(c>=160&&c<=255)||DECH_WINANSI.indexOf(ch)>=0)?ch:(c>=0xD800&&c<=0xDBFF?(i++,'?'):'?');}
+  return o.replace(/\s+/g,' ').trim();}
 function dechB64(s){var bin=atob(s),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
 function dechDateFr(s){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||''));return m?(m[3]+'/'+m[2]+'/'+m[1]):String(s||'');}
-function dechPdfBytes(d){
-  var W=595.28,H=841.89,ML=62,MR=533.28,LW=MR-ML,BODY=11,LEAD=15.5,y=H-78,c='';
-  var DARK='0.11 0.11 0.12',GREY='0.43 0.43 0.45';
-  function T(f,size,col,x,yy,t){c+=col+' rg BT /'+f+' '+size+' Tf '+x.toFixed(2)+' '+yy.toFixed(2)+' Td ('+dechPdfEsc(t)+') Tj ET\n';}
-  function para(t,size,col,gras,lead){var L=dechCouper(t,size,gras,LW,LW);for(var i=0;i<L.length;i++){T(gras?'F2':'F1',size,col,ML,y,L[i]);y-=lead;}}
-  // libellé normal puis valeur en gras qui continue sur la même ligne et déborde sur les suivantes
-  function champ(lib,val,apres){var wl=dechLarg(lib,BODY,false);T('F1',BODY,DARK,ML,y,lib);
-    var L=dechCouper(val,BODY,true,LW-wl,LW);for(var i=0;i<L.length;i++){T('F2',BODY,DARK,i===0?ML+wl:ML,y,L[i]);if(i<L.length-1)y-=LEAD;}
-    if(apres){var wx=(L.length===1?wl+dechLarg(L[0],BODY,true):dechLarg(L[L.length-1],BODY,true));
-      if(wx+dechLarg(apres,BODY,false)<=LW)T('F1',BODY,DARK,ML+wx,y,apres);else{y-=LEAD;T('F1',BODY,DARK,ML,y,apres);}}
-    y-=LEAD;}
-  var tt='FORMULAIRE DE DECHARGE',tw=dechLarg(tt,15,true);T('F2',15,DARK,(W-tw)/2,y,tt);y-=40;
-  for(var i=0;i<DECH_P.length;i++){para(DECH_P[i],BODY,DARK,false,LEAD);y-=10;}
-  y-=8;
-  champ('Je soussigné, ',d.client_nom);y-=4;
-  champ('résidant dans le logement situé à l’adresse ',d.adresse);y-=4;
-  champ('équipé de la prise N° ',d.num_prise);y-=4;
-  para('demande à faire poser la prise optique à l’endroit décrit ci-dessous :',BODY,DARK,false,LEAD);
-  para(d.emplacement,BODY,DARK,true,LEAD);y-=4;
-  para('et reconnait avoir pris connaissance des conséquences de cette décision.',BODY,DARK,false,LEAD);y-=14;
-  champ('A ',d.lieu,', le '+dechDateFr(d.date));y-=14;
-  para('Signature précédée de la mention « lu et approuvé » :',BODY,DARK,false,LEAD);y-=4;
-  T('F2',BODY,DARK,ML,y,'Lu et approuvé');y-=10;
-  var img=dechB64(String(d.signature||'').replace(/^data:image\/jpeg;base64,/,'')),inf=dechJpegInfo(img);
-  if(!inf)throw new Error('Signature illisible');
-  var iw=240,ih=iw*inf.h/inf.w;if(ih>100){ih=100;iw=ih*inf.w/inf.h;}
-  c+='0.80 0.80 0.82 RG 0.6 w '+(ML-4).toFixed(2)+' '+(y-ih-4).toFixed(2)+' '+(iw+8).toFixed(2)+' '+(ih+8).toFixed(2)+' re S\n';
-  c+='q '+iw.toFixed(2)+' 0 0 '+ih.toFixed(2)+' '+ML.toFixed(2)+' '+(y-ih).toFixed(2)+' cm /Im1 Do Q\n';
-  // pied de page : traçabilité
-  var pied='Décharge établie et signée sur l’application Crinstalle IA le '+(d.signe_le||dechDateFr(d.date))+' — Jeton '+d.jeton
-    +' — Technicien : '+(d.tech||'—')+'. Le technicien a vérifié la présence d’une prise électrique existante à 1,50 m maximum de l’emplacement demandé. Réf. D-'+d.id+'.';
-  var LP=dechCouper(pied,7.5,false,LW,LW),yp=40+(LP.length-1)*10;
-  c+='0.86 0.86 0.87 RG 0.6 w '+ML.toFixed(2)+' '+(yp+14).toFixed(2)+' m '+MR.toFixed(2)+' '+(yp+14).toFixed(2)+' l S\n';
-  for(var j=0;j<LP.length;j++){T('F1',7.5,GREY,ML,yp,LP[j]);yp-=10;}
-  // assemblage binaire (octets exacts pour la table xref)
-  var parts=[],off=0,xref=[];
-  function put(x){var u;if(typeof x==='string'){u=new Uint8Array(x.length);for(var k=0;k<x.length;k++)u[k]=x.charCodeAt(k)&255;}else u=x;parts.push(u);off+=u.length;}
-  function obj(n,body){xref[n]=off;put(n+' 0 obj\n');if(Array.isArray(body)){for(var k=0;k<body.length;k++)put(body[k]);}else put(body);put('\nendobj\n');}
-  put('%PDF-1.4\n%\xe2\xe3\xcf\xd3\n');
-  obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
-  obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
-  obj(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /XObject << /Im1 7 0 R >> >> /Contents 4 0 R >>');
-  var cs=dechPdfTxt(c);obj(4,['<< /Length '+cs.length+' >>\nstream\n',cs,'\nendstream']);
-  obj(5,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
-  obj(6,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
-  var csp=inf.n===1?'/DeviceGray':(inf.n===4?'/DeviceCMYK':'/DeviceRGB');
-  obj(7,['<< /Type /XObject /Subtype /Image /Width '+inf.w+' /Height '+inf.h+' /ColorSpace '+csp+' /BitsPerComponent 8 /Filter /DCTDecode /Length '+img.length+' >>\nstream\n',img,'\nendstream']);
-  obj(8,'<< /Title ('+dechPdfEsc('Décharge PTO — jeton '+d.jeton)+') /Producer (Crinstalle IA) >>');
-  var xo=off,s='xref\n0 9\n0000000000 65535 f \n';
-  for(var n=1;n<=8;n++)s+=('000000000'+xref[n]).slice(-10)+' 00000 n \n';
-  put(s+'trailer\n<< /Size 9 /Root 1 0 R /Info 8 0 R >>\nstartxref\n'+xo+'\n%%EOF\n');
-  var out=new Uint8Array(off),p=0;for(var q=0;q<parts.length;q++){out.set(parts[q],p);p+=parts[q].length;}
-  return out;}
+function dechHex(buf){return Array.prototype.map.call(new Uint8Array(buf),function(b){return ('0'+b.toString(16)).slice(-2);}).join('');}
+function dechLib(){if(window.PDFLib)return Promise.resolve(window.PDFLib);if(DECH_LIBP)return DECH_LIBP;
+  DECH_LIBP=new Promise(function(ok,ko){var s=document.createElement('script');s.src=DECH_LIB_URL;s.integrity=DECH_LIB_SRI;s.crossOrigin='anonymous';
+    s.onload=function(){if(window.PDFLib)ok(window.PDFLib);else{DECH_LIBP=null;ko(new Error('Générateur PDF indisponible.'));}};
+    s.onerror=function(){DECH_LIBP=null;ko(new Error('Impossible de charger le générateur PDF — vérifie le réseau et réessaie.'));};
+    document.head.appendChild(s);});
+  return DECH_LIBP;}
+function dechModele(){return fetch(DECH_MODELE_URL,{cache:'no-cache'}).then(function(r){if(!r.ok)throw new Error('Modèle de décharge introuvable.');return r.arrayBuffer();})
+  .then(function(buf){return crypto.subtle.digest('SHA-256',buf).then(function(h){if(dechHex(h)!==DECH_MODELE_SHA)throw new Error('Le modèle de décharge ne correspond pas à l’original — PDF non généré.');return buf;});});}
+/* Répartit le texte dans les zones (lignes pointillées), en réduisant la taille si besoin (11 → 6 pt). */
+function dechRepartir(val,zones,largeur){for(var s=11;s>=6;s-=0.5){var mots=val.split(' ').filter(Boolean),out=[],z=0,cur='',ok=true;
+    for(var i=0;i<mots.length&&ok;i++){var m=mots[i],t=cur?cur+' '+m:m;
+      if(largeur(t,s)<=zones[z].w){cur=t;continue;}
+      if(cur){out.push(cur);cur='';z++;if(z>=zones.length){ok=false;break;}}
+      while(largeur(m,s)>zones[z].w){var k=m.length;while(k>1&&largeur(m.slice(0,k),s)>zones[z].w)k--;out.push(m.slice(0,k));m=m.slice(k);z++;if(z>=zones.length){ok=false;break;}}
+      cur=m;}
+    if(ok){if(cur)out.push(cur);return {s:s,lignes:out};}}
+  // dernier recours (ne devrait pas arriver avec les longueurs autorisées) : 6 pt tronqué
+  var L=[],reste=val;for(var j=0;j<zones.length;j++){var k2=reste.length;while(k2>0&&largeur(reste.slice(0,k2),6)>zones[j].w)k2--;L.push(reste.slice(0,k2));reste=reste.slice(k2).trim();}
+  if(reste&&L.length){var d=L[L.length-1];L[L.length-1]=d.slice(0,Math.max(0,d.length-1))+'…';}
+  return {s:6,lignes:L};}
+function dechRemplir(d){return Promise.all([dechLib(),dechModele()]).then(function(r){var L=r[0];
+  return L.PDFDocument.load(r[1]).then(function(doc){
+    var sig=dechB64(String(d.signature||'').replace(/^data:image\/jpeg;base64,/,''));
+    return Promise.all([doc.embedFont(L.StandardFonts.Helvetica),doc.embedJpg(sig)]).then(function(x){
+      var f=x[0],img=x[1],pg=doc.getPages()[0],encre=L.rgb(0.05,0.15,0.55);
+      function larg(t,s){return f.widthOfTextAtSize(t,s);}
+      function ecrire(t,xx,yy,s){if(t)pg.drawText(t,{x:xx,y:yy,size:s,font:f,color:encre});}
+      function champ(val,zones){var v=dechNettoie(val);if(!v)return;var R=dechRepartir(v,zones,larg);for(var i=0;i<R.lignes.length;i++)ecrire(R.lignes[i],zones[i].x,zones[i].y,R.s);}
+      champ(d.client_nom,DECH_ZONES.nom);champ(d.adresse,DECH_ZONES.adresse);champ(d.num_prise,DECH_ZONES.prise);
+      champ(d.emplacement,DECH_ZONES.emplacement);champ(d.lieu,DECH_ZONES.lieu);
+      // date : chiffres centrés sur __ / __ / ____
+      var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d.date||''));
+      if(m){[[m[3],187.6],[m[2],203.0],[m[1],227.6]].forEach(function(p){ecrire(p[0],p[1]-larg(p[0],11)/2,145.2,11);});}
+      // mention manuscrite puis signature du client, sous « Signature précédée de la mention… : »
+      ecrire('Lu et approuvé',352,102,11);
+      var bw=220,bh=74,sc=Math.min(bw/img.width,bh/img.height),iw=img.width*sc,ih=img.height*sc;
+      pg.drawImage(img,{x:72,y:92-ih,width:iw,height:ih});
+      // traçabilité dans les propriétés du fichier uniquement (invisible, le document reste identique)
+      try{doc.setTitle('Décharge PTO — jeton '+dechNettoie(d.jeton));
+        doc.setSubject('Réf. D-'+d.id+' — signée le '+(d.signe_le||dechDateFr(d.date))+' via Crinstalle IA — technicien : '+dechNettoie(d.tech||'—'));
+        doc.setProducer('Crinstalle IA');}catch(_e){}
+      return doc.save();});});});}
 function dechNomFichier(d){return 'decharge-PTO-'+String(d.jeton||'').replace(/[^A-Za-z0-9._-]/g,'')+'-'+String(d.date||'').slice(0,10)+'.pdf';}
 
 /* ---------- écrans ---------- */
@@ -1828,7 +1812,7 @@ function dechSortie(html){var o=document.getElementById('dech-out');if(!o)return
   o.innerHTML=html||'';}
 function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class="note center" style="padding:10px 0">Préparation du PDF…</div>');
   rpc('solo_decharge_get',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id}).then(function(d){
-    var bytes=dechPdfBytes(d),nom=dechNomFichier(d),blob=new Blob([bytes],{type:'application/pdf'}),url=URL.createObjectURL(blob);
+    return dechRemplir(d).then(function(bytes){var nom=dechNomFichier(d),blob=new Blob([bytes],{type:'application/pdf'}),url=URL.createObjectURL(blob);
     dechSortie('');DECH_OUT={url:url,blob:blob,nom:nom};
     var peutPartager=false;try{peutPartager=!!(navigator.canShare&&navigator.canShare({files:[new File([blob],nom,{type:'application/pdf'})]}));}catch(_e){}
     document.getElementById('dech-out').innerHTML='<div class="card" style="padding:14px 16px;border-color:var(--accent)">'
@@ -1837,8 +1821,9 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
       +(peutPartager?'<button class="btn ghost" type="button" id="dech-share" style="margin-top:0;flex:1">Partager</button>':'')+'</div></div>';
     var sh=document.getElementById('dech-share');
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
-  },function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='56';
+    });
+  }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
+var APPV='57';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
