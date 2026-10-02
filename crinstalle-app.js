@@ -268,6 +268,9 @@ DICOS.ar={dir:'rtl',exact:{
  "Ajouter la dépense":"إضافة المصروف",
  "Ce mois-ci":"هذا الشهر",
  "Aucune dépense ce mois-ci.":"لا مصاريف هذا الشهر.",
+ "Aucune dépense pour ce mois.":"لا مصاريف لهذا الشهر.",
+ "Total du mois":"مجموع الشهر",
+ "Impossible de charger ce mois — vérifie le réseau.":"تعذّر تحميل هذا الشهر — تحقّق من الشبكة.",
  "Choisis la date de la dépense.":"اختر تاريخ المصروف.",
  "Indique le montant (ex. 45,90).":"أدخل المبلغ (مثال 45,90).",
  "Traité":"تم",
@@ -748,7 +751,7 @@ function factNavInstall(){
      +'<div class="field"><label class="lab" for="dp-com">Commentaire (facultatif)</label><input type="text" id="dp-com" maxlength="120"></div>'
      +'<div class="err" id="err-dep" role="alert"></div>'
      +'<button class="btn" id="btn-dep" onclick="depAjouter()">Ajouter la dépense</button></div>'
-     +'<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="lab">Ce mois-ci</div><div id="dp-total" style="font-weight:800;font-size:18px">—</div></div><div id="dp-liste" style="display:flex;flex-direction:column;margin-top:6px"></div></div>'
+     +'<div class="card" style="margin-top:12px"><div class="field" style="margin-bottom:10px"><div class="lab" id="lbl-dpmois">Mois</div><select id="dp-mois" aria-labelledby="lbl-dpmois" onchange="depCharger()" style="width:100%;height:52px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:0 14px;color:var(--tx);font-size:16px;font-weight:600"></select></div><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="lab">Total du mois</div><div id="dp-total" style="font-weight:800;font-size:18px">—</div></div><div id="dp-liste" style="display:flex;flex-direction:column;margin-top:6px"></div></div>'
      +'</div>'
      +'<div id="cp-fact" style="display:none">'
      +'<p class="sub" id="fa-sub" style="margin:2px 0 14px">'+(ACCT.me.equipe?'Génère ta facture du mois pour Crinstalle.':'Génère ta facture du mois pour ton client.')+'</p>'
@@ -1085,11 +1088,22 @@ function depBinRendu(){var s=document.getElementById('dp-bin');if(!s)return;
   var fill=function(){var bs=ACCT._bins||[];var h='<option value="">Seul (sans binôme)</option>',i;for(i=0;i<bs.length;i++)h+='<option value="'+esc(bs[i].tid)+'">'+esc(bs[i].prenom+(bs[i].nom?' '+bs[i].nom:''))+'</option>';s.innerHTML=h;depBinVis();};
   if(ACCT._bins)fill();
   else rpc('solo_binomes',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){ACCT._bins=(r&&r.binomes)||[];fill();},function(){});}
-function depMoisCur(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');}
-function depCharger(){if(!ACCT)return;rpc('solo_depenses',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:depMoisCur()}).then(function(r){depRendu(r);},function(){});}
+/* v61 : choix du mois (mois en cours + 11 précédents) — le serveur filtre déjà par mois */
+function depMoisAuj(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');}
+function depMoisInit(){var s=document.getElementById('dp-mois');if(!s)return;var auj=depMoisAuj();
+  if(s.options.length&&s.options[0].value===auj)return;   /* déjà prêt (reconstruit si le mois a changé, appli restée ouverte) */
+  var garde=s.value,n=new Date(),y=n.getFullYear(),mo=n.getMonth(),h='',i;var cap=function(m){return m.charAt(0).toUpperCase()+m.slice(1);};
+  for(i=0;i<12;i++){var v=y+'-'+String(mo+1).padStart(2,'0');
+    h+='<option value="'+v+'">'+cap(MOIS[mo])+(y!==n.getFullYear()?' '+y:'')+(i===0?' (en cours)':'')+'</option>';
+    mo--;if(mo<0){mo=11;y--;}}
+  s.innerHTML=h;s.value=auj;if(garde&&garde!==auj){s.value=garde;if(s.value!==garde)s.value=auj;}}
+function depMoisCur(){var s=document.getElementById('dp-mois');var v=s&&s.value;return (v&&/^\d{4}-\d{2}$/.test(v))?v:depMoisAuj();}
+var DEP_REQ=0;
+function depCharger(){if(!ACCT)return;depMoisInit();var mois=depMoisCur(),n=++DEP_REQ;
+  rpc('solo_depenses',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:mois}).then(function(r){if(n!==DEP_REQ)return;depRendu(r);},function(){if(n!==DEP_REQ)return;var t=document.getElementById('dp-total');if(t)t.textContent='—';var l=document.getElementById('dp-liste');if(l)l.innerHTML='<div class="note" style="padding:6px 0">Impossible de charger ce mois — vérifie le réseau.</div>';});}
 function depRendu(r){var t=document.getElementById('dp-total'),l=document.getElementById('dp-liste');if(!t||!l)return;
   var lg=(r&&r.lignes)||[];t.textContent=fmt(parseFloat((r&&r.total)||0)||0);
-  if(!lg.length){l.innerHTML='<div class="note" style="padding:6px 0">Aucune dépense ce mois-ci.</div>';return;}
+  if(!lg.length){l.innerHTML='<div class="note" style="padding:6px 0">Aucune dépense pour ce mois.</div>';return;}
   var h='',i;for(i=0;i<lg.length;i++){var x=lg[i];var dd=String(x.d||'').slice(8,10)+'/'+String(x.d||'').slice(5,7);
     var du=(x.du!==null&&x.du!==undefined)?(parseFloat(x.du)||0):null;
     var binTxt='';
@@ -1128,6 +1142,7 @@ function depAjouter(){if(!ACCT)return;err('err-dep');
   var b=document.getElementById('btn-dep');b.disabled=true;
   rpc('solo_depense_saisie',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_date:dt,p_categorie:dpCat,p_montant:mt,p_commentaire:com,p_binome:bin}).then(function(){
     b.disabled=false;document.getElementById('dp-mt').value='';document.getElementById('dp-com').value='';var s=document.getElementById('dp-bin');if(s)s.value='';
+    var sm=document.getElementById('dp-mois');if(sm){depMoisInit();var mv=dt.slice(0,7),av=sm.value;sm.value=mv;if(sm.value!==mv)sm.value=av;}   /* v61 : on affiche le mois de la dépense ajoutée */
     depCharger();
   },function(e){b.disabled=false;err('err-dep',(e&&e.message)||'Erreur');});}
 function depSupprimer(id){if(!ACCT)return;if(!window.confirm('Supprimer cette dépense ?'))return;
@@ -1853,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='60';
+var APPV='61';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
