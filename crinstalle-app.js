@@ -1618,7 +1618,7 @@ function cjCarte(c,i){c=c||{};var h='<div class="card" style="padding:12px 14px;
 function cjRendu(info){var r=document.getElementById('cj-res');if(!r)return;var h='';var cl=(CJ_RES&&Array.isArray(CJ_RES.clients))?CJ_RES.clients:[];
   for(var i=0;i<cl.length&&i<3;i++)h+=cjCarte(cl[i],i);r.innerHTML=h;cjMsg(info);}
 function cjChercher(){if(CJ_EC)return;var inp=document.getElementById('cj-q');var j=cjJeton(inp&&inp.value);
-  if(!/^[A-Z0-9]{4,20}$/.test(j)){CJ_RES=null;cjRendu('Tape le numéro de jeton complet (ex. 23841383).');return;}
+  if(!/^[A-Z0-9]{4,20}$/.test(j)){CJ_RES=null;cjRendu('Tape le numéro de jeton complet (ex. 23841383, ou V12345678 pour un PRO).');return;}
   if(!navigator.onLine){cjMsg('Pas de réseau — réessaie une fois connecté.');return;}
   CJ_EC=true;CJ_RES=null;cjRendu('Recherche…');
   cjAppel({action:'lecture',jeton:j}).then(function(r){CJ_EC=false;
@@ -1650,7 +1650,7 @@ function cjCp(i){if(CJ_EC||!CJ_RES)return;var c=CJ_RES.clients[i];if(!c||!c.cpRe
 function cjInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe)return;if(document.getElementById('hm-cj'))return;var pm=document.getElementById('hm-pm');if(!pm)return;
   var d=document.createElement('div');d.id='hm-cj';d.className='card';d.style.cssText='padding:14px 16px;margin-top:14px';
   d.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:10px">'+CJSVG+'<span>Client par jeton</span></div>'
-   +'<div class="srchfield">'+CJSVG+'<input type="search" id="cj-q" inputmode="numeric" placeholder="N° de jeton — ex. 23841383" aria-label="Numéro de jeton" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="24" enterkeyhint="search" style="padding-left:44px;direction:ltr"></div>'
+   +'<div class="srchfield">'+CJSVG+'<input type="search" id="cj-q" inputmode="text" autocapitalize="characters" placeholder="ex. V12345678" aria-label="Numéro de jeton (chiffres, ou lettre + chiffres pour un PRO)" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="24" enterkeyhint="search" style="padding-left:44px;direction:ltr"></div>'
    +'<button class="btn" type="button" id="cj-go" style="width:100%;margin-top:8px">Chercher le client</button>'
    +'<div class="note" id="cj-info" role="status" aria-live="polite" style="margin-top:8px"></div><div id="cj-res"></div>';
   pm.insertAdjacentElement('afterend',d);
@@ -1853,7 +1853,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='59';
+var APPV='60';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
