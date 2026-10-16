@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='68';
+var APPV='69';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -4574,7 +4574,7 @@ function v64DrBuild(){var d=document.getElementById('v64-dr');
   h+=row('pdf','Relevés mensuels','PDF de chaque mois','releves');
   if(c||tv)h+=row('euro','Compta',c?(tv?'Dépenses, factures, TVA':'Dépenses, factures'):'TVA','compta');
   h+=row('doc','Documents','Tes papiers et attestations','docs');
-  if(adm)h+=grp('Gestion')+row('brief','Recrutement','Tes offres et le vivier de techniciens','recrut',V64.rcNew>0?'<span class="v64-bdg" aria-label="'+V64.rcNew+' nouvelle(s)">'+V64.rcNew+'</span>':'');
+  if(adm)h+=grp('Gestion')+row('brief','Recrutement','Tes offres et le vivier de techniciens','recrut',V64.rcNew>0?'<span class="v64-bdg" aria-label="'+V64.rcNew+' nouvelle(s)">'+V64.rcNew+'</span>':'')+row('check','Comparateur Sogetrel','Envoyer le décompte et le comparer','cmpadm');
   if(solo&&typeof oppEstSolo==='function'&&oppEstSolo())h+=grp('Travail')+row('brief','Opportunités','Offres près de chez toi · profil pro','opp',V64.oppNew>0?'<span class="v64-bdg" aria-label="'+V64.oppNew+' nouvelle(s)">'+V64.oppNew+'</span>':'');
   h+=grp('Mon profil');
   if(solo)h+=row('user','Informations personnelles','Email, département','infos');
@@ -4603,6 +4603,7 @@ function v64DrClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[da
   if(k==='compta')return v64Go('s-fact',function(){if(typeof openFact==='function')openFact();else show('s-fact');});
   if(k==='docs')return v64Go('s-docs',function(){buildDocs();});
   if(k==='recrut')return v64Go('s-recrut',function(){rcOuvrir();});
+  if(k==='cmpadm')return v64Go('s-cmpadm',function(){cadOuvrir();});
   if(k==='opp')return v64Go('s-opp',function(){oppOuvrir();});
   if(k==='parrain')return v64Go('s-fact',function(){if(typeof openFact==='function')openFact();else show('s-fact');try{cpSeg('par');}catch(_e){}});
   if(k==='infos'||k==='grille'||k==='lien')return v64Go('s-ok',function(){v64Profil(k);});
@@ -4716,8 +4717,8 @@ function v64Home(){var hs=document.getElementById('s-home');if(!hs||!ACCT)return
   if(V64.hl){var rows=document.querySelectorAll('#hm-list .hrow .j');for(var i=0;i<rows.length&&i<3;i++){if(rows[i].textContent.toUpperCase()===String(V64.hl).toUpperCase()){var r=rows[i].closest('.hrow');r.classList.remove('v64-new');void r.offsetWidth;r.classList.add('v64-new');break;}}V64.hl=null;}
   /* lien direct #opp / #recrut (emails, Telegram) */
   if(!V64.lien){V64.lien=true;var hsh=location.hash||'';
-    if(hsh==='#opp'||hsh==='#recrut'||hsh==='#cmp'||hsh==='#releve'){try{history.replaceState(null,'',location.pathname);}catch(_e){}
-      setTimeout(function(){if(hsh==='#releve'&&cmpOk())rsOuvrir();else if(hsh==='#cmp'&&cmpOk())cmpOuvrir();else if(hsh==='#opp'&&oppEstSolo())oppOuvrir();else if(hsh==='#recrut'&&oppEstAdmin())rcOuvrir();},60);}}}
+    if(hsh==='#opp'||hsh==='#recrut'||hsh==='#cmp'||hsh==='#releve'||hsh==='#cmpadm'){try{history.replaceState(null,'',location.pathname);}catch(_e){}
+      setTimeout(function(){if(hsh==='#releve'&&cmpOk())rsOuvrir();else if(hsh==='#cmp'&&cmpOk())cmpOuvrir();else if(hsh==='#opp'&&oppEstSolo())oppOuvrir();else if(hsh==='#recrut'&&oppEstAdmin())rcOuvrir();else if(hsh==='#cmpadm'&&oppEstAdmin())cadOuvrir();},60);}}}
 
 /* rappel sur l'accueil quand il y a du nouveau (offres pour un solo, candidatures pour l'admin) */
 function v64Alerte(){var hs=document.getElementById('s-home');if(!hs)return;var a=document.getElementById('v64-al'),txt=null,sub='',fn=null,ic='brief';
@@ -5035,3 +5036,111 @@ function rsPdf(){var l=rsListe(),m=l[RS.idx];if(!m)return;rsSortie();
     +(peut?'<button class="btn ghost" type="button" id="rs-share" style="margin-top:0;flex:1">Partager</button>':'')+'</div>';
   var sh=document.getElementById('rs-share');if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([RS.out.blob],RS.out.nom,{type:'application/pdf'})],title:'Relevé Sogetrel '+rsMoisLbl(m.mois)}).catch(function(){});}catch(_e){}});
   var pb=document.getElementById('rs-pdf');if(pb)pb.style.display='none';}
+/* ===== v69 : comparateur — écran ADMINISTRATEUR (étape 3a : envoi du décompte, analyse, confirmation, comparaison)
+   Réservé au compte administrateur. Contrôle côté serveur (_cmp_admin en base ; le webhook n8n APP_Comparateur_Admin
+   vérifie la clé avant toute lecture du fichier). Le calcul = moteur du bot Telegram, recopié à l'identique.
+   Rien n'est gardé sur le téléphone (rapport et fichier en mémoire uniquement). */
+var CADURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-comparateur-admin';
+var CAD={etat:null,ec:false,envoi:false,fichier:null,res:null,voirRap:false,voirRapEtat:false};
+var CAD_MAX=10*1024*1024;
+function cadOk(){return oppEstAdmin();}
+/* texte au format Telegram (déjà échappé, seules balises <b>) → HTML sûr : tout est ré-échappé, seules nos balises <b> restent */
+function cadTg(s){var p=String(s||'').split(/(<\/?b>)/i),h='',b=false;
+  for(var i=0;i<p.length;i++){var x=p[i];if(/^<b>$/i.test(x)){if(!b){h+='<b>';b=true;}continue;}if(/^<\/b>$/i.test(x)){if(b){h+='</b>';b=false;}continue;}
+    x=x.replace(/<[^>]*>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&');
+    h+=esc(x).replace(/\n/g,'<br>');}
+  if(b)h+='</b>';return h;}
+function cadBoite(html){return '<div class="card" style="padding:12px 14px;margin-top:10px;font-size:13.5px;line-height:1.5;max-height:60vh;overflow:auto;overflow-wrap:anywhere">'+html+'</div>';}
+function cadEcran(){var s=document.createElement('section');s.className='screen';s.id='s-cmpadm';
+  var BACK='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  s.innerHTML='<div class="topbar"><button class="back" type="button" aria-label="Retour" id="cad-back">'+BACK+'</button><div class="ttl">Comparateur Sogetrel</div><div style="width:34px"></div></div>'
+   +'<p class="sub" style="margin:2px 0 12px">Envoie le décompte Sogetrel : je vérifie la lecture du fichier, puis je le compare aux saisies de l’équipe.</p>'
+   +'<div class="err" id="err-cad" role="alert"></div>'
+   +'<div class="card" style="padding:14px 16px"><div style="font-weight:700;margin-bottom:6px">Envoyer un décompte</div>'
+   +'<input type="file" id="cad-f" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden" tabindex="-1">'
+   +'<button class="btn ghost" type="button" id="cad-choisir" style="margin-top:4px">Choisir le fichier Excel</button>'
+   +'<div class="note" id="cad-nom" style="margin-top:6px">Aucun fichier choisi.</div>'
+   +'<button class="btn" type="button" id="cad-go" style="margin-top:10px" disabled>Analyser et comparer</button></div>'
+   +'<div id="cad-res" aria-live="polite"></div><div id="cad-etat"></div><div class="grow"></div>';
+  var hs0=document.getElementById('s-home');(hs0&&hs0.parentNode?hs0.parentNode:document.body).appendChild(s);
+  document.getElementById('cad-back').addEventListener('click',function(){goHome();});
+  document.getElementById('cad-choisir').addEventListener('click',function(){var f=document.getElementById('cad-f');f.value='';f.click();});
+  document.getElementById('cad-f').addEventListener('change',cadChoix);
+  document.getElementById('cad-go').addEventListener('click',function(){cadEnvoyer();});
+  s.addEventListener('click',cadClic);}
+function cadOuvrir(){if(!cadOk())return;if(!document.getElementById('s-cmpadm'))cadEcran();err('err-cad');show('s-cmpadm');cadRenduRes();cadEtat();}
+function cadEtat(){var z=document.getElementById('cad-etat');if(!z)return;if(CAD.etat)cadRenduEtat();
+  if(!navigator.onLine){if(!CAD.etat)z.innerHTML='<div class="note" style="margin-top:12px">Pas de réseau — réessaie une fois connecté.</div>';return;}
+  if(CAD.ec)return;CAD.ec=true;
+  rpc('cmp_admin_etat',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(d){CAD.ec=false;CAD.etat=d||{};cadRenduEtat();},
+   function(e){CAD.ec=false;err('err-cad',e&&e.reseau?HORSLIGNE_MSG:'Impossible de charger l’état du comparateur pour l’instant.');});}
+function cadChoix(){var f=document.getElementById('cad-f'),x=f.files&&f.files[0],nm=document.getElementById('cad-nom'),go=document.getElementById('cad-go');err('err-cad');CAD.fichier=null;go.disabled=true;
+  if(!x){nm.textContent='Aucun fichier choisi.';return;}
+  if(!/\.xlsx?$/i.test(x.name)){nm.textContent='Aucun fichier choisi.';err('err-cad','Choisis le fichier Excel (.xlsx) du décompte Sogetrel.');return;}
+  if(x.size>CAD_MAX){nm.textContent='Aucun fichier choisi.';err('err-cad','Fichier trop lourd (10 Mo maximum).');return;}
+  nm.textContent='Lecture du fichier…';
+  var r=new FileReader();r.onload=function(){var u=String(r.result||''),i=u.indexOf(',');if(i<0){nm.textContent='Aucun fichier choisi.';err('err-cad','Le fichier n’a pas pu être lu.');return;}
+    CAD.fichier={nom:String(x.name).slice(0,120),b64:u.slice(i+1),taille:x.size};nm.textContent=x.name+' · '+Math.max(1,Math.round(x.size/1024))+' Ko';go.disabled=false;};
+  r.onerror=function(){nm.textContent='Aucun fichier choisi.';err('err-cad','Le fichier n’a pas pu être lu.');};
+  r.readAsDataURL(x);}
+function cadEnvoyer(){if(CAD.envoi||!CAD.fichier)return;err('err-cad');
+  if(!navigator.onLine){err('err-cad',HORSLIGNE_MSG);return;}
+  var go=document.getElementById('cad-go');CAD.envoi=true;if(go){go.disabled=true;go.textContent='Analyse en cours…';}
+  CAD.res={route:'encours'};cadRenduRes();
+  fetchT(CADURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({c:ACCT.client_id,k:ACCT.cle,nom:CAD.fichier.nom,b64:CAD.fichier.b64})},120000)
+  .then(function(r){return r.json().catch(function(){return {ok:false,route:'erreur',message:'Erreur technique : réponse illisible du serveur (code '+r.status+'). Réessaie dans un instant.'};});})
+  .then(function(j){CAD.res=(j&&typeof j==='object')?j:{ok:false,route:'erreur',message:'Erreur technique : réponse vide.'};},
+        function(){CAD.res={ok:false,route:'erreur',message:RESEAU_MSG};})
+  .then(function(){CAD.envoi=false;CAD.voirRap=false;var g=document.getElementById('cad-go');if(g){g.disabled=!CAD.fichier;g.textContent='Analyser et comparer';}cadRenduRes();CAD.etat=null;cadEtat();});}
+function cadRenduRes(){var z=document.getElementById('cad-res');if(!z)return;var r=CAD.res,h='';if(!r){z.innerHTML='';return;}
+  if(r.route==='encours')h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">Analyse du fichier…</div><div class="note">Lecture, contrôles puis comparaison. Cela prend quelques secondes.</div></div>';
+  else if(r.route==='comparer'){
+    h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">✅ Comparaison faite — '+esc(rsMoisLbl(r.mois))+'</div>'
+     +'<div class="note" style="margin-top:4px">'+(r.n_validations>0?esc(String(r.n_validations))+' ligne'+(r.n_validations>1?'s':'')+' à valider.':'Aucune ligne à valider.')
+     +(r.enregistrement&&r.enregistrement.purgees>0?' '+esc(String(r.enregistrement.purgees))+' ligne(s) en attente devenue(s) sans objet : retirée(s).':'')
+     +(r.enregistrement&&r.enregistrement.decidees_absentes>0?' ⚠️ '+esc(String(r.enregistrement.decidees_absentes))+' ligne(s) déjà décidée(s) absente(s) de ce décompte : vérifie avant la réclamation.':'')+'</div>'
+     +(r.n_validations>0?'<div class="note" style="margin-top:6px">La validation se fait pour l’instant sur Telegram : je t’ai envoyé le bouton « Commencer la validation » sur @CRCOMPAR_bot.</div>':'')
+     +'<button class="btn ghost" type="button" data-cad="rap" style="margin-top:10px">'+(CAD.voirRap?'Masquer le rapport':'Voir le rapport complet')+'</button></div>'
+     +(CAD.voirRap?cadBoite(cadTg(r.rapport)):'');}
+  else if(r.route==='confirmer'){
+    h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🔎 Vérifie la lecture du fichier</div>'
+     +'<div class="note" style="margin-top:4px">La mise en page a changé ou un contrôle n’est pas vert. Regarde les colonnes choisies, les contrôles ❌ et les points à regarder. Rien n’est comparé ni enregistré tant que tu n’as pas confirmé.</div></div>'
+     +cadBoite(cadTg(r.resume))
+     +'<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" type="button" data-cad="ok" data-id="'+esc(String(r.analyse_id||''))+'" style="margin-top:0;flex:1">✅ Lecture juste, comparer</button>'
+     +'<button class="btn ghost" type="button" data-cad="ko" data-id="'+esc(String(r.analyse_id||''))+'" style="margin-top:0;flex:1">❌ Annuler</button></div>';}
+  else if(r.route==='bloque')h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">⛔ Fichier non exploitable — aucune comparaison</div><div class="note" style="margin-top:4px">Vérifie que c’est bien le décompte Sogetrel complet. Si tu penses qu’il est correct, envoie-moi une capture du fichier.</div></div>'+cadBoite(cadTg(r.resume));
+  else if(r.route==='info')h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">✅ Lecture confirmée</div><div class="note" style="margin-top:4px">'+esc(r.message||'')+'</div></div>';
+  else if(r.route==='annule')h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">❌ Comparaison annulée</div><div class="note">La mise en page de ce fichier n’a pas été validée.</div></div>';
+  else h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">Pas de comparaison</div><div class="note" style="margin-top:4px">'+esc(r.message||'Erreur inconnue.')+'</div></div>';
+  z.innerHTML=h;}
+var CAD_ST={en_attente:'à confirmer',confirme:'lecture confirmée',utilise:'comparé',refuse:'refusé'};
+function cadRenduEtat(){var z=document.getElementById('cad-etat'),e=CAD.etat||{};if(!z)return;var h='';
+  if(e.a_confirmer&&e.a_confirmer.id&&!(CAD.res&&CAD.res.route==='confirmer')){var a=e.a_confirmer;
+    h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🔎 Lecture en attente de ta confirmation</div><div class="note" style="margin-top:4px">'+esc(a.nom||'Fichier')+' · '+esc(rsMoisLbl(a.mois))+' · reçu le '+esc(a.le)+'</div>'
+      +'<button class="btn ghost" type="button" data-cad="voirattente" style="margin-top:10px">Voir l’analyse</button><div id="cad-att"></div></div>';}
+  var v=e.validations||{};
+  if(v.mois&&v.en_attente>0)h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🗳 '+esc(String(v.en_attente))+' ligne'+(v.en_attente>1?'s':'')+' à valider — '+esc(rsMoisLbl(v.mois))+'</div><div class="note">Validation sur Telegram pour l’instant (@CRCOMPAR_bot).</div></div>';
+  if(e.rapport&&e.rapport.id&&!(CAD.res&&CAD.res.route==='comparer')){var p=e.rapport;
+    h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">Dernier rapport — '+esc(rsMoisLbl(p.mois))+'</div><div class="note">'+esc(p.nom||'')+' · '+esc(p.le)+'</div>'
+      +'<button class="btn ghost" type="button" data-cad="rapetat" style="margin-top:10px">'+(CAD.voirRapEtat?'Masquer le rapport':'Voir le rapport')+'</button></div>'+(CAD.voirRapEtat?cadBoite(cadTg(p.texte)):'');}
+  var l=e.analyses||[];
+  if(l.length){h+='<div class="note" style="margin:16px 0 4px;font-weight:700">Derniers fichiers reçus</div><div class="card" style="padding:4px 16px">';
+    for(var i=0;i<l.length;i++)h+='<div style="padding:8px 0'+(i?';border-top:1px solid var(--border)':'')+'"><div style="font-weight:600;overflow-wrap:anywhere">'+esc(l[i].nom||'Fichier')+'</div><div class="note">'+esc(rsMoisLbl(l[i].mois))+' · '+esc(l[i].le)+' · '+esc(CAD_ST[l[i].statut]||l[i].statut)+'</div></div>';
+    h+='</div>';}
+  z.innerHTML=h;}
+function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cad]'):null;if(!b)return;var a=b.getAttribute('data-cad');
+  if(a==='rap'){CAD.voirRap=!CAD.voirRap;cadRenduRes();return;}
+  if(a==='rapetat'){CAD.voirRapEtat=!CAD.voirRapEtat;cadRenduEtat();return;}
+  if(a==='voirattente'){var z=document.getElementById('cad-att'),at=CAD.etat&&CAD.etat.a_confirmer;if(!z||!at)return;
+    if(z.innerHTML){z.innerHTML='';return;}
+    z.innerHTML=cadBoite(cadTg(at.resume||'Analyse indisponible.'))+'<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" type="button" data-cad="ok" data-id="'+esc(String(at.id))+'" style="margin-top:0;flex:1">✅ Lecture juste</button><button class="btn ghost" type="button" data-cad="ko" data-id="'+esc(String(at.id))+'" style="margin-top:0;flex:1">❌ Refuser</button></div>';return;}
+  if(a==='ok'||a==='ko'){var id=parseInt(b.getAttribute('data-id'),10);if(!(id>0)||b.disabled)return;
+    if(!navigator.onLine){err('err-cad',HORSLIGNE_MSG);return;}
+    var bs=document.querySelectorAll('#s-cmpadm [data-cad="ok"],#s-cmpadm [data-cad="ko"]');for(var i=0;i<bs.length;i++)bs[i].disabled=true;err('err-cad');
+    rpc('cmp_admin_format',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id,p_choix:a}).then(function(r){
+      if(!r||!r.ok){err('err-cad',(r&&r.message)||'Décision non enregistrée.');CAD.res=null;cadRenduRes();CAD.etat=null;cadEtat();return;}
+      if(a==='ko'){CAD.res={route:'annule'};cadRenduRes();CAD.etat=null;cadEtat();return;}
+      /* lecture confirmée : on relance l'envoi du même fichier (reconnu par son empreinte, confirmation valable 3 jours) */
+      if(CAD.fichier&&CAD.res&&CAD.res.route==='confirmer'&&parseInt(CAD.res.analyse_id,10)===id){cadEnvoyer();return;}
+      CAD.res={ok:false,route:'info',message:'Lecture confirmée. Choisis à nouveau le même fichier puis « Analyser et comparer » pour lancer la comparaison (valable 3 jours).'};cadRenduRes();CAD.etat=null;cadEtat();},
+     function(e){for(var i=0;i<bs.length;i++)bs[i].disabled=false;err('err-cad',e&&e.reseau?HORSLIGNE_MSG:'Décision non enregistrée — réessaie.');});}}
