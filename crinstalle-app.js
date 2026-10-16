@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='71';
+var APPV='72';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -5072,7 +5072,7 @@ function cadOuvrir(){if(!cadOk())return;if(!document.getElementById('s-cmpadm'))
 function cadEtat(){var z=document.getElementById('cad-etat');if(!z)return;if(CAD.etat)cadRenduEtat();
   if(!navigator.onLine){if(!CAD.etat)z.innerHTML='<div class="note" style="margin-top:12px">Pas de réseau — réessaie une fois connecté.</div>';return;}
   if(CAD.ec)return;CAD.ec=true;
-  try{cadRecapCharger();}catch(_e){}
+  try{cadRecapCharger();capCharger();}catch(_e){}
   rpc('cmp_admin_etat',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(d){CAD.ec=false;CAD.etat=d||{};cadRenduEtat();},
    function(e){CAD.ec=false;err('err-cad',e&&e.reseau?HORSLIGNE_MSG:'Impossible de charger l’état du comparateur pour l’instant.');});}
 function cadChoix(){var f=document.getElementById('cad-f'),x=f.files&&f.files[0],nm=document.getElementById('cad-nom'),go=document.getElementById('cad-go');err('err-cad');CAD.fichier=null;go.disabled=true;
@@ -5125,6 +5125,7 @@ function cadRenduEtat(){var z=document.getElementById('cad-etat'),e=CAD.etat||{}
   if(e.rapport&&e.rapport.id&&!(CAD.res&&CAD.res.route==='comparer')){var p=e.rapport;
     h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">Dernier rapport — '+esc(rsMoisLbl(p.mois))+'</div><div class="note">'+esc(p.nom||'')+' · '+esc(p.le)+'</div>'
       +'<button class="btn ghost" type="button" data-cad="rapetat" style="margin-top:10px">'+(CAD.voirRapEtat?'Masquer le rapport':'Voir le rapport')+'</button></div>'+(CAD.voirRapEtat?cadBoite(cadTg(p.texte)):'');}
+  h+=cadDocsHtml();
   var l=e.analyses||[];
   if(l.length){h+='<div class="note" style="margin:16px 0 4px;font-weight:700">Derniers fichiers reçus</div><div class="card" style="padding:4px 16px">';
     for(var i=0;i<l.length;i++)h+='<div style="padding:8px 0'+(i?';border-top:1px solid var(--border)':'')+'"><div style="font-weight:600;overflow-wrap:anywhere">'+esc(l[i].nom||'Fichier')+'</div><div class="note">'+esc(rsMoisLbl(l[i].mois))+' · '+esc(l[i].le)+' · '+esc(CAD_ST[l[i].statut]||l[i].statut)+'</div></div>';
@@ -5132,6 +5133,10 @@ function cadRenduEtat(){var z=document.getElementById('cad-etat'),e=CAD.etat||{}
   z.innerHTML=h;}
 function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cad]'):null;if(!b)return;var a=b.getAttribute('data-cad');
   if(a==='valider'){cavOuvrir();return;}
+  if(a==='rcpdf'){carPdf();return;}
+  if(a==='rcmois'){CAR.mois=b.getAttribute('data-m')||'';carSortie();CAR.msg='';carPdf();return;}
+  if(a==='rcshare'){try{navigator.share({files:[new File([CAR.out.blob],CAR.out.nom,{type:'application/pdf'})],title:'Réclamation '+rsMoisLbl(CAR.mois)}).catch(function(){});}catch(_e){}return;}
+  if(a==='pub'){capPublier();return;}
   if(a==='recapT'){CAD.voirRecapT=!CAD.voirRecapT;cadRenduRes();cadRenduEtat();return;}
   if(a==='recapM'){CAD.voirRecapM=!CAD.voirRecapM;cadRenduRes();cadRenduEtat();return;}
   if(a==='rap'){CAD.voirRap=!CAD.voirRap;cadRenduRes();return;}
@@ -5256,3 +5261,255 @@ function cadRecapHtml(){var r=CAD.recap;if(!r||!r.mois)return '';
     h+='</div>';}
   if(r.calcule_sur)h+='<div class="note" style="margin-top:8px">Fichier comparé le '+esc(r.calcule_sur)+' · mis à jour avec tes décisions.</div>';
   return h+'</div>';}
+/* ===== v72 : comparateur — PDF de RÉCLAMATION dans l'appli (étape 3c, administrateur)
+   MÊME code que le nœud n8n « Construire le PDF réclamation » : générateur (sortie Buffer → Uint8Array) et regroupement des lignes. */
+function rcPdfBuild(d, genLe) {
+  var W = 595.28, H = 841.89, ML = 44, MR = 551.28;
+  var MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var mParts = String(d.mois || '').split('-');
+  var moisLabel = (mParts.length === 2 ? MOIS[parseInt(mParts[1], 10) - 1] + ' ' + mParts[0] : d.mois);
+
+  function esc(s) {
+    return String(s).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)')
+      .replace(/€/g, '\x80').replace(/’/g, "'").replace(/—/g, '\x97').replace(/–/g, '\x96').replace(/…/g, '\x85').replace(/ /g, ' ')
+      .replace(/[^\x00-\xFF]/g, '?');
+  }
+  function fmt(n) {
+    var v = (Math.round(parseFloat(n) * 100) / 100).toFixed(2).replace('.', ',');
+    return v.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' €';
+  }
+  var WID = { ' ': 278, ',': 278, '.': 278, '€': 556, '-': 333 };
+  function wAmount(s, size) {
+    var w = 0;
+    for (var i = 0; i < s.length; i++) { var c = s[i]; w += (WID[c] !== undefined ? WID[c] : 556); }
+    return w * size / 1000;
+  }
+  var C_ORANGE = '0.910 0.349 0.047', C_DARK = '0.114 0.114 0.122', C_GREY = '0.431 0.431 0.451', C_LINE = '0.855 0.855 0.867';
+  function T(f, size, color, x, y, txt) { return color + ' rg BT /' + f + ' ' + size + ' Tf ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' Td (' + esc(txt) + ') Tj ET\n'; }
+  function TR(f, size, color, xRight, y, txt) { return T(f, size, color, xRight - wAmount(esc(txt), size), y, txt); }
+  function LINE(x1, y, x2, wpt, color) { return color + ' RG ' + wpt + ' w ' + x1.toFixed(2) + ' ' + y.toFixed(2) + ' m ' + x2.toFixed(2) + ' ' + y.toFixed(2) + ' l S\n'; }
+
+  var TYPELBL = { manque: 'Non payé', sous_paye: 'Sous-payé', signalement: 'Requalification RACC', bonus_apt: 'Bonus APT non payé' };
+  var CX = { date: ML, jeton: ML + 66, type: ML + 172, mnt: MR };
+
+  function tableHeader(y) {
+    var s = '';
+    s += T('F2', 8.5, C_GREY, CX.date, y, 'DATE');
+    s += T('F2', 8.5, C_GREY, CX.jeton, y, 'JETON');
+    s += T('F2', 8.5, C_GREY, CX.type, y, 'OBJET');
+    s += TR('F2', 8.5, C_GREY, CX.mnt, y, 'MONTANT RÉCLAMÉ');
+    s += LINE(ML, y - 5, MR, 0.9, C_DARK);
+    return s;
+  }
+
+  var pages = [];
+  var cur = '';
+  var y = 0;
+  var ROWH = 16.5;
+
+  function newPage(first) {
+    if (cur) pages.push(cur);
+    cur = '';
+    if (first) {
+      cur += T('F2', 17, C_ORANGE, ML, H - 58, 'CRINSTALLE');
+      cur += T('F2', 15, C_DARK, ML, H - 92, 'Réclamation sur décompte');
+      cur += T('F1', 11, C_GREY, ML, H - 108, 'Décompte de ' + moisLabel);
+      cur += T('F1', 8.5, C_GREY, 380, H - 57, 'DOCUMENT');
+      cur += T('F2', 10, C_DARK, 452, H - 58, 'Réclamation');
+      cur += T('F1', 8.5, C_GREY, 380, H - 71, 'LIGNES');
+      cur += T('F2', 10, C_DARK, 452, H - 72, String(d.nb));
+      cur += LINE(ML, H - 126, MR, 1.2, C_ORANGE);
+      y = H - 150;
+    } else {
+      cur += T('F1', 9, C_GREY, ML, H - 46, 'Réclamation décompte ' + moisLabel + ' — CRINSTALLE (suite)');
+      cur += LINE(ML, H - 54, MR, 0.9, C_LINE);
+      y = H - 76;
+    }
+    cur += tableHeader(y);
+    y -= ROWH + 4;
+  }
+
+  newPage(true);
+  var alt = 0;
+  var totalGeneral = 0;
+
+  d.groupes.forEach(function (g) {
+    if (y < 160) newPage(false);
+    y -= 4;
+    cur += T('F2', 11, C_DARK, ML, y, 'Technicien : ' + (g.tech || 'Non identifié'));
+    cur += LINE(ML, y - 4, MR, 0.75, C_LINE);
+    y -= ROWH + 2;
+    alt = 0;
+    var sousTotal = 0;
+    g.lignes.forEach(function (L) {
+      var motif = String(L.motif || '').replace(/💬/g, '').replace(/\s+/g, ' ').trim();
+      if (motif.length > 220) motif = motif.substring(0, 217) + '...';
+      var motifLines = [];
+      var mm = motif;
+      while (mm.length) {
+        if (mm.length <= 105) { motifLines.push(mm); break; }
+        var cut = mm.lastIndexOf(' ', 105); if (cut < 60) cut = 105;
+        motifLines.push(mm.substring(0, cut)); mm = mm.substring(cut).replace(/^ +/, '');
+      }
+      var rh = ROWH + motifLines.length * 11;
+      if (y - (rh - ROWH) < 130) { newPage(false); alt = 0; }
+      if (alt % 2 === 1) { cur += '0.965 0.965 0.969 rg ' + ML.toFixed(2) + ' ' + (y - 5 - motifLines.length * 11).toFixed(2) + ' ' + (MR - ML).toFixed(2) + ' ' + rh.toFixed(2) + ' re f\n'; }
+      alt++;
+      var dtxt = '';
+      if (L.date && /^\d{4}-\d{2}-\d{2}$/.test(L.date)) { var dd = L.date.split('-'); dtxt = dd[2] + '/' + dd[1] + '/' + dd[0]; }
+      else dtxt = String(L.date || '');
+      cur += T('F1', 9.5, C_DARK, CX.date, y, dtxt);
+      cur += T('F1', 9.5, C_DARK, CX.jeton, y, String(L.jeton).substring(0, 18));
+      cur += T('F1', 9.5, C_DARK, CX.type, y, TYPELBL[L.type] || L.type);
+      if (!(parseFloat(L.montant) > 0) && (L.type === 'signalement' || L.type === 'sous_paye')) {
+        cur += TR('F1', 9.5, C_GREY, CX.mnt, y, L.type === 'signalement' ? 'à requalifier' : 'à chiffrer');
+      } else {
+        cur += TR('F1', 9.5, C_DARK, CX.mnt, y, fmt(L.montant));
+        sousTotal += parseFloat(L.montant) || 0;
+      }
+      var cy = y - 11.5;
+      for (var ci = 0; ci < motifLines.length; ci++) { cur += T('F1', 8, C_GREY, CX.jeton, cy, (ci === 0 ? '— ' : '') + motifLines[ci]); cy -= 11; }
+      y -= rh;
+    });
+    if (y < 140) newPage(false);
+    cur += T('F1', 9, C_GREY, CX.type, y, 'Sous-total ' + (g.tech || '') + ' (' + g.lignes.length + ' ligne' + (g.lignes.length > 1 ? 's' : '') + ')');
+    cur += TR('F2', 9.5, C_DARK, CX.mnt, y, fmt(sousTotal));
+    y -= ROWH + 6;
+    totalGeneral += sousTotal;
+  });
+
+  if (y < 190) newPage(false);
+  y -= 6;
+  cur += LINE(ML, y + 10, MR, 0.9, C_DARK);
+  y -= 10;
+  cur += T('F2', 11.5, C_DARK, ML, y, 'TOTAL RÉCLAMÉ (' + d.nb + ' ligne' + (d.nb > 1 ? 's' : '') + ')');
+  cur += TR('F2', 13, C_ORANGE, CX.mnt, y, fmt(totalGeneral));
+  y -= 20;
+  var nbSig = d.nbSignalements || 0;
+  if (nbSig > 0) {
+    cur += T('F1', 9, C_GREY, ML, y, 'Dont ' + nbSig + ' ligne' + (nbSig > 1 ? 's' : '') + ' (requalification RACC / écart de typologie) à chiffrer selon la grille en vigueur.');
+    y -= 16;
+  }
+  pages.push(cur);
+
+  var nP = pages.length;
+  for (var p = 0; p < nP; p++) {
+    pages[p] += LINE(ML, 52, MR, 0.75, C_LINE);
+    pages[p] += T('F1', 8, C_GREY, ML, 38, 'Réclamation générée par Crinstalle IA le ' + genLe + ' — décompte ' + moisLabel + '.');
+    pages[p] += TR('F1', 8, C_GREY, MR, 38, 'Page ' + (p + 1) + '/' + nP);
+  }
+
+  var objs = [];
+  objs.push('<< /Type /Catalog /Pages 2 0 R >>');
+  var kids = [];
+  for (p = 0; p < nP; p++) kids.push((5 + p * 2) + ' 0 R');
+  objs.push('<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + nP + ' >>');
+  objs.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+  objs.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  for (p = 0; p < nP; p++) {
+    objs.push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + W + ' ' + H + '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + (6 + p * 2) + ' 0 R >>');
+    var stream = pages[p];
+    objs.push('<< /Length ' + stream.length + ' >>\nstream\n' + stream + 'endstream');
+  }
+  var out = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';
+  var offsets = [0];
+  for (var o = 0; o < objs.length; o++) {
+    offsets.push(out.length);
+    out += (o + 1) + ' 0 obj\n' + objs[o] + '\nendobj\n';
+  }
+  var xrefPos = out.length;
+  out += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+  for (o = 1; o <= objs.length; o++) {
+    out += String(offsets[o]).padStart(10, '0') + ' 00000 n \n';
+  }
+  out += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xrefPos + '\n%%EOF';
+  var bytes = new Uint8Array(out.length);
+  for (var bi = 0; bi < out.length; bi++) bytes[bi] = out.charCodeAt(bi) & 255;
+  return bytes;
+}
+function rcPdfPrep(lignes) {
+var parTech = {}, labelDe = {};
+lignes.forEach(function (l) {
+  var p = l.payload || {};
+  if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = {}; } }
+  var prenom = String(l.tech_prenom || '').trim();
+  var tid = String(l.telegram_id_tech || '').trim();
+  var tech = prenom ? (prenom + '#' + tid) : 'Non identifié';
+  labelDe[tech] = prenom || 'Non identifié';
+  var date = p.date_app || p.date || p.date_decompte || '';
+  (parTech[tech] = parTech[tech] || []).push({
+    type: l.type, jeton: l.jeton || '', date: date,
+    montant: parseFloat(l.montant) || 0, motif: l.libelle || ''
+  });
+});
+var nbParPrenom = {};
+Object.keys(parTech).forEach(function (k) { nbParPrenom[labelDe[k]] = (nbParPrenom[labelDe[k]] || 0) + 1; });
+var techs = Object.keys(parTech).sort(function (a, b) {
+  if (a === 'Non identifié') return 1; if (b === 'Non identifié') return -1;
+  return a.localeCompare(b, 'fr');
+});
+var ORD = { manque: 0, sous_paye: 1, signalement: 2, bonus_apt: 3 };
+var groupes = techs.map(function (t) {
+  var ls = parTech[t].sort(function (a, b) {
+    var d = (ORD[a.type] !== undefined ? ORD[a.type] : 9) - (ORD[b.type] !== undefined ? ORD[b.type] : 9);
+    return d !== 0 ? d : String(a.date).localeCompare(String(b.date)) || String(a.jeton).localeCompare(String(b.jeton));
+  });
+  var lab = labelDe[t];
+  if (nbParPrenom[lab] > 1 && t.indexOf('#') > 0) { var tid = t.split('#')[1]; lab = lab + ' (…' + tid.slice(-4) + ')'; }
+  return { tech: lab, lignes: ls };
+});
+function nonChiffre(l) { return !(parseFloat(l.montant) > 0) && (l.type === 'signalement' || l.type === 'sous_paye'); }
+var nbSignalements = lignes.filter(nonChiffre).length;
+var total = 0;
+lignes.forEach(function (l) { if (!nonChiffre(l)) total += parseFloat(l.montant) || 0; });
+  return { nb: lignes.length, groupes: groupes, nbSignalements: nbSignalements, total: Math.round(total * 100) / 100 };
+}
+var CAR={mois:'',dispo:[],out:null,ec:false,msg:''};
+var CAP={data:null,ec:false,arme:false,armeT:0,msg:''};
+function carSortie(){if(CAR.out&&CAR.out.url){try{URL.revokeObjectURL(CAR.out.url);}catch(_e){}}CAR.out=null;}
+function capCharger(){if(!cadOk()||!navigator.onLine)return;
+  rpc('cmp_admin_releves',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_publier:false,p_mois:null}).then(function(d){CAP.data=d||null;cadRenduEtat();},function(){});}
+function cadDocsHtml(){var h='<div class="note" style="margin:16px 0 4px;font-weight:700">Fin de mois</div>';
+  /* PDF de réclamation */
+  h+='<div class="card" style="padding:14px 16px;margin-top:6px"><div style="font-weight:700">📄 PDF de réclamation'+(CAR.mois?' — '+esc(rsMoisLbl(CAR.mois)):'')+'</div>'
+    +'<div class="note" style="margin-top:4px">Toutes les lignes que tu as réclamées, regroupées par technicien, avec le total à envoyer à Sogetrel.</div>';
+  if(CAR.dispo.length>1){h+='<div role="tablist" style="display:flex;gap:8px;overflow-x:auto;margin-top:8px">';
+    CAR.dispo.forEach(function(m){var on=m===CAR.mois;h+='<button type="button" class="chip'+(on?' sel':'')+'" data-cad="rcmois" data-m="'+esc(m)+'" style="flex:none">'+esc(rsMoisLbl(m))+'</button>';});h+='</div>';}
+  if(CAR.msg)h+='<div class="note" style="margin-top:8px;color:var(--tx)">'+CAR.msg+'</div>';
+  if(CAR.out)h+='<div style="display:flex;gap:8px;margin-top:10px"><a class="btn" href="'+CAR.out.url+'" download="'+esc(CAR.out.nom)+'" target="_blank" rel="noopener" style="margin-top:0;flex:1;text-decoration:none">Ouvrir le PDF</a>'
+     +(CAR.out.partage?'<button class="btn ghost" type="button" data-cad="rcshare" style="margin-top:0;flex:1">Partager</button>':'')+'</div>';
+  h+='<button class="btn'+(CAR.out?' ghost':'')+'" type="button" data-cad="rcpdf" style="margin-top:10px"'+(CAR.ec?' disabled':'')+'>'+(CAR.ec?'Création…':(CAR.out?'Recréer le PDF':'Créer le PDF de réclamation'))+'</button></div>';
+  /* publication des relevés */
+  var d=CAP.data;
+  h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">📤 Relevés des techniciens'+(d&&d.mois?' — '+esc(rsMoisLbl(d.mois)):'')+'</div>';
+  if(!d||!d.mois)h+='<div class="note" style="margin-top:4px">Aucun relevé : compare d’abord un décompte.</div>';
+  else{var nt=(d.techs||[]).length;
+    h+='<div class="note" style="margin-top:4px">'+(d.publie_le?'✅ Publiés le '+esc(d.publie_le)+' : chaque technicien voit son relevé dans l’appli.':'Pas encore publiés : les techniciens ne voient rien tant que tu n’as pas publié.')+'</div>'
+      +'<div class="note" style="margin-top:4px">'+esc(String(nt))+' technicien'+(nt>1?'s':'')+' · '+esc(String(d.n_lignes||0))+' ligne'+((d.n_lignes||0)>1?'s':'')
+      +(d.n_sans_tech?' · '+esc(String(d.n_sans_tech))+' ligne(s) sans technicien identifié (non envoyée(s))':'')+(d.n_regules_masquees?' · '+esc(String(d.n_regules_masquees))+' régule(s) sans technicien (non affichée(s))':'')+'</div>';
+    if(nt)h+='<div class="note" style="margin-top:4px">'+(d.techs||[]).map(function(t){return esc(t.prenom)+' ('+esc(String(t.n))+')';}).join(' · ')+'</div>';
+    if(CAP.msg)h+='<div class="note" style="margin-top:8px;color:var(--tx)">'+CAP.msg+'</div>';
+    if(nt)h+='<button class="btn'+(d.publie_le&&!CAP.arme?' ghost':'')+'" type="button" data-cad="pub" style="margin-top:10px"'+(CAP.ec?' disabled':'')+'>'+(CAP.ec?'Publication…':(CAP.arme?'Sûr ? Retouche pour publier':(d.publie_le?'Republier (mettre à jour)':'Publier les relevés dans l’appli')))+'</button>'
+      +'<div class="note" style="margin-top:6px">L’envoi des PDF par Telegram reste possible depuis @CRCOMPAR_bot.</div>';}
+  return h+'</div>';}
+function carPdf(){if(CAR.ec)return;if(!navigator.onLine){err('err-cad',HORSLIGNE_MSG);return;}CAR.ec=true;CAR.msg='';carSortie();cadRenduEtat();
+  rpc('cmp_admin_reclamation',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:CAR.mois||null}).then(function(d){CAR.ec=false;d=d||{};
+    CAR.dispo=d.mois_dispo||[];CAR.mois=d.mois||'';var L=d.lignes||[];
+    if(!L.length){CAR.msg='ℹ️ Aucune ligne réclamée pour le moment : valide d’abord des lignes avec « Réclamer ».';cadRenduEtat();return;}
+    var p,bytes;try{p=rcPdfPrep(JSON.parse(JSON.stringify(L)));var now=new Date(),genLe=String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
+      bytes=rcPdfBuild({mois:d.mois,nb:p.nb,groupes:p.groupes,nbSignalements:p.nbSignalements},genLe);}catch(e){CAR.msg='Le PDF n’a pas pu être créé.';cadRenduEtat();return;}
+    var nom='reclamation-crinstalle-'+d.mois+'.pdf',blob=new Blob([bytes],{type:'application/pdf'}),partage=false;
+    try{partage=!!(navigator.canShare&&navigator.canShare({files:[new File([blob],nom,{type:'application/pdf'})]}));}catch(_e){}
+    CAR.out={url:URL.createObjectURL(blob),blob:blob,nom:nom,partage:partage};
+    CAR.msg='✅ '+esc(String(p.nb))+' ligne'+(p.nb>1?'s':'')+' · total réclamé '+esc(fmt(p.total))+(p.nbSignalements?' (+ '+esc(String(p.nbSignalements))+' à chiffrer)':'')
+      +(d.en_attente>0?'<br>⚠️ '+esc(String(d.en_attente))+' ligne(s) encore à valider : pas dans ce PDF.':'');
+    cadRenduEtat();},
+   function(e){CAR.ec=false;CAR.msg=e&&e.reseau?HORSLIGNE_MSG:'Impossible de récupérer les lignes réclamées.';cadRenduEtat();});}
+function capPublier(){if(CAP.ec||!CAP.data||!CAP.data.mois)return;
+  if(!CAP.arme){CAP.arme=true;clearTimeout(CAP.armeT);CAP.armeT=setTimeout(function(){CAP.arme=false;cadRenduEtat();},4000);cadRenduEtat();return;}
+  clearTimeout(CAP.armeT);CAP.arme=false;if(!navigator.onLine){err('err-cad',HORSLIGNE_MSG);cadRenduEtat();return;}
+  CAP.ec=true;CAP.msg='';cadRenduEtat();
+  rpc('cmp_admin_releves',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_publier:true,p_mois:CAP.data.mois}).then(function(d){CAP.ec=false;
+    if(d&&d.publie_maintenant){CAP.data=d;CAP.msg='✅ Relevés publiés : les techniciens les voient maintenant dans l’appli (bannière à l’ouverture).';try{v64Vib(12);}catch(_e){}}
+    else CAP.msg='Publication non confirmée — réessaie.';cadRenduEtat();},
+   function(e){CAP.ec=false;CAP.msg=e&&e.reseau?HORSLIGNE_MSG:'Publication impossible pour l’instant.';cadRenduEtat();});}
