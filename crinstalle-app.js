@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='67';
+var APPV='68';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -4885,7 +4885,7 @@ function rsPdfBuild(d, genLe) {
   }
 
   newPage(true);
-  var nRecl = 0;
+  var nRecl = 0, nRegEnCours = 0;
   d.lignes.forEach(function (L, i) {
     var lib = String(L.libelle || '').replace(/💬/g, '').replace(/\s+/g, ' ').trim();
     if (lib.length > 200) lib = lib.substring(0, 197) + '...';
@@ -4913,6 +4913,9 @@ function rsPdfBuild(d, genLe) {
     if (L.statut_ligne === 'reclamation') {
       nRecl++;
       cur += TR('F2', 9.5, C_ORANGE, CX.mnt, y, 'Réclamation ?');
+    } else if (L.montant === null || L.montant === undefined) {
+      nRegEnCours++;
+      cur += TR('F2', 9.5, C_ORANGE, CX.mnt, y, 'Régule en cours');
     } else {
       cur += TR('F1', 9.5, C_DARK, CX.mnt, y, fmt(L.montant));
     }
@@ -4925,6 +4928,12 @@ function rsPdfBuild(d, genLe) {
     if (y < 130) newPage(false);
     y -= 4;
     cur += T('F1', 8.5, C_GREY, ML, y, '« Réclamation ? » : jeton saisi non retrouvé payé ce mois-ci — vérification en cours, sans engagement.');
+    y -= 14;
+  }
+  if (nRegEnCours > 0) {
+    if (y < 130) newPage(false);
+    y -= 4;
+    cur += T('F1', 8.5, C_GREY, ML, y, '« Régule en cours » : correction Sogetrel en cours de vérification — montant communiqué sur un prochain relevé.');
     y -= 14;
   }
   pages.push(cur);
@@ -4997,16 +5006,19 @@ function rsRendu(){var l=rsListe(),c=document.getElementById('rs-corps'),mm=docu
   if(RS.idx>=l.length)RS.idx=0;var m=l[RS.idx],h='',i,nR=0;
   mm.innerHTML=l.map(function(x,k){var on=k===RS.idx;return '<button type="button" class="chip'+(on?' sel':'')+'" role="tab" aria-selected="'+(on?'true':'false')+'" data-rsm="'+k+'" style="flex:none">'+esc(rsMoisLbl(x.mois))+'</button>';}).join('');
   h+='<div class="card" style="padding:6px 16px">';
+  var nRg=0;
   for(i=0;i<m.lignes.length;i++){var L=m.lignes[i],rec=L.statut_ligne==='reclamation';if(rec)nR++;
+    var regC=!rec&&L.statut_ligne==='regule'&&(L.montant===null||L.montant===undefined);if(regC)nRg++;
     var res=String(L.resultat||'').trim();if(/^raccordement ok$/i.test(res))res='Raccordé';
     var sous=[TLBL[L.typologie]||L.typologie||'',L.desserte||'',res].filter(function(z){return !!z;}).join(' · ');
     var lib=String(L.libelle||'').replace(/💬/g,'').replace(/\s+/g,' ').trim();
     h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px 0'+(i?';border-top:1px solid var(--border)':'')+'">'
       +'<div style="min-width:0"><div style="font-weight:600;direction:ltr">'+esc(L.jeton||'—')+' <span class="note" style="font-weight:400">· '+esc(fmtD(L.date_ligne))+'</span></div>'
       +(sous?'<div class="note">'+esc(sous)+'</div>':'')+(lib?'<div class="note" style="margin-top:2px">— '+esc(lib)+'</div>':'')+'</div>'
-      +'<div style="flex:none;text-align:end;font-variant-numeric:tabular-nums;'+(rec?'color:var(--accent-l);font-weight:700':'font-weight:600')+'">'+(rec?'Réclamation ?':esc(fmt(parseFloat(L.montant)||0)))+'</div></div>';}
+      +'<div style="flex:none;text-align:end;font-variant-numeric:tabular-nums;'+((rec||regC)?'color:var(--accent-l);font-weight:700':'font-weight:600')+'">'+(rec?'Réclamation ?':(regC?'Régule en cours':esc(fmt(parseFloat(L.montant)||0))))+'</div></div>';}
   h+='</div>';
   if(nR)h+='<div class="note" style="margin-top:8px">« Réclamation ? » : jeton saisi non retrouvé payé ce mois-ci — vérification en cours, sans engagement.</div>';
+  if(nRg)h+='<div class="note" style="margin-top:4px">« Régule en cours » : correction Sogetrel en cours de vérification — montant communiqué sur un prochain relevé.</div>';
   h+='<div class="note" style="margin-top:8px">'+m.lignes.length+' ligne'+(m.lignes.length>1?'s':'')+' · décompte de '+esc(rsMoisLbl(m.mois))+'</div>';
   h+='<div id="rs-out"></div><button class="btn" type="button" id="rs-pdf" style="margin-top:12px">Télécharger le PDF</button>';
   c.innerHTML=h;rsMarquerVu(l[0].mois);}
