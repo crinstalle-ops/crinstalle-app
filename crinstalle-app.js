@@ -1229,7 +1229,7 @@ var ab=document.getElementById('hm-abo');
 if(aboLocked(ACCT.me)){ab.innerHTML='<button class="linkbtn" style="width:100%;text-align:center;background:var(--tint);border:1px solid var(--accent);border-radius:14px;padding:14px;color:var(--accent-l);font-weight:700" onclick="show(&quot;s-abo&quot;)">Essai terminé — la saisie est en pause. S’abonner</button>';}
 else if(ACCT.me.abo_statut==='essai'){var aj=parseInt(ACCT.me.abo_jours,10)||0;ab.innerHTML='<div class="note center" style="padding:2px 0 10px'+(aj<=5?';color:var(--accent-l);font-weight:600':'')+'">'+(aj<=0?'Essai gratuit — dernier jour aujourd’hui':'Essai gratuit — '+aj+' jour'+(aj>1?'s':'')+' restant'+(aj>1?'s':''))+'</div>';}
 else{ab.innerHTML='';}
-buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);try{pmInstall();}catch(_ePm){}try{cjInstall();}catch(_eCj){}try{dechInstall();}catch(_eD){}try{oppInstall();}catch(_eO){}try{v64Home();}catch(_e64){}show('s-home');if(AVIS){err('err-home',AVIS);AVIS=null;}}).catch(function(e){
+buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);try{pmInstall();}catch(_ePm){}try{cjInstall();}catch(_eCj){}try{dechInstall();}catch(_eD){}try{oppInstall();}catch(_eO){}try{cmpInstall();}catch(_eC){}try{v64Home();}catch(_e64){}show('s-home');if(AVIS){err('err-home',AVIS);AVIS=null;}}).catch(function(e){
   /* v39 : un compte revoque est renvoye a l'accueil (comme connect), les autres erreurs sont AFFICHEES */
   var msg=(e&&e.message)||'';
   if(msg.indexOf('Accès refusé')>=0){try{var _st=JSON.parse(localStorage.getItem('crinstalle'));if(!_st||_st.client_id===ACCT.client_id)localStorage.removeItem('crinstalle');}catch(_e){}try{meOublier(ACCT.client_id);}catch(_e2){}ACCT=null;err('err-accueil','Ce compte n’existe plus — tu peux en créer un nouveau.');show('s-accueil');return;}
@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='64';
+var APPV='65';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -4488,7 +4488,7 @@ function v64Vib(p){try{if(navigator.vibrate)navigator.vibrate(p);}catch(_e){}}
 ].join('\n');document.head.appendChild(st);})();
 
 /* ---------- icônes ---------- */
-var V64I={pdf:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6"/>',
+var V64I={check:'<path d="M9 11.5l2.5 2.5L16 9.5"/><rect x="3.5" y="3.5" width="17" height="17" rx="4"/>',pdf:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6"/>',
  euro:'<path d="M4 10h11M4 14h11"/><path d="M19 6.5A7 7 0 107.5 17.5 7 7 0 0019 17.5"/>',
  doc:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/>',
  brief:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M3 13h18"/>',
@@ -4568,7 +4568,9 @@ function v64DrBuild(){var d=document.getElementById('v64-dr');
   var i=0,h='',row=function(ic,t1,t2,go,right){return '<button class="v64-mi" type="button" style="--i:'+(i++)+'" data-v64go="'+go+'">'+v64Ic(ic)+'<span class="v64-mt"><span class="v64-t1">'+t1+'</span>'+(t2?'<span class="v64-t2">'+t2+'</span>':'')+'</span>'+(right||'')+V64_CHEV+'</button>';},
       grp=function(t){return '<div class="v64-g" style="--i:'+(i++)+'">'+t+'</div>';};
   var c=(typeof comptaOk==='function'&&comptaOk()),tv=(typeof tvaOk==='function'&&tvaOk()),pa=(typeof parOk==='function'&&parOk());
-  h+=grp('Mon activité')+row('pdf','Relevés mensuels','PDF de chaque mois','releves');
+  h+=grp('Mon activité');
+  if(typeof cmpOk==='function'&&cmpOk())h+=row('check','À confirmer','Jetons signalés par le comparateur','cmp',CMP.n>0?'<span class="v64-bdg" aria-label="'+CMP.n+' à confirmer">'+CMP.n+'</span>':'');
+  h+=row('pdf','Relevés mensuels','PDF de chaque mois','releves');
   if(c||tv)h+=row('euro','Compta',c?(tv?'Dépenses, factures, TVA':'Dépenses, factures'):'TVA','compta');
   h+=row('doc','Documents','Tes papiers et attestations','docs');
   if(adm)h+=grp('Gestion')+row('brief','Recrutement','Tes offres et le vivier de techniciens','recrut',V64.rcNew>0?'<span class="v64-bdg" aria-label="'+V64.rcNew+' nouvelle(s)">'+V64.rcNew+'</span>':'');
@@ -4594,6 +4596,7 @@ function v64DrClose(fromPop){if(!V64.dr)return;V64.dr=false;document.body.classL
   var on=document.querySelector('.screen.on');if(on)navSync(on.id);else v64Pill();}
 function v64Go(id,fn){V64.fromMenu=id;v64DrClose();setTimeout(function(){fn();},V64_RM?0:170);}
 function v64DrClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-v64go]'):null;if(!b)return;v64Vib(8);var k=b.getAttribute('data-v64go');
+  if(k==='cmp')return v64Go('s-cmp',cmpOuvrir);
   if(k==='releves')return v64Go('s-releves',v64Releves);
   if(k==='compta')return v64Go('s-fact',function(){if(typeof openFact==='function')openFact();else show('s-fact');});
   if(k==='docs')return v64Go('s-docs',function(){buildDocs();});
@@ -4711,18 +4714,19 @@ function v64Home(){var hs=document.getElementById('s-home');if(!hs||!ACCT)return
   if(V64.hl){var rows=document.querySelectorAll('#hm-list .hrow .j');for(var i=0;i<rows.length&&i<3;i++){if(rows[i].textContent.toUpperCase()===String(V64.hl).toUpperCase()){var r=rows[i].closest('.hrow');r.classList.remove('v64-new');void r.offsetWidth;r.classList.add('v64-new');break;}}V64.hl=null;}
   /* lien direct #opp / #recrut (emails, Telegram) */
   if(!V64.lien){V64.lien=true;var hsh=location.hash||'';
-    if(hsh==='#opp'||hsh==='#recrut'){try{history.replaceState(null,'',location.pathname);}catch(_e){}
-      setTimeout(function(){if(hsh==='#opp'&&oppEstSolo())oppOuvrir();else if(hsh==='#recrut'&&oppEstAdmin())rcOuvrir();},60);}}}
+    if(hsh==='#opp'||hsh==='#recrut'||hsh==='#cmp'){try{history.replaceState(null,'',location.pathname);}catch(_e){}
+      setTimeout(function(){if(hsh==='#cmp'&&cmpOk())cmpOuvrir();else if(hsh==='#opp'&&oppEstSolo())oppOuvrir();else if(hsh==='#recrut'&&oppEstAdmin())rcOuvrir();},60);}}}
 
 /* rappel sur l'accueil quand il y a du nouveau (offres pour un solo, candidatures pour l'admin) */
-function v64Alerte(){var hs=document.getElementById('s-home');if(!hs)return;var a=document.getElementById('v64-al'),txt=null,sub='',fn=null;
-  if(oppEstSolo()&&V64.oppNew>0){txt=V64.oppNew+' nouvelle'+(V64.oppNew>1?'s':'')+' offre'+(V64.oppNew>1?'s':'')+' près de chez toi';sub='Mon compte › Opportunités';fn='opp';}
+function v64Alerte(){var hs=document.getElementById('s-home');if(!hs)return;var a=document.getElementById('v64-al'),txt=null,sub='',fn=null,ic='brief';
+  if(typeof cmpOk==='function'&&cmpOk()&&CMP.n>0){txt=CMP.n+' jeton'+(CMP.n>1?'s':'')+' à confirmer';sub='Vrai RACC ou pas ? Tu as 48 h pour répondre';fn='cmp';ic='check';}
+  else if(oppEstSolo()&&V64.oppNew>0){txt=V64.oppNew+' nouvelle'+(V64.oppNew>1?'s':'')+' offre'+(V64.oppNew>1?'s':'')+' près de chez toi';sub='Mon compte › Opportunités';fn='opp';}
   else if(oppEstAdmin()&&V64.rcNew>0){txt=V64.rcNew+' nouvelle'+(V64.rcNew>1?'s':'')+' candidature'+(V64.rcNew>1?'s':'');sub='Mon compte › Recrutement';fn='recrut';}
   if(!txt){if(a)a.remove();return;}
   if(!a){a=document.createElement('button');a.type='button';a.id='v64-al';a.className='v64-alert';
-    a.addEventListener('click',function(){var f=a.getAttribute('data-go');if(f==='opp')oppOuvrir();else if(f==='recrut')rcOuvrir();});}
+    a.addEventListener('click',function(){var f=a.getAttribute('data-go');if(f==='cmp')cmpOuvrir();else if(f==='opp')oppOuvrir();else if(f==='recrut')rcOuvrir();});}
   var ref=document.getElementById('v64-tools')||hs.querySelector('.tiles');if(ref&&a.previousElementSibling!==ref)ref.insertAdjacentElement('afterend',a);
-  a.setAttribute('data-go',fn);a.innerHTML=v64Ic('brief')+'<span style="flex:1;min-width:0"><b>'+esc(txt)+'</b><small>'+esc(sub)+'</small></span>'+V64_CHEV;}
+  a.setAttribute('data-go',fn);a.innerHTML=v64Ic(ic)+'<span style="flex:1;min-width:0"><b>'+esc(txt)+'</b><small>'+esc(sub)+'</small></span>'+V64_CHEV;}
 
 /* ---------- enregistrement réussi ---------- */
 function v64Saved(){var b=document.getElementById('sv-badge');
@@ -4741,3 +4745,70 @@ function v64Saved(){var b=document.getElementById('sv-badge');
   /* démarrage hors ligne/caché : l'appli affiche « Mon compte » en attendant le CA -> squelette de l'accueil à la place */
   try{if(ACCT&&ACCT.me&&(navigator.onLine||caLire(ACCT.client_id))){var on=document.querySelector('.screen.on');if(on&&on.id==='s-ok'&&!aboLocked(ACCT.me))v64Squelette();}}catch(_e){}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',inst);else inst();})();
+
+/* === v65 : Comparateur — le technicien confirme ses jetons signalés (vrai RACC / pas RACC) ===
+   Équipe seulement. Les données viennent des RPC cmp_tech_liste / cmp_tech_repondre (vérifiées côté serveur :
+   clé du tech, ses lignes uniquement, aucun montant). Telegram reste en secours : même règle, même délai 48 h. */
+var CMP={n:0,data:null,le:0,ec:false,arme:null,armeT:0};
+function cmpOk(){var m=ACCT&&ACCT.me;return !!(m&&m.equipe);}
+function cmpCharger(force){if(!cmpOk()||CMP.ec)return Promise.resolve(CMP.data);
+  if(!force&&CMP.data&&Date.now()-CMP.le<60000)return Promise.resolve(CMP.data);
+  if(!navigator.onLine)return Promise.resolve(CMP.data);
+  CMP.ec=true;
+  return rpc('cmp_tech_liste',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(d){CMP.ec=false;
+    CMP.data=d||{};CMP.le=Date.now();CMP.n=parseInt(CMP.data.n,10)||0;
+    try{v64Alerte();}catch(_e){}try{if(V64.dr)v64DrBuild();}catch(_e2){}
+    if(document.getElementById('s-cmp'))cmpRendu();return CMP.data;},
+   function(e){CMP.ec=false;throw e;});}
+function cmpInstall(){if(!cmpOk())return;cmpCharger(false).catch(function(){});}
+function cmpEcran(){var s=document.createElement('section');s.className='screen';s.id='s-cmp';
+  var BACK='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  s.innerHTML='<div class="topbar"><button class="back" type="button" aria-label="Retour" id="cmp-back">'+BACK+'</button><div class="ttl">À confirmer</div><div style="width:34px"></div></div>'
+   +'<p class="sub" style="margin:2px 0 14px">CRINSTALLE vérifie le décompte Sogetrel. Pour ces jetons, ton commentaire parle d’un RACC : confirme si c’était vraiment un RACC.</p>'
+   +'<div class="note" id="cmp-info" role="status" aria-live="polite" style="margin-bottom:10px;color:var(--ok)"></div>'
+   +'<div class="err" id="err-cmp" role="alert"></div>'
+   +'<div id="cmp-liste"><div class="note">Chargement…</div></div>'
+   +'<div id="cmp-rep"></div><div class="grow"></div>';
+  var hs0=document.getElementById('s-home');(hs0&&hs0.parentNode?hs0.parentNode:document.body).appendChild(s);
+  document.getElementById('cmp-back').addEventListener('click',function(){goHome();});
+  s.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cmp]'):null;if(!b||b.disabled)return;
+    cmpClic(parseInt(b.getAttribute('data-cmp'),10),b.getAttribute('data-ch'),b);});}
+function cmpOuvrir(){if(!cmpOk())return;if(!document.getElementById('s-cmp'))cmpEcran();
+  err('err-cmp');document.getElementById('cmp-info').textContent='';CMP.arme=null;show('s-cmp');
+  if(CMP.data)cmpRendu();
+  if(!navigator.onLine){if(!CMP.data)document.getElementById('cmp-liste').innerHTML='<div class="note">Pas de réseau — réessaie une fois connecté.</div>';return;}
+  cmpCharger(true).catch(function(e){if(!CMP.data)document.getElementById('cmp-liste').innerHTML='';err('err-cmp',e&&e.reseau?HORSLIGNE_MSG:'Impossible de charger tes confirmations pour l’instant.');});}
+function cmpReste(ech){if(!ech)return '';var t=Date.parse(ech);if(isNaN(t))return '';var h=Math.ceil((t-Date.now())/3600000);
+  if(h<=0)return 'Délai dépassé';return 'Il te reste '+h+' h pour répondre';}
+function cmpBtn(id,ch){var arme=CMP.arme&&CMP.arme.id===id&&CMP.arme.ch===ch;var ok=ch==='ok';
+  var txt=arme?(ok?'✅ Sûr ? Retouche':'❌ Sûr ? Retouche'):(ok?'✅ Vrai RACC':'❌ Pas RACC');
+  return '<button class="btn'+(arme?'':' ghost')+'" type="button" data-cmp="'+id+'" data-ch="'+ch+'" style="flex:1;height:48px;font-size:14.5px'+(arme?(ok?';background:var(--ok);border-color:var(--ok)':';background:var(--danger);border-color:var(--danger)'):'')+'">'+txt+'</button>';}
+function cmpRendu(){var d=CMP.data||{},l=d.a_confirmer||[],r=d.repondus||[],h='',i;var box=document.getElementById('cmp-liste');if(!box)return;
+  if(!l.length){h='<div class="card" style="padding:16px;text-align:center"><div style="font-weight:700;margin-bottom:4px">Rien à confirmer ✅</div><div class="note">Quand CRINSTALLE aura besoin de toi sur un jeton, il apparaîtra ici.</div></div>';}
+  else{h='<div class="note" style="margin-bottom:10px;color:var(--warn)">Avant de répondre : vrai RACC ou pas ? N’oubliez pas : c’est 200 € d’amende s’ils s’en aperçoivent. Sans réponse dans les 48 h, la ligne est abandonnée.</div>';
+    for(i=0;i<l.length;i++){var x=l[i];var rest=cmpReste(x.echeance);
+      h+='<div class="card" style="padding:14px 16px;margin-bottom:12px">'
+        +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px"><div style="font-weight:700;font-size:17px;direction:ltr">'+esc(x.jeton||'—')+'</div><div class="note">'+esc(fmtD(x.date))+'</div></div>'
+        +'<div class="note" style="margin-top:2px">'+esc(TLBL[x.typo]||x.typo||'')+'</div>'
+        +(x.commentaire?'<div style="margin-top:8px;font-size:14px">Ton commentaire : <i>'+esc(x.commentaire)+'</i></div>':'')
+        +(rest?'<div class="note" style="margin-top:6px;color:var(--warn)">⏳ '+esc(rest)+'</div>':'')
+        +'<div style="display:flex;gap:8px;margin-top:12px">'+cmpBtn(x.id,'ok')+cmpBtn(x.id,'ko')+'</div></div>';}}
+  box.innerHTML=h;
+  var rb=document.getElementById('cmp-rep');
+  if(rb){if(!r.length){rb.innerHTML='';}else{var g='<div class="lsthead" style="margin-top:14px"><div class="t">Déjà répondu</div></div><div class="card" style="padding:6px 16px">';
+    for(i=0;i<r.length;i++){var y=r[i];g+='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0'+(i?';border-top:1px solid var(--border)':'')+'">'
+      +'<div style="min-width:0"><div style="font-weight:600;direction:ltr">'+esc(y.jeton||'—')+'</div><div class="note">'+esc(fmtD(y.date))+(y.typo?' · '+esc(TLBL[y.typo]||y.typo):'')+'</div></div>'
+      +'<div style="text-align:end;flex:none"><div style="font-size:14px">'+(y.reponse==='vrai_racc'?'✅ Vrai RACC':'❌ Pas RACC')+'</div><div class="note">'+(y.traite?'Traité':'Transmis à CRINSTALLE')+'</div></div></div>';}
+    rb.innerHTML=g+'</div>';}}}
+/* double appui : 1er appui = arme le bouton (4 s), 2e appui = envoie. Évite une réponse par erreur (définitive). */
+function cmpClic(id,ch,b){if(!id||(ch!=='ok'&&ch!=='ko'))return;err('err-cmp');
+  if(!(CMP.arme&&CMP.arme.id===id&&CMP.arme.ch===ch)){CMP.arme={id:id,ch:ch};clearTimeout(CMP.armeT);
+    CMP.armeT=setTimeout(function(){CMP.arme=null;cmpRendu();},4000);cmpRendu();return;}
+  clearTimeout(CMP.armeT);CMP.arme=null;
+  var bs=document.querySelectorAll('#cmp-liste [data-cmp="'+id+'"]');for(var i=0;i<bs.length;i++){bs[i].disabled=true;}
+  if(b)b.textContent='Envoi…';
+  rpc('cmp_tech_repondre',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id,p_choix:ch}).then(function(r){
+    if(r&&r.ok){document.getElementById('cmp-info').textContent='Réponse enregistrée ✅ Merci !';try{v64Vib(12);}catch(_e){}}
+    else err('err-cmp',(r&&r.message)||'Trop tard ou déjà traité — vois avec CRINSTALLE.');
+    return cmpCharger(true);
+  }).catch(function(e){err('err-cmp',e&&e.reseau?(navigator.onLine?RESEAU_MSG:HORSLIGNE_MSG):((e&&e.message)||RESEAU_MSG));cmpRendu();});}
