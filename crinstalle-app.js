@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='69';
+var APPV='70';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -5099,7 +5099,7 @@ function cadRenduRes(){var z=document.getElementById('cad-res');if(!z)return;var
      +'<div class="note" style="margin-top:4px">'+(r.n_validations>0?esc(String(r.n_validations))+' ligne'+(r.n_validations>1?'s':'')+' à valider.':'Aucune ligne à valider.')
      +(r.enregistrement&&r.enregistrement.purgees>0?' '+esc(String(r.enregistrement.purgees))+' ligne(s) en attente devenue(s) sans objet : retirée(s).':'')
      +(r.enregistrement&&r.enregistrement.decidees_absentes>0?' ⚠️ '+esc(String(r.enregistrement.decidees_absentes))+' ligne(s) déjà décidée(s) absente(s) de ce décompte : vérifie avant la réclamation.':'')+'</div>'
-     +(r.n_validations>0?'<div class="note" style="margin-top:6px">La validation se fait pour l’instant sur Telegram : je t’ai envoyé le bouton « Commencer la validation » sur @CRCOMPAR_bot.</div>':'')
+     +(r.n_validations>0?'<button class="btn" type="button" data-cad="valider" style="margin-top:10px">Valider les lignes</button><div class="note" style="margin-top:6px">Tu peux aussi valider sur @CRCOMPAR_bot : les deux restent synchronisés.</div>':'')
      +'<button class="btn ghost" type="button" data-cad="rap" style="margin-top:10px">'+(CAD.voirRap?'Masquer le rapport':'Voir le rapport complet')+'</button></div>'
      +(CAD.voirRap?cadBoite(cadTg(r.rapport)):'');}
   else if(r.route==='confirmer'){
@@ -5119,7 +5119,7 @@ function cadRenduEtat(){var z=document.getElementById('cad-etat'),e=CAD.etat||{}
     h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🔎 Lecture en attente de ta confirmation</div><div class="note" style="margin-top:4px">'+esc(a.nom||'Fichier')+' · '+esc(rsMoisLbl(a.mois))+' · reçu le '+esc(a.le)+'</div>'
       +'<button class="btn ghost" type="button" data-cad="voirattente" style="margin-top:10px">Voir l’analyse</button><div id="cad-att"></div></div>';}
   var v=e.validations||{};
-  if(v.mois&&v.en_attente>0)h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🗳 '+esc(String(v.en_attente))+' ligne'+(v.en_attente>1?'s':'')+' à valider — '+esc(rsMoisLbl(v.mois))+'</div><div class="note">Validation sur Telegram pour l’instant (@CRCOMPAR_bot).</div></div>';
+  if(v.mois&&v.en_attente>0)h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🗳 '+esc(String(v.en_attente))+' ligne'+(v.en_attente>1?'s':'')+' à valider — '+esc(rsMoisLbl(v.mois))+'</div><button class="btn" type="button" data-cad="valider" style="margin-top:10px">Valider les lignes</button></div>';
   if(e.rapport&&e.rapport.id&&!(CAD.res&&CAD.res.route==='comparer')){var p=e.rapport;
     h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">Dernier rapport — '+esc(rsMoisLbl(p.mois))+'</div><div class="note">'+esc(p.nom||'')+' · '+esc(p.le)+'</div>'
       +'<button class="btn ghost" type="button" data-cad="rapetat" style="margin-top:10px">'+(CAD.voirRapEtat?'Masquer le rapport':'Voir le rapport')+'</button></div>'+(CAD.voirRapEtat?cadBoite(cadTg(p.texte)):'');}
@@ -5129,6 +5129,7 @@ function cadRenduEtat(){var z=document.getElementById('cad-etat'),e=CAD.etat||{}
     h+='</div>';}
   z.innerHTML=h;}
 function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cad]'):null;if(!b)return;var a=b.getAttribute('data-cad');
+  if(a==='valider'){cavOuvrir();return;}
   if(a==='rap'){CAD.voirRap=!CAD.voirRap;cadRenduRes();return;}
   if(a==='rapetat'){CAD.voirRapEtat=!CAD.voirRapEtat;cadRenduEtat();return;}
   if(a==='voirattente'){var z=document.getElementById('cad-att'),at=CAD.etat&&CAD.etat.a_confirmer;if(!z||!at)return;
@@ -5144,3 +5145,73 @@ function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
       if(CAD.fichier&&CAD.res&&CAD.res.route==='confirmer'&&parseInt(CAD.res.analyse_id,10)===id){cadEnvoyer();return;}
       CAD.res={ok:false,route:'info',message:'Lecture confirmée. Choisis à nouveau le même fichier puis « Analyser et comparer » pour lancer la comparaison (valable 3 jours).'};cadRenduRes();CAD.etat=null;cadEtat();},
      function(e){for(var i=0;i<bs.length;i++)bs[i].disabled=false;err('err-cad',e&&e.reseau?HORSLIGNE_MSG:'Décision non enregistrée — réessaie.');});}}
+/* ===== v70 : comparateur — VALIDATION des lignes dans l'appli (étape 3b, administrateur)
+   Mêmes décisions et mêmes statuts que les boutons Telegram (réclamé / ignoré ; régule globale : CRINSTALLE / pot SAV /
+   technicien). Contrôle côté serveur (cmp_admin_validations / cmp_admin_decider). Double appui pour éviter les erreurs. */
+var CAV={data:null,ec:false,arme:null,armeT:0,choixTech:null,info:''};
+var CAV_IC={manque:'🔴 MANQUE',sous_paye:'🟠 SOUS-PAYÉ',signalement:'🟡 SIGNALEMENT',regule_globale:'📦 RÉGULE GLOBALE',bonus_apt:'🟣 BONUS APT NON PAYÉ'};
+var CAV_LBL={reclame:'✅ Réclamer',ignore:'❌ Ignorer',crinstalle:'🏢 CRINSTALLE',pot_sav:'🔵 Pot SAV',tech:'👤 Affecter'};
+var CAV_FAIT={reclame:'✅ Réclamé',ignore:'❌ Ignoré',crinstalle:'🏢 Encaissé CRINSTALLE',pot_sav:'🔵 Ajouté au pot SAV',tech:'👤 Affecté'};
+function cavEcran(){var s=document.createElement('section');s.className='screen';s.id='s-cmpval';
+  var BACK='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  s.innerHTML='<div class="topbar"><button class="back" type="button" aria-label="Retour" id="cav-back">'+BACK+'</button><div class="ttl">Lignes à valider</div><div style="width:34px"></div></div>'
+   +'<p class="sub" style="margin:2px 0 12px" id="cav-sub">Réclame ou ignore chaque ligne. Appuie deux fois pour confirmer.</p>'
+   +'<div class="err" id="err-cav" role="alert"></div><div class="note" id="cav-info" aria-live="polite" style="min-height:18px;margin-bottom:6px"></div>'
+   +'<div id="cav-liste"><div class="note">Chargement…</div></div><div class="grow"></div>';
+  var hs0=document.getElementById('s-home');(hs0&&hs0.parentNode?hs0.parentNode:document.body).appendChild(s);
+  document.getElementById('cav-back').addEventListener('click',function(){cadOuvrir();});
+  document.getElementById('cav-liste').addEventListener('click',cavClic);}
+function cavOuvrir(){if(!cadOk())return;if(!document.getElementById('s-cmpval'))cavEcran();err('err-cav');CAV.info='';document.getElementById('cav-info').textContent='';show('s-cmpval');cavCharger();}
+function cavCharger(){var z=document.getElementById('cav-liste');if(CAV.data)cavRendu();
+  if(!navigator.onLine){if(!CAV.data&&z)z.innerHTML='<div class="note">Pas de réseau — réessaie une fois connecté.</div>';return Promise.resolve();}
+  if(CAV.ec)return Promise.resolve();CAV.ec=true;
+  return rpc('cmp_admin_validations',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(d){CAV.ec=false;CAV.data=d||{};cavRendu();},
+   function(e){CAV.ec=false;if(!CAV.data&&z)z.innerHTML='';err('err-cav',e&&e.reseau?HORSLIGNE_MSG:'Impossible de charger les lignes pour l’instant.');});}
+function cavMontant(r){var v=parseFloat(r.montant)||0;if(!(v>0)&&(r.type==='sous_paye'||r.type==='signalement'))return 'à chiffrer';return fmt(v);}
+function cavAvis(r){if(r.type!=='signalement')return '';
+  if(r.decide_par_tech==='vrai_racc')return '👍 Le technicien CONFIRME : vrai RACC';
+  if(r.decide_par_tech==='pas_racc')return '👎 Le technicien dit : PAS un racc';
+  if(r.notifie)return '⏳ Le technicien n’a pas encore répondu (48 h)';
+  if((parseInt(r.tentatives,10)||0)>0)return '📵 Technicien injoignable';
+  return '📭 Technicien pas encore sollicité';}
+function cavBtn(id,ch,ghost){var on=CAV.arme&&CAV.arme.id===id&&CAV.arme.ch===ch;
+  return '<button class="btn'+(ghost&&!on?' ghost':'')+'" type="button" data-cav="'+ch+'" data-id="'+id+'" style="margin-top:0;flex:1;min-width:0;padding-left:6px;padding-right:6px">'+(on?'Sûr ? Retouche':CAV_LBL[ch])+'</button>';}
+function cavRendu(){var z=document.getElementById('cav-liste'),d=CAV.data||{};if(!z)return;var l=d.lignes||[],h='';
+  var sub=document.getElementById('cav-sub');if(sub)sub.textContent=(d.mois?'Décompte de '+rsMoisLbl(d.mois)+' · ':'')+'Appuie deux fois sur un bouton pour confirmer.';
+  if(!l.length){var dc=d.decidees||{},n=0;for(var k in dc)if(Object.prototype.hasOwnProperty.call(dc,k))n+=parseInt(dc[k],10)||0;
+    z.innerHTML='<div class="card" style="padding:16px;text-align:center"><div style="font-weight:700;margin-bottom:4px">'+(n?'🎉 Validation terminée':'Rien à valider')+(d.mois?' — '+esc(rsMoisLbl(d.mois)):'')+'</div>'
+      +(n?'<div class="note">'+esc(String(dc.reclame||0))+' réclamée(s) · '+esc(String(dc.ignore||0))+' ignorée(s)'+((dc.crinstalle||dc.pot_sav||dc.affecte)?' · régules : '+esc(String(dc.crinstalle||0))+' CRINSTALLE, '+esc(String(dc.pot_sav||0))+' pot SAV, '+esc(String(dc.affecte||0))+' affectée(s)':'')+(dc.expire?' · '+esc(String(dc.expire))+' signalement(s) expiré(s)':'')+'</div>'
+        +'<div class="note" style="margin-top:8px">PDF de réclamation et envoi des relevés : pour l’instant sur @CRCOMPAR_bot (appuie sur « Commencer la validation » pour retrouver les boutons).</div>':'')+'</div>';return;}
+  var grp={},noms=[];l.forEach(function(r){var g=r.type==='regule_globale'?'\u0000rg':(r.tech_prenom||'Sans technicien');if(!grp[g]){grp[g]=[];noms.push(g);}grp[g].push(r);});
+  noms.forEach(function(g){var L=grp[g];
+    h+='<div class="note" style="margin:14px 0 6px;font-weight:700">'+(g==='\u0000rg'?'📦 Régules globales — à affecter':'👤 '+esc(g))+' · '+L.length+' ligne'+(L.length>1?'s':'')+'</div>';
+    L.forEach(function(r){var id=r.id,av=cavAvis(r);
+      h+='<div class="card" style="padding:12px 14px;margin-bottom:10px"><div style="font-weight:700">'+esc(CAV_IC[r.type]||r.type)+'</div>'
+        +'<div style="margin-top:2px;font-variant-numeric:tabular-nums">'+(r.jeton?'🎫 '+esc(r.jeton)+' · ':'')+esc(cavMontant(r))+'</div>'
+        +(r.libelle?'<div class="note" style="margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere">'+esc(String(r.libelle).replace(/💬/g,'').trim())+'</div>':'')
+        +(av?'<div class="note" style="margin-top:4px;color:var(--tx)">'+esc(av)+'</div>':'');
+      if(r.type==='regule_globale'){
+        h+='<div style="display:flex;gap:8px;margin-top:10px">'+cavBtn(id,'crinstalle',false)+cavBtn(id,'pot_sav',true)+'</div>';
+        if(CAV.choixTech===id){var t=d.techs||[],o='<option value="">Choisis le technicien…</option>';for(var i=0;i<t.length;i++)o+='<option value="'+esc(t[i].tid)+'">'+esc(t[i].prenom)+'</option>';
+          h+='<div style="display:flex;gap:8px;margin-top:8px;align-items:center"><select id="cav-tech-'+id+'" aria-label="Technicien" style="flex:1;min-width:0;height:48px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:0 12px;color:var(--tx);font-size:16px;font-weight:600">'+o+'</select>'+cavBtn(id,'tech',false)+'</div>';}
+        else h+='<button class="btn ghost" type="button" data-cav="choisir" data-id="'+id+'" style="margin-top:8px">👤 Donner à un technicien</button>';}
+      else h+='<div style="display:flex;gap:8px;margin-top:10px">'+cavBtn(id,'reclame',false)+cavBtn(id,'ignore',true)+'</div>';
+      h+='</div>';});});
+  z.innerHTML=h;
+  if(CAV.choixTech&&CAV.arme&&CAV.arme.ch==='tech'){var s0=document.getElementById('cav-tech-'+CAV.choixTech);if(s0&&CAV.arme.tid)s0.value=CAV.arme.tid;}}
+function cavClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cav]'):null;if(!b||b.disabled)return;
+  var ch=b.getAttribute('data-cav'),id=parseInt(b.getAttribute('data-id'),10);if(!(id>0))return;err('err-cav');
+  if(ch==='choisir'){CAV.choixTech=id;CAV.arme=null;cavRendu();return;}
+  if(!CAV_LBL[ch])return;
+  var tid=null;if(ch==='tech'){var sel=document.getElementById('cav-tech-'+id);tid=sel?sel.value:'';if(!tid){err('err-cav','Choisis d’abord le technicien.');return;}}
+  if(!(CAV.arme&&CAV.arme.id===id&&CAV.arme.ch===ch&&(ch!=='tech'||CAV.arme.tid===tid))){CAV.arme={id:id,ch:ch,tid:tid};clearTimeout(CAV.armeT);
+    CAV.armeT=setTimeout(function(){CAV.arme=null;cavRendu();},4000);cavRendu();return;}
+  clearTimeout(CAV.armeT);CAV.arme=null;
+  if(!navigator.onLine){err('err-cav',HORSLIGNE_MSG);cavRendu();return;}
+  var bs=document.querySelectorAll('#cav-liste [data-id="'+id+'"]');for(var i=0;i<bs.length;i++)bs[i].disabled=true;b.textContent='Envoi…';
+  var p={p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id,p_choix:ch==='tech'?'tech':ch};if(ch==='tech')p.p_tid=tid;
+  rpc('cmp_admin_decider',p).then(function(r){
+    if(r&&r.ok){document.getElementById('cav-info').textContent=CAV_FAIT[ch]+(r.prenom?' à '+r.prenom:'')+' · reste '+(parseInt(r.reste_total,10)||0)+' ligne(s)';try{v64Vib(12);}catch(_e){}if(CAV.choixTech===id)CAV.choixTech=null;}
+    else err('err-cav',(r&&r.message)||'Décision non enregistrée.');
+    CAD.etat=null;return cavCharger();
+  }).catch(function(e){err('err-cav',e&&e.reseau?(navigator.onLine?RESEAU_MSG:HORSLIGNE_MSG):((e&&e.message)||'Décision non enregistrée — réessaie.'));cavRendu();});}
