@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='70';
+var APPV='71';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -5072,6 +5072,7 @@ function cadOuvrir(){if(!cadOk())return;if(!document.getElementById('s-cmpadm'))
 function cadEtat(){var z=document.getElementById('cad-etat');if(!z)return;if(CAD.etat)cadRenduEtat();
   if(!navigator.onLine){if(!CAD.etat)z.innerHTML='<div class="note" style="margin-top:12px">Pas de réseau — réessaie une fois connecté.</div>';return;}
   if(CAD.ec)return;CAD.ec=true;
+  try{cadRecapCharger();}catch(_e){}
   rpc('cmp_admin_etat',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(d){CAD.ec=false;CAD.etat=d||{};cadRenduEtat();},
    function(e){CAD.ec=false;err('err-cad',e&&e.reseau?HORSLIGNE_MSG:'Impossible de charger l’état du comparateur pour l’instant.');});}
 function cadChoix(){var f=document.getElementById('cad-f'),x=f.files&&f.files[0],nm=document.getElementById('cad-nom'),go=document.getElementById('cad-go');err('err-cad');CAD.fichier=null;go.disabled=true;
@@ -5095,7 +5096,7 @@ function cadEnvoyer(){if(CAD.envoi||!CAD.fichier)return;err('err-cad');
 function cadRenduRes(){var z=document.getElementById('cad-res');if(!z)return;var r=CAD.res,h='';if(!r){z.innerHTML='';return;}
   if(r.route==='encours')h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">Analyse du fichier…</div><div class="note">Lecture, contrôles puis comparaison. Cela prend quelques secondes.</div></div>';
   else if(r.route==='comparer'){
-    h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">✅ Comparaison faite — '+esc(rsMoisLbl(r.mois))+'</div>'
+    h=(CAD.recap&&CAD.recap.mois===r.mois?cadRecapHtml():'')+'<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">✅ Comparaison faite — '+esc(rsMoisLbl(r.mois))+'</div>'
      +'<div class="note" style="margin-top:4px">'+(r.n_validations>0?esc(String(r.n_validations))+' ligne'+(r.n_validations>1?'s':'')+' à valider.':'Aucune ligne à valider.')
      +(r.enregistrement&&r.enregistrement.purgees>0?' '+esc(String(r.enregistrement.purgees))+' ligne(s) en attente devenue(s) sans objet : retirée(s).':'')
      +(r.enregistrement&&r.enregistrement.decidees_absentes>0?' ⚠️ '+esc(String(r.enregistrement.decidees_absentes))+' ligne(s) déjà décidée(s) absente(s) de ce décompte : vérifie avant la réclamation.':'')+'</div>'
@@ -5115,6 +5116,7 @@ function cadRenduRes(){var z=document.getElementById('cad-res');if(!z)return;var
   z.innerHTML=h;}
 var CAD_ST={en_attente:'à confirmer',confirme:'lecture confirmée',utilise:'comparé',refuse:'refusé'};
 function cadRenduEtat(){var z=document.getElementById('cad-etat'),e=CAD.etat||{};if(!z)return;var h='';
+  if(CAD.recap&&!(CAD.res&&CAD.res.route==='comparer'&&CAD.res.mois===CAD.recap.mois))h+=cadRecapHtml();
   if(e.a_confirmer&&e.a_confirmer.id&&!(CAD.res&&CAD.res.route==='confirmer')){var a=e.a_confirmer;
     h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🔎 Lecture en attente de ta confirmation</div><div class="note" style="margin-top:4px">'+esc(a.nom||'Fichier')+' · '+esc(rsMoisLbl(a.mois))+' · reçu le '+esc(a.le)+'</div>'
       +'<button class="btn ghost" type="button" data-cad="voirattente" style="margin-top:10px">Voir l’analyse</button><div id="cad-att"></div></div>';}
@@ -5130,6 +5132,8 @@ function cadRenduEtat(){var z=document.getElementById('cad-etat'),e=CAD.etat||{}
   z.innerHTML=h;}
 function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cad]'):null;if(!b)return;var a=b.getAttribute('data-cad');
   if(a==='valider'){cavOuvrir();return;}
+  if(a==='recapT'){CAD.voirRecapT=!CAD.voirRecapT;cadRenduRes();cadRenduEtat();return;}
+  if(a==='recapM'){CAD.voirRecapM=!CAD.voirRecapM;cadRenduRes();cadRenduEtat();return;}
   if(a==='rap'){CAD.voirRap=!CAD.voirRap;cadRenduRes();return;}
   if(a==='rapetat'){CAD.voirRapEtat=!CAD.voirRapEtat;cadRenduEtat();return;}
   if(a==='voirattente'){var z=document.getElementById('cad-att'),at=CAD.etat&&CAD.etat.a_confirmer;if(!z||!at)return;
@@ -5215,3 +5219,40 @@ function cavClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
     else err('err-cav',(r&&r.message)||'Décision non enregistrée.');
     CAD.etat=null;return cavCharger();
   }).catch(function(e){err('err-cav',e&&e.reseau?(navigator.onLine?RESEAU_MSG:HORSLIGNE_MSG):((e&&e.message)||'Décision non enregistrée — réessaie.'));cavRendu();});}
+/* ===== v71 : comparateur — RÉCAP CONFIDENTIEL « ce qu'il te reste » (étape 4, administrateur uniquement)
+   Calcul côté serveur (_cmp_recap) : reste = total payé par Sogetrel − versé aux techs ; versé = brut × (1 − commission) ;
+   commission 20 % (15 % Mermri Mohamed) ; interventions du patron = 100 % CRINSTALLE ; malfaçons NON reprises (reprise possible
+   affichée à part, ligne par ligne). Rien n'est gardé sur le téléphone. */
+CAD.recap=null;CAD.voirRecapT=false;CAD.voirRecapM=false;
+function cadRecapCharger(){if(!cadOk()||!navigator.onLine)return;
+  rpc('cmp_admin_recap',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:null}).then(function(d){CAD.recap=(d&&d.mois)?d:null;cadRenduRes();cadRenduEtat();},function(){CAD.recap=null;});}
+function cadPct(t){var v=Math.round((parseFloat(t)||0)*1000)/10;return String(v).replace('.',',')+' %';}
+function cadRecapHtml(){var r=CAD.recap;if(!r||!r.mois)return '';
+  if(!r.ok)return '<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">💰 Ce qu’il te reste — '+esc(rsMoisLbl(r.mois))+'</div><div class="note">'+esc(r.message||'Calcul impossible.')+'</div></div>';
+  var L=function(a,b,fort){return '<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0'+(fort?';font-weight:800;font-size:17px':'')+'"><span>'+a+'</span><span style="font-variant-numeric:tabular-nums;white-space:nowrap">'+b+'</span></div>';};
+  var h='<div class="card" style="padding:14px 16px;margin-top:12px;border:1px solid var(--accent-l)"><div style="font-weight:700;margin-bottom:6px">💰 Ce qu’il te reste — '+esc(rsMoisLbl(r.mois))+' <span class="note" style="font-weight:400">· confidentiel</span></div>'
+    +L('Payé par Sogetrel',esc(fmt(r.total)))+L('À verser aux techniciens','− '+esc(fmt(r.verse_techs)))
+    +'<div style="border-top:1px solid var(--border);margin:6px 0"></div>'+L('Il te reste',esc(fmt(r.reste)),true)
+    +'<div class="note" style="margin-top:6px">Dont commissions '+esc(fmt(r.commissions))+' (20 % · 15 % pour Mermri Mohamed)'+(r.patron&&r.patron.brut?' · tes interventions '+esc(fmt(r.patron.brut)):'')+' · le reste = surplus au-dessus des grilles et lignes sans technicien.</div>';
+  var m=r.malfacons||{},avert=[];
+  if(m.n>0)avert.push('🛠 '+esc(String(m.n))+' malfaçon'+(m.n>1?'s':'')+' ('+esc(fmt(m.liste_total))+' ; Sogetrel en a déduit '+esc(fmt(m.decompte_total))+') : déjà retirées du total, <b>pas reprises</b> sur les techs dans ce calcul. Reprise possible : +'+esc(fmt(m.reprise_possible))+(m.non_trouvees?' ('+esc(String(m.non_trouvees))+' jeton(s) introuvable(s) dans l’appli)':'')+'.');
+  if(r.rg_attente&&r.rg_attente.n>0)avert.push('📦 '+esc(String(r.rg_attente.n))+' régule(s) globale(s) à décider ('+esc(fmt(r.rg_attente.montant))+') : comptée(s) chez toi pour l’instant.');
+  if(r.rdv_nh>0)avert.push('⏰ RDV non honorés : '+esc(fmt(r.rdv_nh))+' déjà retirés par Sogetrel, à ta charge.');
+  avert.push('ℹ️ Estimation : les manques réclamés ne comptent qu’une fois payés par Sogetrel.');
+  h+='<div class="note" style="margin-top:8px;display:grid;gap:4px">'+avert.map(function(x){return '<div>'+x+'</div>';}).join('')+'</div>';
+  var T=r.techs||[];
+  h+='<div style="display:flex;gap:8px;margin-top:10px"><button class="btn ghost" type="button" data-cad="recapT" style="margin-top:0;flex:1;min-width:0">'+(CAD.voirRecapT?'Masquer les techs':'Par technicien')+'</button>'
+    +(m.n>0?'<button class="btn ghost" type="button" data-cad="recapM" style="margin-top:0;flex:1;min-width:0">'+(CAD.voirRecapM?'Masquer malfaçons':'Malfaçons')+'</button>':'')+'</div>';
+  if(CAD.voirRecapT){h+='<div style="margin-top:8px">';
+    T.forEach(function(t,i){var nm=esc(t.prenom)+(t.nom?' '+esc(String(t.nom).charAt(0))+'.':'');
+      h+='<div style="padding:8px 0'+(i?';border-top:1px solid var(--border)':'')+'"><div style="display:flex;justify-content:space-between;gap:8px;font-weight:700"><span>'+nm+'</span><span style="font-variant-numeric:tabular-nums">'+esc(fmt(t.a_verser))+'</span></div>'
+        +'<div class="note">Brut '+esc(fmt(t.brut))+' (prod. '+esc(fmt(t.prod))+(t.sav?' · SAV '+esc(fmt(t.sav)):'')+(t.rg?' · régules '+esc(fmt(t.rg)):'')+') − commission '+esc(cadPct(t.taux))+' '+esc(fmt(t.commission))
+        +(t.malf_suggeree>0?' · malfaçons suggérées '+esc(fmt(t.malf_suggeree))+' (non reprises)':'')+'</div></div>';});
+    if(!T.length)h+='<div class="note">Aucun technicien à payer pour ce mois.</div>';h+='</div>';}
+  if(CAD.voirRecapM&&m.lignes){h+='<div style="margin-top:8px">';
+    m.lignes.forEach(function(x,i){var ap=(x.techs||[]).map(function(t){return esc(t.prenom)+(t.nom?' '+esc(t.nom):'')+(t.patron?' (toi)':'');}).join(' + ');
+      h+='<div style="padding:8px 0'+(i?';border-top:1px solid var(--border)':'')+'"><div style="display:flex;justify-content:space-between;gap:8px;font-weight:600"><span>🎫 '+esc(x.jeton)+' · '+esc(fmtD(x.date))+'</span><span>'+esc(fmt(x.penalite))+'</span></div>'
+        +'<div class="note">Sogetrel : '+esc(x.nom_sogetrel||'?')+' · Appli : '+(ap||'jeton introuvable')+'</div></div>';});
+    h+='</div>';}
+  if(r.calcule_sur)h+='<div class="note" style="margin-top:8px">Fichier comparé le '+esc(r.calcule_sur)+' · mis à jour avec tes décisions.</div>';
+  return h+'</div>';}
