@@ -664,7 +664,7 @@ function fmtDM(s){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||''));return m?
 function mtNorm(v){var s=String(v||'').replace(/[\s  ]/g,'');if(!s)return null;
   if(s.indexOf(',')>=0)s=s.replace(/\./g,'').replace(/,/g,'.');
   return /^\d+(\.\d{1,2})?$/.test(s)?s:null;}
-function buildProfil(){if(!ACCT||(ACCT.me&&ACCT.me.equipe))return;var me=ACCT.me||{};if(!document.getElementById('ok-profil')){var d=document.createElement('div');d.id='ok-profil';document.getElementById('ok-recap').insertAdjacentElement('afterend',d);}document.getElementById('ok-profil').innerHTML='<div class="lsthead" style="margin-top:8px"><div class="t">Mon profil</div></div><div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="field"><label class="lab" for="pf-email">Email</label><input type="text" id="pf-email" maxlength="120" autocomplete="email" placeholder="ex. karim@gmail.com"><div class="note">Pour récupérer ton compte si tu perds ton lien.</div></div><div class="field"><label class="lab" for="pf-dep">Département</label><input type="text" id="pf-dep" maxlength="3" placeholder="ex. 06" style="width:110px"></div><div class="swrow"><div><div class="swname" id="lbl-dispo">Ouvert aux opportunités</div><div class="swsub">On te contacte si un patron cherche un technicien dans ton département.</div></div><button class="sw'+(me.dispo_opportunites==='oui'?' on':'')+'" id="sw-dispo" role="switch" aria-checked="'+(me.dispo_opportunites==='oui'?'true':'false')+'" aria-labelledby="lbl-dispo" onclick="togSw(this)"></button></div><div class="err" id="err-profil" role="alert"></div><button class="btn ghost" onclick="saveProfil()" id="btn-profil">Enregistrer mon profil</button></div>';document.getElementById('pf-email').value=me.email||'';document.getElementById('pf-dep').value=me.departement||'';}
+function buildProfil(){if(!ACCT||(ACCT.me&&ACCT.me.equipe))return;var me=ACCT.me||{};if(!document.getElementById('ok-profil')){var d=document.createElement('div');d.id='ok-profil';document.getElementById('ok-recap').insertAdjacentElement('afterend',d);}document.getElementById('ok-profil').innerHTML='<div class="lsthead" style="margin-top:8px"><div class="t">Mon profil</div></div><div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="field"><label class="lab" for="pf-email">Email</label><input type="text" id="pf-email" maxlength="120" autocomplete="email" placeholder="ex. karim@gmail.com"><div class="note">Pour récupérer ton compte si tu perds ton lien.</div></div><div class="field"><label class="lab" for="pf-dep">Département</label><input type="text" id="pf-dep" maxlength="3" placeholder="ex. 06" style="width:110px"></div><div class="swrow"><div><div class="swname" id="lbl-dispo">Ouvert aux opportunités</div><div class="swsub">On te contacte si un patron cherche un technicien dans ton département.</div></div><button class="sw'+(me.dispo_opportunites==='oui'?' on':'')+'" id="sw-dispo" role="switch" aria-checked="'+(me.dispo_opportunites==='oui'?'true':'false')+'" aria-labelledby="lbl-dispo" onclick="togSw(this)"></button></div><div class="err" id="err-profil" role="alert"></div><button class="btn ghost" onclick="saveProfil()" id="btn-profil">Enregistrer mon profil</button><button class="btn" type="button" onclick="oppOuvrir()" style="margin-top:0">Mon profil pro et offres</button></div>';document.getElementById('pf-email').value=me.email||'';document.getElementById('pf-dep').value=me.departement||'';}
 function saveProfil(){if(!ACCT)return;err('err-profil');var em=document.getElementById('pf-email').value.trim();var dep=document.getElementById('pf-dep').value.trim();var disp=document.getElementById('sw-dispo').classList.contains('on')?'oui':'non';if(disp==='oui'&&!dep){err('err-profil','Indique ton département pour être contacté.');document.getElementById('pf-dep').focus();return;}var b=document.getElementById('btn-profil');b.disabled=true;rpc('solo_profil_save',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_email:em,p_departement:dep,p_dispo:disp}).then(function(r){b.disabled=false;ACCT.me.email=r.email;ACCT.me.departement=r.departement;ACCT.me.dispo_opportunites=r.dispo;document.getElementById('pf-dep').value=r.departement;b.textContent='Profil enregistré ✓';setTimeout(function(){b.textContent='Enregistrer mon profil';},2000);}).catch(function(e){b.disabled=false;err('err-profil',e&&e.message?e.message:'Petit souci réseau, réessaie.');});}
 function isoLocal(d){var m=d.getMonth()+1,j=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(j<10?'0':'')+j;}
 var CADET_OPEN=false;
@@ -1229,7 +1229,7 @@ var ab=document.getElementById('hm-abo');
 if(aboLocked(ACCT.me)){ab.innerHTML='<button class="linkbtn" style="width:100%;text-align:center;background:var(--tint);border:1px solid var(--accent);border-radius:14px;padding:14px;color:var(--accent-l);font-weight:700" onclick="show(&quot;s-abo&quot;)">Essai terminé — la saisie est en pause. S’abonner</button>';}
 else if(ACCT.me.abo_statut==='essai'){var aj=parseInt(ACCT.me.abo_jours,10)||0;ab.innerHTML='<div class="note center" style="padding:2px 0 10px'+(aj<=5?';color:var(--accent-l);font-weight:600':'')+'">'+(aj<=0?'Essai gratuit — dernier jour aujourd’hui':'Essai gratuit — '+aj+' jour'+(aj>1?'s':'')+' restant'+(aj>1?'s':''))+'</div>';}
 else{ab.innerHTML='';}
-buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);try{pmInstall();}catch(_ePm){}try{cjInstall();}catch(_eCj){}try{dechInstall();}catch(_eD){}show('s-home');if(AVIS){err('err-home',AVIS);AVIS=null;}}).catch(function(e){
+buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);try{pmInstall();}catch(_ePm){}try{cjInstall();}catch(_eCj){}try{dechInstall();}catch(_eD){}try{oppInstall();}catch(_eO){}show('s-home');if(AVIS){err('err-home',AVIS);AVIS=null;}}).catch(function(e){
   /* v39 : un compte revoque est renvoye a l'accueil (comme connect), les autres erreurs sont AFFICHEES */
   var msg=(e&&e.message)||'';
   if(msg.indexOf('Accès refusé')>=0){try{var _st=JSON.parse(localStorage.getItem('crinstalle'));if(!_st||_st.client_id===ACCT.client_id)localStorage.removeItem('crinstalle');}catch(_e){}try{meOublier(ACCT.client_id);}catch(_e2){}ACCT=null;err('err-accueil','Ce compte n’existe plus — tu peux en créer un nouveau.');show('s-accueil');return;}
@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='62';
+var APPV='63';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -4193,3 +4193,191 @@ var qrcode = function() {
 }(function () {
     return qrcode;
 }));
+
+/* ===== v63 : Recrutement — « Opportunités » (techs indépendants) + espace « Recrutement » (Zo, admin) =====
+   Serveur : fonctions opp_* (Supabase, migration recrutement_v1). Le serveur vérifie tout : un tech ne voit que les offres
+   de son département, les coordonnées ne sont données au recruteur que si le tech l'a accepté. */
+var OPP_COMP=[['raccordement','Raccordement'],['aerien','Aérien'],['souterrain','Souterrain'],['facade','Façade'],['immeuble','Immeuble'],['pro','PRO'],['sav','SAV'],['tirage','Tirage'],['soudure','Soudure'],['mesures','Mesures'],['nacelle','Nacelle']];
+var OPP_DISPO=[['immediate','Tout de suite'],['1mois','Sous 1 mois'],['missions','Missions ponctuelles'],['plus_tard','Plus tard']];
+var OPP_TYPE={mission:'Mission',sous_traitance:'Sous-traitance',cdi:'CDI',cdd:'CDD',interim:'Intérim'};
+var OPP_CAND={nouvelle:'Envoyée',vue:'Vue par le recruteur',contactee:'Le recruteur t’a contacté',retenue:'Retenu ✓',refusee:'Non retenu'};
+var OPP_SVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M3 13h18"/></svg>';
+var OPP_BACK='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+var OPP_EC=false,OPP_P=null,OPP_L=null,RC_OFF=null,RC_VIV=null,RC_EDIT=null,RC_SEG='off';
+function oppEstSolo(){return !!(ACCT&&ACCT.me&&!ACCT.me.equipe);}
+function oppEstAdmin(){return !!(ACCT&&ACCT.me&&ACCT.me.equipe&&ACCT.me.acces==='admin');}
+function oppLbl(list,code){for(var i=0;i<list.length;i++)if(list[i][0]===code)return list[i][1];return code;}
+function oppChips(list,sel,attr,multi){var h='<div style="display:flex;flex-wrap:wrap;gap:8px" role="'+(multi?'group':'radiogroup')+'">';
+  for(var i=0;i<list.length;i++){var on=multi?(sel.indexOf(list[i][0])>=0):(sel===list[i][0]);
+    h+='<button type="button" class="chip'+(on?' sel':'')+'" '+attr+'="'+list[i][0]+'" role="'+(multi?'checkbox':'radio')+'" aria-checked="'+(on?'true':'false')+'">'+esc(list[i][1])+'</button>';}
+  return h+'</div>';}
+function oppChipsLire(box,attr){var r=[],b=box?box.querySelectorAll('['+attr+'].sel'):[];for(var i=0;i<b.length;i++)r.push(b[i].getAttribute(attr));return r;}
+function oppChipClic(box,attr,multi){if(!box)return;box.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('['+attr+']'):null;if(!b)return;
+  if(!multi){var all=box.querySelectorAll('['+attr+']');for(var i=0;i<all.length;i++){all[i].classList.remove('sel');all[i].setAttribute('aria-checked','false');}}
+  var on=multi?!b.classList.contains('sel'):true;b.classList.toggle('sel',on);b.setAttribute('aria-checked',on?'true':'false');});}
+function oppTags(arr){if(!arr||!arr.length)return '';var h='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
+  for(var i=0;i<arr.length;i++)h+='<span style="font-size:12px;padding:3px 9px;border-radius:999px;background:var(--surface-s);color:var(--tx2)">'+esc(oppLbl(OPP_COMP,arr[i]))+'</span>';return h+'</div>';}
+function oppDeps(d){d=d||[];return d.indexOf('FR')>=0?'Toute la France':'Dép. '+d.map(esc).join(', ');}
+function oppTel(t){var d=String(t||'').replace(/\D/g,'');return /^0[1-9]\d{8}$/.test(d)?d:'';}
+function oppTelFmt(t){return String(t||'').replace(/(\d{2})(?=\d)/g,'$1 ');}
+function oppErr(m){return (m&&m.message)?m.message:'Petit souci réseau, réessaie.';}
+
+/* --- cartes de l'accueil --- */
+function oppInstall(){if(!ACCT||!ACCT.me)return;
+  if(oppEstSolo()){if(!document.getElementById('s-opp'))oppEcran();if(document.getElementById('hm-opp'))return;
+    var ref=document.getElementById('hm-pm')||document.querySelector('#s-home .tiles');if(!ref)return;
+    var d=document.createElement('div');d.id='hm-opp';d.className='card';d.style.cssText='padding:14px 16px;margin-top:14px';
+    d.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:4px">'+OPP_SVG+'<span>Opportunités</span></div>'
+     +'<div class="note" id="hm-opp-txt" style="margin-bottom:10px">Des missions et des postes de technicien fibre près de chez toi.</div>'
+     +'<button class="btn" type="button" id="hm-opp-go" style="margin-top:0;width:100%">Voir les offres</button>';
+    ref.insertAdjacentElement('afterend',d);document.getElementById('hm-opp-go').addEventListener('click',oppOuvrir);oppResume();return;}
+  if(oppEstAdmin()){if(!document.getElementById('s-recrut'))rcEcran();if(document.getElementById('hm-recrut'))return;
+    var ref2=document.getElementById('hm-dech')||document.getElementById('hm-cj')||document.getElementById('hm-pm')||document.querySelector('#s-home .tiles');if(!ref2)return;
+    var e=document.createElement('div');e.id='hm-recrut';e.className='card';e.style.cssText='padding:14px 16px;margin-top:14px';
+    e.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:4px">'+OPP_SVG+'<span>Recrutement</span></div>'
+     +'<div class="note" id="hm-rc-txt" style="margin-bottom:10px">Publie tes offres et retrouve les techniciens disponibles.</div>'
+     +'<button class="btn" type="button" id="hm-rc-go" style="margin-top:0;width:100%">Ouvrir le recrutement</button>';
+    ref2.insertAdjacentElement('afterend',e);document.getElementById('hm-rc-go').addEventListener('click',rcOuvrir);rcResume();}}
+function oppResume(){if(!oppEstSolo()||!navigator.onLine)return;rpc('opp_offres_liste',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){var t=document.getElementById('hm-opp-txt');if(!t||!r)return;
+  if(r.besoin_departement){t.textContent='Indique ton département pour voir les offres près de chez toi.';return;}
+  var n=(r.offres||[]).length;t.textContent=n?(n+' offre'+(n>1?'s':'')+' dans ton secteur ('+r.departement+').'):'Aucune offre dans ton secteur pour l’instant — active ton profil pro pour être prévenu.';},function(){});}
+function rcResume(){if(!oppEstAdmin()||!navigator.onLine)return;rpc('opp_admin_offres',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){var t=document.getElementById('hm-rc-txt');if(!t||!r)return;
+  var o=r.offres||[],ouv=0,nv=0;for(var i=0;i<o.length;i++){if(o[i].statut==='ouverte')ouv++;nv+=(+o[i].nouvelles||0);}
+  t.textContent=ouv+' offre'+(ouv>1?'s':'')+' ouverte'+(ouv>1?'s':'')+(nv?(' · '+nv+' nouvelle'+(nv>1?'s':'')+' candidature'+(nv>1?'s':'')):'')+'.';},function(){});}
+
+/* --- écran technicien --- */
+function oppEcran(){var s=document.createElement('section');s.className='screen';s.id='s-opp';
+  s.innerHTML='<div class="topbar"><button class="back" type="button" aria-label="Retour" id="opp-back">'+OPP_BACK+'</button><div class="ttl">Opportunités</div><div style="width:34px"></div></div>'
+   +'<p class="sub" style="margin:2px 0 14px">Des patrons cherchent des techniciens fibre. Remplis ton profil pro, puis dis-nous quelles offres t’intéressent.</p>'
+   +'<div class="lsthead"><div class="t">Mon profil pro</div></div><div class="card" id="opp-prof" style="display:flex;flex-direction:column;gap:14px"><div class="note">Chargement…</div></div>'
+   +'<div class="lsthead" style="margin-top:18px"><div class="t">Offres près de chez toi</div></div><div id="opp-liste"><div class="note">Chargement…</div></div><div class="grow"></div>';
+  document.getElementById('s-home').parentNode.appendChild(s);
+  document.getElementById('opp-back').addEventListener('click',function(){show('s-home');oppResume();});
+  document.getElementById('opp-liste').addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-oppi]'):null;if(!b)return;oppInteret(+b.getAttribute('data-oppi'),b.getAttribute('data-oui')==='1',b);});}
+function oppOuvrir(){if(!oppEstSolo())return;if(!document.getElementById('s-opp'))oppEcran();show('s-opp');oppCharger();}
+function oppCharger(){if(!navigator.onLine){document.getElementById('opp-prof').innerHTML='<div class="note">Pas de réseau — réessaie une fois connecté.</div>';return;}
+  Promise.all([rpc('opp_profil_get',{p_client:ACCT.client_id,p_cle:ACCT.cle}),rpc('opp_offres_liste',{p_client:ACCT.client_id,p_cle:ACCT.cle})]).then(function(r){OPP_P=r[0]||{};OPP_L=r[1]||{};oppProfRendu();oppListeRendu();},function(e){document.getElementById('opp-prof').innerHTML='<div class="err on">'+esc(oppErr(e))+'</div>';});}
+function oppProfRendu(){var p=OPP_P||{},b=document.getElementById('opp-prof');if(!b)return;var on=p.dispo==='oui';
+  b.innerHTML='<div class="swrow"><div><div class="swname" id="lbl-oppd">Ouvert aux opportunités</div><div class="swsub">Les recruteurs voient que tu es disponible dans ton département.</div></div><button class="sw'+(on?' on':'')+'" id="opp-sw" role="switch" aria-checked="'+(on?'true':'false')+'" aria-labelledby="lbl-oppd" onclick="togSw(this)"></button></div>'
+   +'<div class="field"><label class="lab" for="opp-dep">Département</label><input type="text" id="opp-dep" maxlength="3" placeholder="ex. 84" style="width:110px" inputmode="text" autocapitalize="characters"></div>'
+   +'<div class="field"><div class="lab">Ce que tu sais faire</div><div id="opp-comp">'+oppChips(OPP_COMP,p.competences||[],'data-oc',true)+'</div></div>'
+   +'<div class="field"><div class="lab">Disponibilité</div><div id="opp-disp">'+oppChips(OPP_DISPO,p.disponibilite||'immediate','data-od',false)+'</div></div>'
+   +'<div class="field"><label class="lab" for="opp-tel">Téléphone</label><input type="tel" id="opp-tel" maxlength="20" autocomplete="tel" placeholder="ex. 06 12 34 56 78"></div>'
+   +'<label style="display:flex;gap:12px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="opp-ok" style="width:22px;height:22px;flex:none;margin:2px 0 0;accent-color:var(--accent)"'+(p.contact_ok?' checked':'')+'><span style="font-size:14px;line-height:1.45">J’accepte d’être contacté : Crinstalle transmet mon <b>téléphone</b> et mon <b>email</b> au recruteur quand je dis qu’une offre m’intéresse. Je peux le retirer à tout moment.</span></label>'
+   +'<div class="err" id="err-opp" role="alert"></div><button class="btn" type="button" id="opp-save" style="margin-top:0">Enregistrer mon profil pro</button>';
+  document.getElementById('opp-dep').value=p.departement||'';document.getElementById('opp-tel').value=oppTelFmt(p.telephone||'');
+  oppChipClic(document.getElementById('opp-comp'),'data-oc',true);oppChipClic(document.getElementById('opp-disp'),'data-od',false);
+  document.getElementById('opp-save').addEventListener('click',oppSave);}
+function oppSave(){err('err-opp');var dep=document.getElementById('opp-dep').value.trim(),tel=document.getElementById('opp-tel').value.trim(),okc=document.getElementById('opp-ok').checked;
+  var disp=document.getElementById('opp-sw').classList.contains('on')?'oui':'non';
+  if(disp==='oui'&&!dep){err('err-opp','Indique ton département pour recevoir des offres.');document.getElementById('opp-dep').focus();return;}
+  if(okc&&!tel&&!(OPP_P&&OPP_P.email)){err('err-opp','Pour être contacté, indique ton téléphone.');document.getElementById('opp-tel').focus();return;}
+  if(!navigator.onLine){err('err-opp','Pas de réseau — réessaie une fois connecté.');return;}
+  var b=document.getElementById('opp-save');b.disabled=true;
+  rpc('opp_profil_save',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_dispo:disp,p_departement:dep,p_competences:oppChipsLire(document.getElementById('opp-comp'),'data-oc'),
+    p_disponibilite:(oppChipsLire(document.getElementById('opp-disp'),'data-od')[0]||'immediate'),p_telephone:tel,p_contact_ok:okc}).then(function(r){
+    OPP_P=r;ACCT.me.departement=r.departement;ACCT.me.dispo_opportunites=r.dispo;b.disabled=false;
+    document.getElementById('opp-dep').value=r.departement||'';document.getElementById('opp-tel').value=oppTelFmt(r.telephone||'');
+    b.textContent='Profil pro enregistré ✓';setTimeout(function(){b.textContent='Enregistrer mon profil pro';},2000);
+    rpc('opp_offres_liste',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(l){OPP_L=l||{};oppListeRendu();},function(){});
+  },function(e){b.disabled=false;err('err-opp',oppErr(e));});}
+function oppListeRendu(){var l=OPP_L||{},z=document.getElementById('opp-liste');if(!z)return;
+  if(l.besoin_departement){z.innerHTML='<div class="note" style="padding:6px 0">Indique ton département dans ton profil pro pour voir les offres.</div>';return;}
+  var o=l.offres||[];if(!o.length){z.innerHTML='<div class="note" style="padding:6px 0">Aucune offre dans ton secteur pour l’instant. Garde ton profil pro à jour : tu seras dans le vivier des recruteurs.</div>';return;}
+  var h='',i;for(i=0;i<o.length;i++){var x=o[i],c=x.candidature,act=c&&c!=='retiree';
+    h+='<div class="card" style="padding:14px 16px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div style="font-weight:700">'+esc(x.titre)+'</div>'
+     +'<span style="flex:none;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--tint);color:var(--accent-l)">'+esc(OPP_TYPE[x.type]||x.type)+'</span></div>'
+     +'<div class="note" style="margin-top:4px">'+oppDeps(x.departements)+(x.remuneration?' · '+esc(x.remuneration):'')+'</div>'
+     +(x.description?'<div style="margin-top:8px;font-size:14px;line-height:1.45;white-space:pre-line">'+esc(x.description)+'</div>':'')+oppTags(x.competences)
+     +(act?'<div class="note" style="margin-top:10px;color:var(--ok)">✓ '+esc(OPP_CAND[c]||'Envoyée')+'</div><button class="btn ghost" type="button" data-oppi="'+(+x.id)+'" data-oui="0" style="width:100%;margin-top:8px">Retirer mon intérêt</button>'
+          :'<button class="btn" type="button" data-oppi="'+(+x.id)+'" data-oui="1" style="width:100%;margin-top:12px">Je suis intéressé</button>')+'</div>';}
+  z.innerHTML=h;}
+function oppInteret(id,oui,b){if(OPP_EC)return;err('err-opp');
+  if(oui&&!(OPP_P&&OPP_P.contact_ok)){err('err-opp','Coche « J’accepte d’être contacté » et enregistre ton profil pro, pour que le recruteur puisse te joindre.');document.getElementById('opp-ok').focus();return;}
+  if(!navigator.onLine){err('err-opp','Pas de réseau — réessaie une fois connecté.');return;}
+  OPP_EC=true;b.disabled=true;rpc('opp_interet',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_offre:id,p_oui:!!oui,p_message:null}).then(function(r){OPP_EC=false;
+    var o=(OPP_L&&OPP_L.offres)||[];for(var i=0;i<o.length;i++)if(+o[i].id===id)o[i].candidature=r.candidature;oppListeRendu();
+  },function(e){OPP_EC=false;b.disabled=false;err('err-opp',oppErr(e));window.scrollTo(0,0);});}
+
+/* --- écran recruteur (Zo) --- */
+function rcEcran(){var s=document.createElement('section');s.className='screen';s.id='s-recrut';
+  s.innerHTML='<div class="topbar"><button class="back" type="button" aria-label="Retour" id="rc-back">'+OPP_BACK+'</button><div class="ttl">Recrutement</div><div style="width:34px"></div></div>'
+   +'<div style="display:flex;gap:8px;margin:2px 0 14px" role="tablist"><button type="button" class="chip sel" id="rc-seg-off" role="tab" aria-selected="true">Mes offres</button><button type="button" class="chip" id="rc-seg-viv" role="tab" aria-selected="false">Techniciens disponibles</button></div>'
+   +'<div class="err" id="err-rc" role="alert"></div><div id="rc-zone"><div class="note">Chargement…</div></div><div class="grow"></div>';
+  document.getElementById('s-home').parentNode.appendChild(s);
+  document.getElementById('rc-back').addEventListener('click',function(){show('s-home');rcResume();});
+  document.getElementById('rc-seg-off').addEventListener('click',function(){rcSeg('off');});
+  document.getElementById('rc-seg-viv').addEventListener('click',function(){rcSeg('viv');});
+  document.getElementById('rc-zone').addEventListener('click',rcClic);}
+function rcOuvrir(){if(!oppEstAdmin())return;if(!document.getElementById('s-recrut'))rcEcran();show('s-recrut');RC_EDIT=null;rcSeg(RC_SEG);}
+function rcSeg(w){RC_SEG=w;err('err-rc');var a=document.getElementById('rc-seg-off'),b=document.getElementById('rc-seg-viv');
+  a.classList.toggle('sel',w==='off');a.setAttribute('aria-selected',w==='off'?'true':'false');b.classList.toggle('sel',w==='viv');b.setAttribute('aria-selected',w==='viv'?'true':'false');
+  document.getElementById('rc-zone').innerHTML='<div class="note">Chargement…</div>';
+  if(!navigator.onLine){document.getElementById('rc-zone').innerHTML='<div class="note">Pas de réseau — réessaie une fois connecté.</div>';return;}
+  if(w==='viv')rpc('opp_admin_vivier',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){RC_VIV=(r&&r.techs)||[];rcVivRendu();},function(e){err('err-rc',oppErr(e));});
+  else rpc('opp_admin_offres',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){RC_OFF=(r&&r.offres)||[];rcOffRendu();},function(e){err('err-rc',oppErr(e));});}
+function rcContact(x){var h='',t=oppTel(x.telephone);
+  if(!x.contact_ok)return '<div class="note" style="margin-top:8px">N’a pas encore accepté d’être contacté.</div>';
+  if(t)h+='<a class="btn" style="flex:1 1 140px;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-top:0;line-height:1.2;padding-top:8px;padding-bottom:8px" href="tel:'+t+'">Appeler<span style="display:block;font-size:12px;font-weight:600;opacity:.9;white-space:nowrap">'+esc(oppTelFmt(t))+'</span></a>';
+  if(x.email)h+='<a class="btn ghost" style="flex:1 1 140px;text-decoration:none;display:flex;align-items:center;justify-content:center;margin-top:0" href="mailto:'+esc(x.email)+'">Email</a>';
+  return h?'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">'+h+'</div>':'';}
+function rcPersonne(x){return '<div style="font-weight:700">'+esc(x.nom||x.compte||'Technicien')+'</div><div class="note">'+(x.departement?'Dép. '+esc(x.departement):'Département non indiqué')
+  +(x.disponibilite?' · '+esc(oppLbl(OPP_DISPO,x.disponibilite)):'')+'</div>'+oppTags(x.competences);}
+function rcVivRendu(){var v=RC_VIV||[],z=document.getElementById('rc-zone');
+  if(!v.length){z.innerHTML='<div class="note" style="padding:6px 0">Aucun technicien ouvert aux opportunités pour l’instant.</div>';return;}
+  var h='<div class="note" style="margin-bottom:10px">'+v.length+' technicien'+(v.length>1?'s':'')+' ouvert'+(v.length>1?'s':'')+' aux opportunités.</div>';
+  for(var i=0;i<v.length;i++)h+='<div class="card" style="padding:14px 16px;margin-bottom:10px">'+rcPersonne(v[i])+rcContact(v[i])+'</div>';z.innerHTML=h;}
+function rcOffRendu(){var o=RC_OFF||[],z=document.getElementById('rc-zone');
+  var h='<button class="btn" type="button" data-rc="new" style="width:100%;margin:0 0 14px">+ Nouvelle offre</button>';
+  if(RC_EDIT==='new')h=rcForm(null);
+  if(!o.length&&RC_EDIT!=='new')h+='<div class="note" style="padding:6px 0">Aucune offre pour l’instant. Publie la première : elle apparaît chez les techniciens du ou des départements choisis.</div>';
+  for(var i=0;i<o.length;i++){var x=o[i];if(RC_EDIT===x.id){h+=rcForm(x);continue;}
+    var st=x.statut==='ouverte'?['Ouverte','var(--ok)']:(x.statut==='pourvue'?['Pourvue','var(--tx3)']:['Fermée','var(--tx3)']);
+    h+='<div class="card" style="padding:14px 16px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:10px"><div style="font-weight:700">'+esc(x.titre)+'</div><span style="flex:none;font-size:12px;font-weight:600;color:'+st[1]+'">'+st[0]+'</span></div>'
+     +'<div class="note" style="margin-top:4px">'+esc(OPP_TYPE[x.type]||x.type)+' · '+oppDeps(x.departements)+(x.remuneration?' · '+esc(x.remuneration):'')+'</div>'
+     +'<div style="margin-top:8px;font-size:14px"><b>'+(+x.candidatures||0)+'</b> intéressé'+((+x.candidatures||0)>1?'s':'')+((+x.nouvelles||0)?' · <b style="color:var(--accent-l)">'+(+x.nouvelles)+' nouveau'+((+x.nouvelles)>1?'x':'')+'</b>':'')+' · '+(+x.vivier||0)+' tech'+((+x.vivier||0)>1?'s':'')+' dispo dans la zone</div>'
+     +'<div style="display:flex;gap:8px;margin-top:12px"><button class="btn" type="button" data-rc="cand" data-id="'+(+x.id)+'" style="flex:1.3;margin-top:0">Voir les intéressés</button><button class="btn ghost" type="button" data-rc="edit" data-id="'+(+x.id)+'" style="flex:1;margin-top:0">Modifier</button></div>'
+     +'<div id="rc-cand-'+(+x.id)+'"></div></div>';}
+  z.innerHTML=h;if(RC_EDIT!==null){oppChipClic(document.getElementById('rc-f-comp'),'data-rcc',true);}}
+function rcForm(x){x=x||{titre:'',type:'mission',departements:[],competences:[],remuneration:'',description:'',statut:'ouverte'};var fr=(x.departements||[]).indexOf('FR')>=0;
+  var opt=function(map,cur){var h='',k;for(k in map)h+='<option value="'+k+'"'+(k===cur?' selected':'')+'>'+esc(map[k])+'</option>';return h;};
+  var SEL='width:100%;height:52px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:0 14px;color:var(--tx);font-size:16px;font-weight:600';
+  return '<div class="card" style="padding:14px 16px;margin-bottom:14px;display:flex;flex-direction:column;gap:12px"><div style="font-weight:700">'+(x.id?'Modifier l’offre':'Nouvelle offre')+'</div>'
+   +'<div class="field"><label class="lab" for="rc-f-titre">Titre</label><input type="text" id="rc-f-titre" maxlength="80" placeholder="ex. Raccordeur D3 — secteur Avignon" value="'+esc(x.titre)+'"></div>'
+   +'<div class="field"><label class="lab" for="rc-f-type">Type</label><select id="rc-f-type" style="'+SEL+'">'+opt(OPP_TYPE,x.type)+'</select></div>'
+   +'<div class="field"><label class="lab" for="rc-f-deps">Départements</label><input type="text" id="rc-f-deps" maxlength="80" placeholder="ex. 84, 13, 30" value="'+esc(fr?'':(x.departements||[]).join(', '))+'"'+(fr?' disabled':'')+'>'
+   +'<label style="display:flex;gap:10px;align-items:center;margin-top:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rc-f-fr" style="width:20px;height:20px;accent-color:var(--accent)"'+(fr?' checked':'')+' onchange="document.getElementById(\'rc-f-deps\').disabled=this.checked">Toute la France</label></div>'
+   +'<div class="field"><div class="lab">Compétences recherchées</div><div id="rc-f-comp">'+oppChips(OPP_COMP,x.competences||[],'data-rcc',true)+'</div></div>'
+   +'<div class="field"><label class="lab" for="rc-f-rem">Rémunération (facultatif)</label><input type="text" id="rc-f-rem" maxlength="80" placeholder="ex. 45 € le raccordement" value="'+esc(x.remuneration||'')+'"></div>'
+   +'<div class="field"><label class="lab" for="rc-f-desc">Description (facultatif)</label><textarea id="rc-f-desc" maxlength="1500" rows="4" style="width:100%;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:12px 14px;color:var(--tx);font-size:16px;font-family:inherit;resize:vertical">'+esc(x.description||'')+'</textarea></div>'
+   +(x.id?'<div class="field"><label class="lab" for="rc-f-st">Statut</label><select id="rc-f-st" style="'+SEL+'">'+opt({ouverte:'Ouverte',pourvue:'Pourvue',fermee:'Fermée'},x.statut)+'</select></div>':'')
+   +'<div class="err" id="err-rcf" role="alert"></div><div style="display:flex;gap:8px"><button class="btn" type="button" data-rc="save" data-id="'+(x.id?(+x.id):'')+'" style="flex:1.3;margin-top:0">'+(x.id?'Enregistrer':'Publier l’offre')+'</button><button class="btn ghost" type="button" data-rc="cancel" style="flex:1;margin-top:0">Annuler</button></div></div>';}
+function rcSave(id,b){err('err-rcf');var fr=document.getElementById('rc-f-fr').checked;
+  var deps=fr?['FR']:document.getElementById('rc-f-deps').value.split(/[\s,;\/]+/).map(function(x){return x.trim();}).filter(Boolean);
+  var titre=document.getElementById('rc-f-titre').value.trim();
+  if(titre.length<3){err('err-rcf','Donne un titre à l’offre.');return;}if(!deps.length){err('err-rcf','Indique au moins un département, ou coche « Toute la France ».');return;}
+  if(!navigator.onLine){err('err-rcf','Pas de réseau — réessaie une fois connecté.');return;}
+  var st=document.getElementById('rc-f-st');b.disabled=true;
+  rpc('opp_admin_offre_save',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id||null,p_titre:titre,p_type:document.getElementById('rc-f-type').value,p_departements:deps,
+    p_competences:oppChipsLire(document.getElementById('rc-f-comp'),'data-rcc'),p_remuneration:document.getElementById('rc-f-rem').value,p_description:document.getElementById('rc-f-desc').value,p_statut:st?st.value:'ouverte'}).then(function(){
+    RC_EDIT=null;rcSeg('off');},function(e){b.disabled=false;err('err-rcf',oppErr(e));});}
+function rcCand(id){var z=document.getElementById('rc-cand-'+id);if(!z)return;if(z.getAttribute('data-ouvert')==='1'){z.innerHTML='';z.setAttribute('data-ouvert','0');return;}
+  z.setAttribute('data-ouvert','1');z.innerHTML='<div class="note" style="margin-top:10px">Chargement…</div>';
+  rpc('opp_admin_candidatures',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_offre:id}).then(function(r){var c=(r&&r.candidatures)||[];
+    if(!c.length){z.innerHTML='<div class="note" style="margin-top:10px">Personne pour l’instant.</div>';return;}
+    var h='',S=[['vue','Vue'],['contactee','Contacté'],['retenue','Retenu'],['refusee','Refusé']];
+    for(var i=0;i<c.length;i++){var x=c[i];h+='<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">'+rcPersonne(x)
+      +(x.message?'<div style="margin-top:6px;font-size:14px;font-style:italic">« '+esc(x.message)+' »</div>':'')+rcContact(x)
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">';
+      for(var k=0;k<S.length;k++)h+='<button type="button" class="chip'+(x.statut===S[k][0]?' sel':'')+'" data-rc="st" data-cid="'+(+x.id)+'" data-st="'+S[k][0]+'" data-off="'+id+'" style="padding:5px 12px;font-size:13px">'+S[k][1]+'</button>';
+      h+='</div></div>';}
+    z.innerHTML=h;},function(e){z.innerHTML='<div class="err on">'+esc(oppErr(e))+'</div>';});}
+function rcClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-rc]'):null;if(!b)return;var a=b.getAttribute('data-rc'),id=+b.getAttribute('data-id')||null;
+  if(a==='new'){RC_EDIT='new';rcOffRendu();window.scrollTo(0,0);return;}
+  if(a==='edit'){RC_EDIT=id;rcOffRendu();return;}
+  if(a==='cancel'){RC_EDIT=null;rcOffRendu();return;}
+  if(a==='save'){rcSave(id,b);return;}
+  if(a==='cand'){rcCand(id);return;}
+  if(a==='st'){var cid=+b.getAttribute('data-cid'),off=+b.getAttribute('data-off');b.disabled=true;
+    rpc('opp_admin_candidature_statut',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:cid,p_statut:b.getAttribute('data-st')}).then(function(){
+      var z=document.getElementById('rc-cand-'+off);if(z){z.setAttribute('data-ouvert','0');}rcCand(off);},function(e){b.disabled=false;err('err-rc',oppErr(e));window.scrollTo(0,0);});}}
