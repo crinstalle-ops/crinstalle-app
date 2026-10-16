@@ -1229,7 +1229,7 @@ var ab=document.getElementById('hm-abo');
 if(aboLocked(ACCT.me)){ab.innerHTML='<button class="linkbtn" style="width:100%;text-align:center;background:var(--tint);border:1px solid var(--accent);border-radius:14px;padding:14px;color:var(--accent-l);font-weight:700" onclick="show(&quot;s-abo&quot;)">Essai terminé — la saisie est en pause. S’abonner</button>';}
 else if(ACCT.me.abo_statut==='essai'){var aj=parseInt(ACCT.me.abo_jours,10)||0;ab.innerHTML='<div class="note center" style="padding:2px 0 10px'+(aj<=5?';color:var(--accent-l);font-weight:600':'')+'">'+(aj<=0?'Essai gratuit — dernier jour aujourd’hui':'Essai gratuit — '+aj+' jour'+(aj>1?'s':'')+' restant'+(aj>1?'s':''))+'</div>';}
 else{ab.innerHTML='';}
-buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);try{pmInstall();}catch(_ePm){}try{cjInstall();}catch(_eCj){}try{dechInstall();}catch(_eD){}try{oppInstall();}catch(_eO){}show('s-home');if(AVIS){err('err-home',AVIS);AVIS=null;}}).catch(function(e){
+buildAnnonce();buildFile();fileEnvoyer();rechRestaurer();caBandeau(now);try{pmInstall();}catch(_ePm){}try{cjInstall();}catch(_eCj){}try{dechInstall();}catch(_eD){}try{oppInstall();}catch(_eO){}try{v64Home();}catch(_e64){}show('s-home');if(AVIS){err('err-home',AVIS);AVIS=null;}}).catch(function(e){
   /* v39 : un compte revoque est renvoye a l'accueil (comme connect), les autres erreurs sont AFFICHEES */
   var msg=(e&&e.message)||'';
   if(msg.indexOf('Accès refusé')>=0){try{var _st=JSON.parse(localStorage.getItem('crinstalle'));if(!_st||_st.client_id===ACCT.client_id)localStorage.removeItem('crinstalle');}catch(_e){}try{meOublier(ACCT.client_id);}catch(_e2){}ACCT=null;err('err-accueil','Ce compte n’existe plus — tu peux en créer un nouveau.');show('s-accueil');return;}
@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='63';
+var APPV='64';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -4238,11 +4238,11 @@ function oppInstall(){if(!ACCT||!ACCT.me)return;
      +'<div class="note" id="hm-rc-txt" style="margin-bottom:10px">Publie tes offres et retrouve les techniciens disponibles.</div>'
      +'<button class="btn" type="button" id="hm-rc-go" style="margin-top:0;width:100%">Ouvrir le recrutement</button>';
     ref2.insertAdjacentElement('afterend',e);document.getElementById('hm-rc-go').addEventListener('click',rcOuvrir);rcResume();}}
-function oppResume(){if(!oppEstSolo()||!navigator.onLine)return;rpc('opp_offres_liste',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){var t=document.getElementById('hm-opp-txt');if(!t||!r)return;
+function oppResume(){if(!oppEstSolo()||!navigator.onLine)return;rpc('opp_offres_liste',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){try{V64.oppNew=(r&&+r.nouvelles)||0;v64Alerte();}catch(_e){}var t=document.getElementById('hm-opp-txt');if(!t||!r)return;
   if(r.besoin_departement){t.textContent='Indique ton département pour voir les offres près de chez toi.';return;}
   var n=(r.offres||[]).length;t.textContent=n?(n+' offre'+(n>1?'s':'')+' dans ton secteur ('+r.departement+').'):'Aucune offre dans ton secteur pour l’instant — active ton profil pro pour être prévenu.';},function(){});}
-function rcResume(){if(!oppEstAdmin()||!navigator.onLine)return;rpc('opp_admin_offres',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){var t=document.getElementById('hm-rc-txt');if(!t||!r)return;
-  var o=r.offres||[],ouv=0,nv=0;for(var i=0;i<o.length;i++){if(o[i].statut==='ouverte')ouv++;nv+=(+o[i].nouvelles||0);}
+function rcResume(){if(!oppEstAdmin()||!navigator.onLine)return;rpc('opp_admin_offres',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){var o=(r&&r.offres)||[],ouv=0,nv=0;for(var i=0;i<o.length;i++){if(o[i].statut==='ouverte')ouv++;nv+=(+o[i].nouvelles||0);}try{V64.rcNew=nv;v64Alerte();}catch(_e){}
+  var t=document.getElementById('hm-rc-txt');if(!t||!r)return;
   t.textContent=ouv+' offre'+(ouv>1?'s':'')+' ouverte'+(ouv>1?'s':'')+(nv?(' · '+nv+' nouvelle'+(nv>1?'s':'')+' candidature'+(nv>1?'s':'')):'')+'.';},function(){});}
 
 /* --- écran technicien --- */
@@ -4256,7 +4256,8 @@ function oppEcran(){var s=document.createElement('section');s.className='screen'
   document.getElementById('opp-liste').addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-oppi]'):null;if(!b)return;oppInteret(+b.getAttribute('data-oppi'),b.getAttribute('data-oui')==='1',b);});}
 function oppOuvrir(){if(!oppEstSolo())return;if(!document.getElementById('s-opp'))oppEcran();show('s-opp');oppCharger();}
 function oppCharger(){if(!navigator.onLine){document.getElementById('opp-prof').innerHTML='<div class="note">Pas de réseau — réessaie une fois connecté.</div>';return;}
-  Promise.all([rpc('opp_profil_get',{p_client:ACCT.client_id,p_cle:ACCT.cle}),rpc('opp_offres_liste',{p_client:ACCT.client_id,p_cle:ACCT.cle})]).then(function(r){OPP_P=r[0]||{};OPP_L=r[1]||{};oppProfRendu();oppListeRendu();},function(e){document.getElementById('opp-prof').innerHTML='<div class="err on">'+esc(oppErr(e))+'</div>';});}
+  Promise.all([rpc('opp_profil_get',{p_client:ACCT.client_id,p_cle:ACCT.cle}),rpc('opp_offres_liste',{p_client:ACCT.client_id,p_cle:ACCT.cle})]).then(function(r){OPP_P=r[0]||{};OPP_L=r[1]||{};oppProfRendu();oppListeRendu();
+    if(+OPP_L.nouvelles>0){rpc('opp_offres_vu',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(){try{V64.oppNew=0;v64Alerte();}catch(_e){}},function(){});}},function(e){document.getElementById('opp-prof').innerHTML='<div class="err on">'+esc(oppErr(e))+'</div>';});}
 function oppProfRendu(){var p=OPP_P||{},b=document.getElementById('opp-prof');if(!b)return;var on=p.dispo==='oui';
   b.innerHTML='<div class="swrow"><div><div class="swname" id="lbl-oppd">Ouvert aux opportunités</div><div class="swsub">Les recruteurs voient que tu es disponible dans ton département.</div></div><button class="sw'+(on?' on':'')+'" id="opp-sw" role="switch" aria-checked="'+(on?'true':'false')+'" aria-labelledby="lbl-oppd" onclick="togSw(this)"></button></div>'
    +'<div class="field"><label class="lab" for="opp-dep">Département</label><input type="text" id="opp-dep" maxlength="3" placeholder="ex. 84" style="width:110px" inputmode="text" autocapitalize="characters"></div>'
@@ -4264,10 +4265,18 @@ function oppProfRendu(){var p=OPP_P||{},b=document.getElementById('opp-prof');if
    +'<div class="field"><div class="lab">Disponibilité</div><div id="opp-disp">'+oppChips(OPP_DISPO,p.disponibilite||'immediate','data-od',false)+'</div></div>'
    +'<div class="field"><label class="lab" for="opp-tel">Téléphone</label><input type="tel" id="opp-tel" maxlength="20" autocomplete="tel" placeholder="ex. 06 12 34 56 78"></div>'
    +'<label style="display:flex;gap:12px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="opp-ok" style="width:22px;height:22px;flex:none;margin:2px 0 0;accent-color:var(--accent)"'+(p.contact_ok?' checked':'')+'><span style="font-size:14px;line-height:1.45">J’accepte d’être contacté : Crinstalle transmet mon <b>téléphone</b> et mon <b>email</b> au recruteur quand je dis qu’une offre m’intéresse. Je peux le retirer à tout moment.</span></label>'
+   +'<div class="swrow" style="border-top:1px solid var(--border);padding-top:14px"><div><div class="swname" id="lbl-oppm">Recevoir les nouvelles offres par email</div><div class="swsub" id="opp-msub">'+(p.email?'À '+esc(p.email)+', quand une offre est publiée dans ton département.':'Ajoute ton email dans Mon profil pour recevoir les offres.')+'</div></div><button class="sw'+(p.emails_offres!==false?' on':'')+'" id="opp-msw" role="switch" aria-checked="'+(p.emails_offres!==false?'true':'false')+'" aria-labelledby="lbl-oppm"'+(p.email?'':' disabled')+'></button></div>'
    +'<div class="err" id="err-opp" role="alert"></div><button class="btn" type="button" id="opp-save" style="margin-top:0">Enregistrer mon profil pro</button>';
   document.getElementById('opp-dep').value=p.departement||'';document.getElementById('opp-tel').value=oppTelFmt(p.telephone||'');
   oppChipClic(document.getElementById('opp-comp'),'data-oc',true);oppChipClic(document.getElementById('opp-disp'),'data-od',false);
-  document.getElementById('opp-save').addEventListener('click',oppSave);}
+  document.getElementById('opp-save').addEventListener('click',oppSave);
+  var msw=document.getElementById('opp-msw');if(msw)msw.addEventListener('click',oppMailBascule);}
+/* v64 : désinscription / réinscription aux emails d'offres (enregistré tout de suite) */
+function oppMailBascule(){var sw=document.getElementById('opp-msw');if(!sw||sw.disabled)return;err('err-opp');
+  if(!navigator.onLine){err('err-opp','Pas de réseau — réessaie une fois connecté.');return;}
+  var oui=!sw.classList.contains('on');sw.disabled=true;
+  rpc('opp_emails_set',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_oui:oui}).then(function(r){sw.disabled=false;var on=!!(r&&r.emails_offres);sw.classList.toggle('on',on);sw.setAttribute('aria-checked',on?'true':'false');if(OPP_P)OPP_P.emails_offres=on;},
+    function(e){sw.disabled=false;err('err-opp',oppErr(e));});}
 function oppSave(){err('err-opp');var dep=document.getElementById('opp-dep').value.trim(),tel=document.getElementById('opp-tel').value.trim(),okc=document.getElementById('opp-ok').checked;
   var disp=document.getElementById('opp-sw').classList.contains('on')?'oui':'non';
   if(disp==='oui'&&!dep){err('err-opp','Indique ton département pour recevoir des offres.');document.getElementById('opp-dep').focus();return;}
@@ -4282,16 +4291,16 @@ function oppSave(){err('err-opp');var dep=document.getElementById('opp-dep').val
     rpc('opp_offres_liste',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(l){OPP_L=l||{};oppListeRendu();},function(){});
   },function(e){b.disabled=false;err('err-opp',oppErr(e));});}
 function oppListeRendu(){var l=OPP_L||{},z=document.getElementById('opp-liste');if(!z)return;
-  if(l.besoin_departement){z.innerHTML='<div class="note" style="padding:6px 0">Indique ton département dans ton profil pro pour voir les offres.</div>';return;}
-  var o=l.offres||[];if(!o.length){z.innerHTML='<div class="note" style="padding:6px 0">Aucune offre dans ton secteur pour l’instant. Garde ton profil pro à jour : tu seras dans le vivier des recruteurs.</div>';return;}
+  var o=l.offres||[],avis=l.besoin_departement?'<div class="note" style="padding:6px 0 10px">Indique ton département dans ton profil pro pour voir les offres près de chez toi.</div>':'';
+  if(l.besoin_departement&&!o.length){z.innerHTML=avis;return;}if(!o.length){z.innerHTML='<div class="note" style="padding:6px 0">Aucune offre dans ton secteur pour l’instant. Garde ton profil pro à jour : tu seras dans le vivier des recruteurs.</div>';return;}
   var h='',i;for(i=0;i<o.length;i++){var x=o[i],c=x.candidature,act=c&&c!=='retiree';
-    h+='<div class="card" style="padding:14px 16px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div style="font-weight:700">'+esc(x.titre)+'</div>'
+    h+='<div class="card" style="padding:14px 16px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div style="font-weight:700">'+esc(x.titre)+(x.nouvelle?'<span class="v64-new-chip">Nouveau</span>':'')+'</div>'
      +'<span style="flex:none;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--tint);color:var(--accent-l)">'+esc(OPP_TYPE[x.type]||x.type)+'</span></div>'
      +'<div class="note" style="margin-top:4px">'+oppDeps(x.departements)+(x.remuneration?' · '+esc(x.remuneration):'')+'</div>'
      +(x.description?'<div style="margin-top:8px;font-size:14px;line-height:1.45;white-space:pre-line">'+esc(x.description)+'</div>':'')+oppTags(x.competences)
      +(act?'<div class="note" style="margin-top:10px;color:var(--ok)">✓ '+esc(OPP_CAND[c]||'Envoyée')+'</div><button class="btn ghost" type="button" data-oppi="'+(+x.id)+'" data-oui="0" style="width:100%;margin-top:8px">Retirer mon intérêt</button>'
           :'<button class="btn" type="button" data-oppi="'+(+x.id)+'" data-oui="1" style="width:100%;margin-top:12px">Je suis intéressé</button>')+'</div>';}
-  z.innerHTML=h;}
+  z.innerHTML=avis+h;}
 function oppInteret(id,oui,b){if(OPP_EC)return;err('err-opp');
   if(oui&&!(OPP_P&&OPP_P.contact_ok)){err('err-opp','Coche « J’accepte d’être contacté » et enregistre ton profil pro, pour que le recruteur puisse te joindre.');document.getElementById('opp-ok').focus();return;}
   if(!navigator.onLine){err('err-opp','Pas de réseau — réessaie une fois connecté.');return;}
@@ -4381,3 +4390,354 @@ function rcClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-
   if(a==='st'){var cid=+b.getAttribute('data-cid'),off=+b.getAttribute('data-off');b.disabled=true;
     rpc('opp_admin_candidature_statut',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:cid,p_statut:b.getAttribute('data-st')}).then(function(){
       var z=document.getElementById('rc-cand-'+off);if(z){z.setAttribute('data-ouvert','0');}rcCand(off);},function(e){b.disabled=false;err('err-rc',oppErr(e));window.scrollTo(0,0);});}}
+
+/* ===================== v64 : interface « pro » =====================
+   - « Mon compte » ouvre un menu latéral (droite ; gauche en arabe)
+   - l'accueil ne garde que le CA, les outils terrain (raccourcis -> feuilles du bas) et les saisies
+   - mouvements : squelette de chargement, apparition en cascade, compteurs, barres,
+     pastille d'onglet, pages qui glissent, enregistrement animé
+   Principe : on n'enlève AUCUNE fonction existante ; les cartes existantes (PM, jeton, décharge,
+   relevés PDF) sont DÉPLACÉES telles quelles (mêmes id, mêmes écouteurs). */
+var V64={dr:false,sheet:null,fromMenu:null,prof:false,hl:null,last:{},oppNew:0,rcNew:0,go:false,sk:null,skT:0,hist:0,skip:0,lien:false};
+var V64_RM=false;try{V64_RM=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(_e){}
+function v64Vib(p){try{if(navigator.vibrate)navigator.vibrate(p);}catch(_e){}}
+(function(){try{if(DICOS&&DICOS.ar&&DICOS.ar.exact){var a=DICOS.ar.exact,k,m={
+  'Mon activité':'نشاطي','Relevés mensuels':'الكشوف الشهرية','PDF de chaque mois':'ملف PDF لكل شهر','Dépenses, factures':'المصاريف والفواتير','Dépenses, factures, TVA':'المصاريف والفواتير والضريبة',
+  'TVA':'الضريبة','Tes papiers et attestations':'وثائقك وشهاداتك','Gestion':'الإدارة','Travail':'العمل','Opportunités':'فرص العمل','Recrutement':'التوظيف',
+  'Offres près de chez toi · profil pro':'عروض قريبة منك · ملفك المهني','Tes offres et le vivier de techniciens':'عروضك وقائمة التقنيين',
+  'Informations personnelles':'المعلومات الشخصية','Email, département':'البريد الإلكتروني، المقاطعة','Ma grille tarifaire':'جدول أسعاري','Prix par prestation':'السعر لكل خدمة',
+  'Mon lien d’accès':'رابط الدخول','Pour ouvrir l’appli sur un autre téléphone':'لفتح التطبيق على هاتف آخر','Parrainage':'الإحالة','Invite un technicien':'ادعُ تقنيًا',
+  'Réglages':'الإعدادات','Langue':'اللغة','Apparence':'المظهر','Sombre':'داكن','Clair':'فاتح','Français':'Français','Fermer':'إغلاق','Ouvrir le menu':'فتح القائمة',
+  'Administrateur':'مسؤول','Contrôle · Équipe CRINSTALLE':'مراقبة · فريق CRINSTALLE','Équipe CRINSTALLE':'فريق CRINSTALLE',
+  'Indépendant':'مستقل','Aller à un PM':'الذهاب إلى PM','Client par jeton':'العميل حسب الـ jeton','Décharge PTO':'إقرار PTO','Outils terrain':'أدوات الميدان',
+  'Intervention enregistrée':'تم تسجيل التدخل','Saisie modifiée':'تم تعديل التسجيل','Chargement…':'جارٍ التحميل…','Mon profil':'ملفي الشخصي',
+  'Recevoir les nouvelles offres par email':'استلام العروض الجديدة عبر البريد الإلكتروني','Nouveau':'جديد'};
+  for(k in m){if(a[k]===undefined)a[k]=m[k];}}}catch(_e){}})();
+
+/* ---------- styles ---------- */
+(function(){if(document.getElementById('st-v64'))return;var st=document.createElement('style');st.id='st-v64';st.textContent=[
+':root{--v64e:cubic-bezier(.22,1,.36,1)}',
+/* pastille d'onglet */
+'#tabs .tab{position:relative;z-index:1}',
+'#v64-pill{position:absolute;top:6px;height:50px;border-radius:14px;background:var(--tint);border:1px solid rgba(255,106,0,.22);z-index:0;pointer-events:none;opacity:0;transition:left .38s var(--v64e),width .38s var(--v64e),opacity .2s}',
+'#tabs .tab svg{transition:transform .3s var(--v64e)}#tabs .tab.on svg{transform:translateY(-1px) scale(1.08)}',
+'#tabs{transition:transform .36s var(--v64e)}body.v64-dr #tabs{transform:translateY(115%)}',
+/* scène qui recule */
+'body.v64-dr .screen.on{transform:scale(.94) translateX(-6%);border-radius:22px;overflow:hidden;transition:transform .42s var(--v64e)}',
+'[dir=rtl] body.v64-dr .screen.on{transform:scale(.94) translateX(6%)}',
+'.screen.on{transition:transform .42s var(--v64e)}',
+/* voile + menu */
+'#v64-scrim{position:fixed;inset:0;z-index:60;background:rgba(5,8,12,0);pointer-events:none;transition:background .38s var(--v64e)}#v64-scrim.on{background:rgba(5,8,12,.45);pointer-events:auto}',
+'#v64-dr{position:fixed;top:0;bottom:0;right:0;width:min(86vw,370px);z-index:70;background:var(--bg2);border-left:1px solid var(--border);box-shadow:-18px 0 50px rgba(0,0,0,.45);transform:translateX(104%);transition:transform .42s var(--v64e);display:flex;flex-direction:column;border-radius:24px 0 0 24px;touch-action:pan-y;visibility:hidden}',
+'body.v64-dr #v64-dr{transform:none;visibility:visible}#v64-dr.v64-vis{visibility:visible}#v64-dr.drag{transition:none}',
+'[dir=rtl] #v64-dr{right:auto;left:0;border-left:none;border-right:1px solid var(--border);border-radius:0 24px 24px 0;transform:translateX(-104%);box-shadow:18px 0 50px rgba(0,0,0,.45)}[dir=rtl] body.v64-dr #v64-dr{transform:none}',
+'.v64-dh{display:flex;align-items:center;gap:13px;padding:calc(22px + env(safe-area-inset-top)) 14px 14px 18px;border-bottom:1px solid var(--border)}',
+'.v64-x{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--tx2);margin-inline-start:auto;flex:none}.v64-x:active{background:var(--surface-h)}',
+'.v64-ds{overflow-y:auto;padding:4px 12px calc(24px + env(safe-area-inset-bottom));flex:1;overscroll-behavior:contain}',
+'.v64-av{width:52px;height:52px;border-radius:17px;background:linear-gradient(135deg,var(--accent-l),var(--accent-d));color:#fff;font-weight:750;font-size:21px;display:flex;align-items:center;justify-content:center;flex:none;text-transform:uppercase}',
+'.v64-nm{font-size:18px;font-weight:700;letter-spacing:-.4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.v64-sub{font-size:12.5px;color:var(--tx3);margin-top:1px}',
+'.v64-tag{display:inline-flex;margin-top:6px;font-size:11px;font-weight:650;padding:3px 8px;border-radius:99px;background:var(--surface-s);border:1px solid var(--border);color:var(--tx2)}.v64-tag.acc{background:rgba(255,106,0,.12);border-color:rgba(255,106,0,.35);color:var(--accent-l)}',
+'.v64-g{font-size:11.5px;font-weight:650;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3);margin:18px 8px 6px}',
+'.v64-mi{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:8px;border-radius:14px;text-align:start;transition:background .15s}.v64-mi:active{background:var(--surface-h)}',
+'.v64-mi .ic{width:36px;height:36px;border-radius:11px;flex:none}.v64-mt{flex:1;min-width:0}.v64-t1{display:block;font-size:15px;font-weight:600}.v64-t2{display:block;font-size:12px;color:var(--tx3);margin-top:1px}',
+'.v64-val{font-size:13px;color:var(--tx2);flex:none}.v64-chev{color:var(--tx3);flex:none}[dir=rtl] .v64-chev{transform:scaleX(-1)}',
+'.v64-bdg{min-width:22px;height:22px;padding:0 7px;border-radius:99px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none}',
+'#v64-dr .v64-g,#v64-dr .v64-mi{opacity:0;transform:translateX(26px)}[dir=rtl] #v64-dr .v64-g,[dir=rtl] #v64-dr .v64-mi{transform:translateX(-26px)}',
+'body.v64-dr #v64-dr .v64-g,body.v64-dr #v64-dr .v64-mi{animation:v64mi .45s var(--v64e) both;animation-delay:calc(80ms + var(--i) * 26ms)}',
+'@keyframes v64mi{to{opacity:1;transform:none}}',
+'.v64-foot{text-align:center;font-size:12px;color:var(--tx3);margin:16px 0 4px}',
+/* pages poussées depuis le menu */
+'.screen.on.v64-push{animation:v64push .4s var(--v64e) both}@keyframes v64push{from{transform:translateX(38%);opacity:0}to{transform:none;opacity:1}}',
+'[dir=rtl] .screen.on.v64-push{animation-name:v64pushr}@keyframes v64pushr{from{transform:translateX(-38%);opacity:0}to{transform:none;opacity:1}}',
+/* outils terrain */
+'.v64-tools{display:grid;grid-template-columns:repeat(var(--n,3),1fr);gap:10px;margin:14px 0 4px}',
+'.v64-tool{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-l);padding:14px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;box-shadow:var(--sh);transition:transform .14s var(--v64e)}.v64-tool:active{transform:scale(.96)}',
+'.v64-tool .ic{width:42px;height:42px}.v64-tool>span:last-child{font-size:12.5px;font-weight:600;line-height:1.25;color:var(--tx)}',
+'#v64-store{display:none}',
+'.v64-alert{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:var(--r-l);background:rgba(255,106,0,.08);border:1px solid rgba(255,106,0,.28);margin:12px 0 0;text-align:start}',
+'.v64-alert .ic{flex:none}.v64-alert b{display:block;font-size:14px}.v64-alert small{display:block;font-size:12.5px;color:var(--tx3)}',
+/* feuille du bas */
+'#v64-sh{position:fixed;left:0;right:0;bottom:0;z-index:80;max-width:520px;margin:0 auto;background:var(--bg2);border:1px solid var(--border-s);border-bottom:none;border-radius:24px 24px 0 0;padding:4px 18px calc(20px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .42s var(--v64e);box-shadow:0 -20px 50px rgba(0,0,0,.45);max-height:86dvh;overflow-y:auto;visibility:hidden;overscroll-behavior:contain}',
+'#v64-sh.on{transform:none;visibility:visible}#v64-sh.v64-vis{visibility:visible}#v64-sh.drag{transition:none}',
+'.v64-grab{display:flex;justify-content:center;padding:8px 0 10px;touch-action:none}.v64-grab i{width:40px;height:5px;border-radius:99px;background:var(--border-s)}',
+'#v64-sh .card{background:none;border:none;box-shadow:none;padding:0!important;margin:0!important}',
+/* squelette */
+'#s-home.v64-sk>:not(.hmhead):not(#v64-skel){display:none!important}#v64-skel{display:none}#s-home.v64-sk #v64-skel{display:flex;flex-direction:column;gap:12px}',
+'.v64-s{border-radius:var(--r-l);background:linear-gradient(100deg,var(--surface) 30%,var(--surface-h) 50%,var(--surface) 70%);background-size:300% 100%;animation:v64shim 1.1s linear infinite;border:1px solid var(--border)}',
+'@keyframes v64shim{from{background-position:100% 0}to{background-position:0 0}}',
+/* apparition en cascade (1re fois) */
+'#s-home.v64-go>*:not(.hmhead){animation:v64rv .55s var(--v64e) both}',
+'#s-home.v64-go>*:nth-child(2){animation-delay:40ms}#s-home.v64-go>*:nth-child(3){animation-delay:80ms}#s-home.v64-go>*:nth-child(4){animation-delay:120ms}#s-home.v64-go>*:nth-child(5){animation-delay:160ms}#s-home.v64-go>*:nth-child(6){animation-delay:200ms}#s-home.v64-go>*:nth-child(n+7){animation-delay:240ms}',
+'@keyframes v64rv{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}',
+/* barres qui montent */
+'#hm-bars.v64-up i{transform-origin:50% 100%;animation:v64bar .7s var(--v64e) both}#hm-bars.v64-up i:nth-child(2){animation-delay:40ms}#hm-bars.v64-up i:nth-child(3){animation-delay:80ms}#hm-bars.v64-up i:nth-child(4){animation-delay:120ms}#hm-bars.v64-up i:nth-child(5){animation-delay:160ms}#hm-bars.v64-up i:nth-child(6){animation-delay:200ms}#hm-bars.v64-up i:nth-child(7){animation-delay:240ms}',
+'@keyframes v64bar{from{transform:scaleY(0)}to{transform:none}}',
+'.v64-bump{animation:v64bump .55s var(--v64e)}@keyframes v64bump{40%{transform:scale(1.06);color:var(--accent-l)}}',
+'#hm-list .hrow.v64-new{position:relative;animation:v64row .6s var(--v64e) both}#hm-list .hrow.v64-new::after{content:"";position:absolute;inset:0;background:var(--tint);animation:v64fl 1.8s ease forwards;pointer-events:none}',
+'@keyframes v64row{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}@keyframes v64fl{0%,45%{opacity:1}100%{opacity:0}}',
+/* enregistrement */
+'#btn-save:disabled{opacity:1;color:transparent;position:relative}#btn-save:disabled::after{content:"";position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;animation:v64sp .7s linear infinite}',
+'@keyframes v64sp{to{transform:rotate(360deg)}}',
+'.v64-ok{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--ok);color:#fff;align-items:center;justify-content:center;margin-inline-end:6px;vertical-align:-5px;animation:v64pop .45s var(--v64e) both}',
+'.v64-ok path{stroke-dasharray:24;stroke-dashoffset:24;animation:v64draw .45s var(--v64e) .15s forwards}@keyframes v64draw{to{stroke-dashoffset:0}}@keyframes v64pop{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}',
+/* page « Mon profil » ouverte depuis le menu */
+'#s-ok .v64-ptop{display:none}#s-ok.v64-prof .v64-ptop{display:flex}#s-ok.v64-prof>.center,#s-ok.v64-prof #btn-new,#s-ok.v64-prof #btn-home{display:none!important}',
+'#s-releves .lsthead{display:none}',
+'.v64-new-chip{flex:none;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--accent);color:#fff;margin-inline-start:6px}',
+'@media (prefers-reduced-motion:reduce){#s-home.v64-go>*,#hm-bars.v64-up i,#v64-dr .v64-g,#v64-dr .v64-mi,.screen.on.v64-push,.v64-bump,.v64-ok,.v64-ok path,#hm-list .hrow.v64-new{animation:none!important;opacity:1!important;transform:none!important;stroke-dashoffset:0!important}body.v64-dr .screen.on{transform:none}#v64-dr,#v64-sh,#tabs,#v64-pill{transition-duration:.01ms!important}}'
+].join('\n');document.head.appendChild(st);})();
+
+/* ---------- icônes ---------- */
+var V64I={pdf:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6"/>',
+ euro:'<path d="M4 10h11M4 14h11"/><path d="M19 6.5A7 7 0 107.5 17.5 7 7 0 0019 17.5"/>',
+ doc:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/>',
+ brief:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M3 13h18"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>',
+ grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+ link:'<path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7"/>',
+ gift:'<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v9H5v-9"/><path d="M7.5 8a2.5 2.5 0 010-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 010 5"/>',
+ lang:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/>',
+ moon:'<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>',
+ pin:'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0119 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+ phone:'<path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1.9.4 1.8.7 2.7a2 2 0 01-.5 2.1L8 9.8a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.7.7a2 2 0 011.7 2z"/>',
+ sign:'<path d="M3 17c3 0 4-6 6-6s1 5 3 5 2-3 4-3 2 2 5 2"/><path d="M3 21h18"/>'};
+function v64Ic(k,sz){return '<span class="ic" aria-hidden="true"><svg width="'+(sz||18)+'" height="'+(sz||18)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+V64I[k]+'</svg></span>';}
+var V64_CHEV='<svg class="v64-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+var V64_BACK='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+
+/* ---------- historique (bouton retour Android) ---------- */
+function v64HistPush(){try{history.pushState({v64:1},'',location.href);V64.hist++;}catch(_e){}}
+function v64HistPop(){if(V64.hist>0){V64.hist--;V64.skip++;try{history.back();}catch(_e){V64.skip--;}}}
+window.addEventListener('popstate',function(){if(V64.skip>0){V64.skip--;return;}
+  if(V64.hist>0)V64.hist--;
+  if(V64.sheet){v64SheetClose(true);return;}
+  if(V64.dr){v64DrClose(true);return;}});
+
+/* ---------- pastille d'onglet ---------- */
+function v64Pill(){var t=document.getElementById('tabs');if(!t)return;var p=document.getElementById('v64-pill');
+  if(!p){p=document.createElement('div');p.id='v64-pill';p.setAttribute('aria-hidden','true');t.insertBefore(p,t.firstChild);}
+  var on=V64.dr?t.querySelector('.tab[data-tab="s-ok"]'):t.querySelector('.tab.on');
+  if(!on||!t.offsetWidth){p.style.opacity='0';return;}
+  var r=on.getBoundingClientRect(),q=t.getBoundingClientRect();if(!r.width){p.style.opacity='0';return;}
+  p.style.left=(r.left-q.left+6)+'px';p.style.width=(r.width-12)+'px';p.style.opacity='1';}
+window.addEventListener('resize',function(){v64Pill();});
+
+/* ---------- navigation : enveloppe de show() / navSync() ---------- */
+var v64ShowOrig=show;
+show=function(id){
+  if(V64.sheet&&id!=='s-home')v64SheetClose();
+  if(V64.dr)v64DrClose();
+  var hs=document.getElementById('s-home');
+  if(id!=='s-home'&&hs&&hs.classList.contains('v64-sk')){hs.classList.remove('v64-sk');clearTimeout(V64.skT);}
+  if(id==='s-ok'&&!V64.prof){var so=document.getElementById('s-ok');if(so)so.classList.remove('v64-prof');}
+  V64.prof=false;
+  var push=V64.fromMenu&&V64.fromMenu===id;
+  v64ShowOrig(id);
+  var el=document.getElementById(id);
+  if(el){el.classList.remove('v64-push');if(push&&!V64_RM){void el.offsetWidth;el.classList.add('v64-push');}
+    el.setAttribute('data-v64menu',push?'1':'');}
+  V64.fromMenu=null;
+  if(id==='s-saved')v64Saved();
+  v64Pill();};
+var v64NavOrig=navSync;navSync=function(id){v64NavOrig(id);v64Pill();};
+/* retour depuis une page ouverte par le menu -> l'accueil réapparaît et le menu se rouvre */
+document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('.back'):null;if(!b)return;
+  var sc=b.closest('.screen');if(!sc||!sc.classList.contains('on')||sc.getAttribute('data-v64menu')!=='1'||!ACCT)return;
+  ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation();v64Vib(8);
+  var id=sc.id;show('s-home');
+  try{if(id==='s-opp')oppResume();else if(id==='s-recrut')rcResume();}catch(_e){}
+  setTimeout(v64DrOpen,V64_RM?0:60);},true);
+
+/* ---------- menu latéral ---------- */
+function v64DrBuild(){var d=document.getElementById('v64-dr');
+  if(!d){d=document.createElement('aside');d.id='v64-dr';d.setAttribute('aria-label','Mon compte');d.setAttribute('aria-hidden','true');
+    d.innerHTML='<div class="v64-dh" id="v64-dh"></div><nav class="v64-ds" id="v64-ds"></nav>';document.body.appendChild(d);
+    var sc=document.createElement('div');sc.id='v64-scrim';document.body.appendChild(sc);
+    sc.addEventListener('click',function(){if(V64.sheet)v64SheetClose();else v64DrClose();});
+    document.getElementById('v64-ds').addEventListener('click',v64DrClic);
+    document.getElementById('v64-dh').addEventListener('click',function(ev){if(ev.target.closest('.v64-x'))v64DrClose();});
+    (function(){var x0=null,dx=0,rtl=document.documentElement.getAttribute('dir')==='rtl';
+      d.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;dx=0;d.classList.add('drag');},{passive:true});
+      d.addEventListener('touchmove',function(e){if(x0===null)return;dx=e.touches[0].clientX-x0;if(rtl)dx=-dx;dx=Math.max(0,dx);d.style.transform='translateX('+(rtl?-dx:dx)+'px)';},{passive:true});
+      d.addEventListener('touchend',function(){d.classList.remove('drag');d.style.transform='';if(dx>80)v64DrClose();x0=null;dx=0;});
+      d.addEventListener('touchcancel',function(){d.classList.remove('drag');d.style.transform='';x0=null;dx=0;});})();}
+  var m=(ACCT&&ACCT.me)||{},adm=oppEstAdmin(),solo=!m.equipe,ctrl=m.acces==='controle';
+  var nom=String(m.prenom||'').trim()||'Mon compte';
+  var tag=adm?'<span class="v64-tag acc">Administrateur</span>':ctrl?'<span class="v64-tag">Contrôle · Équipe CRINSTALLE</span>':m.equipe?'<span class="v64-tag">Équipe CRINSTALLE</span>':'<span class="v64-tag">Indépendant'+(m.abo_statut==='essai'?' · essai, '+Math.max(0,parseInt(m.abo_jours,10)||0)+' j restants':(m.abo_plan==='pro'?' · Pro':''))+'</span>';
+  document.getElementById('v64-dh').innerHTML='<div class="v64-av" aria-hidden="true">'+esc(nom.charAt(0))+'</div><div style="min-width:0;flex:1"><div class="v64-nm">'+esc(nom)+'</div><div class="v64-sub">'+esc((m.compte?'Compte '+m.compte:'')+(m.operateur?' · '+m.operateur:''))+'</div>'+tag+'</div><button class="v64-x" type="button" aria-label="Fermer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+  var i=0,h='',row=function(ic,t1,t2,go,right){return '<button class="v64-mi" type="button" style="--i:'+(i++)+'" data-v64go="'+go+'">'+v64Ic(ic)+'<span class="v64-mt"><span class="v64-t1">'+t1+'</span>'+(t2?'<span class="v64-t2">'+t2+'</span>':'')+'</span>'+(right||'')+V64_CHEV+'</button>';},
+      grp=function(t){return '<div class="v64-g" style="--i:'+(i++)+'">'+t+'</div>';};
+  var c=(typeof comptaOk==='function'&&comptaOk()),tv=(typeof tvaOk==='function'&&tvaOk()),pa=(typeof parOk==='function'&&parOk());
+  h+=grp('Mon activité')+row('pdf','Relevés mensuels','PDF de chaque mois','releves');
+  if(c||tv)h+=row('euro','Compta',c?(tv?'Dépenses, factures, TVA':'Dépenses, factures'):'TVA','compta');
+  h+=row('doc','Documents','Tes papiers et attestations','docs');
+  if(adm)h+=grp('Gestion')+row('brief','Recrutement','Tes offres et le vivier de techniciens','recrut',V64.rcNew>0?'<span class="v64-bdg" aria-label="'+V64.rcNew+' nouvelle(s)">'+V64.rcNew+'</span>':'');
+  if(solo&&typeof oppEstSolo==='function'&&oppEstSolo())h+=grp('Travail')+row('brief','Opportunités','Offres près de chez toi · profil pro','opp',V64.oppNew>0?'<span class="v64-bdg" aria-label="'+V64.oppNew+' nouvelle(s)">'+V64.oppNew+'</span>':'');
+  h+=grp('Mon profil');
+  if(solo)h+=row('user','Informations personnelles','Email, département','infos');
+  h+=row('grid','Ma grille tarifaire','Prix par prestation','grille')+row('link','Mon lien d’accès','Pour ouvrir l’appli sur un autre téléphone','lien');
+  if(pa)h+=row('gift','Parrainage','Invite un technicien','parrain');
+  var clair=document.documentElement.getAttribute('data-app')==='light';
+  h+=grp('Réglages')+row('lang','Langue','','langue','<span class="v64-val">'+(LANG==='ar'?'العربية':'Français')+'</span>')+row('moon','Apparence','','theme','<span class="v64-val" id="v64-thv">'+(clair?'Clair':'Sombre')+'</span>');
+  h+='<div class="v64-foot">Crinstalle IA · v'+APPV+'</div>';
+  document.getElementById('v64-ds').innerHTML=h;}
+function v64DrOpen(){if(!ACCT||V64.dr)return;if(V64.sheet)v64SheetClose();v64DrBuild();var d=document.getElementById('v64-dr');
+  d.classList.add('v64-vis');void d.offsetWidth;
+  V64.dr=true;document.body.classList.add('v64-dr');document.getElementById('v64-scrim').classList.add('on');d.setAttribute('aria-hidden','false');
+  v64HistPush();v64Pill();v64Vib(8);
+  setTimeout(function(){var x=d.querySelector('.v64-x');if(x&&V64.dr)try{x.focus({preventScroll:true});}catch(_e){}},V64_RM?0:420);}
+function v64DrClose(fromPop){if(!V64.dr)return;V64.dr=false;document.body.classList.remove('v64-dr');
+  var s=document.getElementById('v64-scrim');if(s&&!V64.sheet)s.classList.remove('on');
+  var d=document.getElementById('v64-dr');if(d){d.setAttribute('aria-hidden','true');setTimeout(function(){if(!V64.dr)d.classList.remove('v64-vis');},V64_RM?0:450);
+    try{if(d.contains(document.activeElement))document.activeElement.blur();}catch(_e){}}
+  if(!fromPop)v64HistPop();
+  var on=document.querySelector('.screen.on');if(on)navSync(on.id);else v64Pill();}
+function v64Go(id,fn){V64.fromMenu=id;v64DrClose();setTimeout(function(){fn();},V64_RM?0:170);}
+function v64DrClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-v64go]'):null;if(!b)return;v64Vib(8);var k=b.getAttribute('data-v64go');
+  if(k==='releves')return v64Go('s-releves',v64Releves);
+  if(k==='compta')return v64Go('s-fact',function(){if(typeof openFact==='function')openFact();else show('s-fact');});
+  if(k==='docs')return v64Go('s-docs',function(){buildDocs();});
+  if(k==='recrut')return v64Go('s-recrut',function(){rcOuvrir();});
+  if(k==='opp')return v64Go('s-opp',function(){oppOuvrir();});
+  if(k==='parrain')return v64Go('s-fact',function(){if(typeof openFact==='function')openFact();else show('s-fact');try{cpSeg('par');}catch(_e){}});
+  if(k==='infos'||k==='grille'||k==='lien')return v64Go('s-ok',function(){v64Profil(k);});
+  if(k==='langue'){v64DrClose();setLang(LANG==='ar'?'fr':'ar');return;}
+  if(k==='theme'){togTheme();var v=document.getElementById('v64-thv');if(v)v.textContent=document.documentElement.getAttribute('data-app')==='light'?'Clair':'Sombre';return;}}
+
+/* ---------- « Mon profil » (écran s-ok existant, sans l'en-tête de bienvenue) ---------- */
+function v64Profil(cible){var so=document.getElementById('s-ok');if(!so)return;
+  if(!so.querySelector('.v64-ptop')){var tb=document.createElement('div');tb.className='topbar v64-ptop';
+    tb.innerHTML='<button class="back" type="button" aria-label="Retour">'+V64_BACK+'</button><div class="ttl">Mon profil</div><div style="width:44px"></div>';
+    so.insertBefore(tb,so.firstChild);tb.querySelector('.back').addEventListener('click',function(){show('s-home');});}
+  try{buildProfil();}catch(_e){}
+  so.classList.add('v64-prof');V64.prof=true;show('s-ok');
+  var t=null;if(cible==='infos')t=document.getElementById('ok-profil');
+  else if(cible==='lien'){var a=document.querySelector('#ok-recap a[href*="#c="]');t=a?a.parentNode:null;}
+  else t=so.querySelector('.lsthead');
+  if(t&&cible!=='grille')setTimeout(function(){try{t.scrollIntoView({block:'start',behavior:V64_RM?'auto':'smooth'});}catch(_e){}},V64_RM?0:380);}
+
+/* ---------- Relevés mensuels (la carte #hm-pdf existante est déplacée ici) ---------- */
+function v64RelevesEcran(){var s=document.getElementById('s-releves');if(s)return s;
+  s=document.createElement('section');s.className='screen';s.id='s-releves';
+  s.innerHTML='<div class="topbar"><button class="back" type="button" aria-label="Retour">'+V64_BACK+'</button><div class="ttl">Relevés mensuels</div><div style="width:44px"></div></div>'
+   +'<p class="sub" style="margin:2px 0 14px">Le détail de tes interventions du mois, en PDF.</p><div id="v64-rel"></div><div class="grow"></div>';
+  document.getElementById('s-home').parentNode.appendChild(s);
+  s.querySelector('.back').addEventListener('click',function(){show('s-home');});
+  NAVMAP['s-releves']='s-ok';return s;}
+function v64Releves(){v64RelevesEcran();var p=document.getElementById('hm-pdf'),z=document.getElementById('v64-rel');
+  if(p&&p.parentNode!==z)z.appendChild(p);
+  if(!p)z.innerHTML='<div class="note">Chargement…</div>';
+  show('s-releves');}
+
+/* ---------- feuille du bas (outils terrain) ---------- */
+function v64SheetOpen(cardId){var c=document.getElementById(cardId);if(!c)return;if(V64.dr)v64DrClose();if(V64.sheet)v64SheetClose(true);
+  var sh=document.getElementById('v64-sh');
+  if(!sh){sh=document.createElement('div');sh.id='v64-sh';sh.setAttribute('role','dialog');sh.setAttribute('aria-modal','true');sh.setAttribute('aria-hidden','true');
+    sh.innerHTML='<div class="v64-grab" aria-hidden="true"><i></i></div><div id="v64-shb"></div>';document.body.appendChild(sh);
+    (function(){var g=sh.querySelector('.v64-grab'),y0=null,dy=0;
+      var st=function(e){if(e.target.closest('input,select,textarea,button,a'))return;if(sh.scrollTop>0&&!e.target.closest('.v64-grab'))return;y0=e.touches[0].clientY;dy=0;sh.classList.add('drag');};
+      sh.addEventListener('touchstart',st,{passive:true});
+      sh.addEventListener('touchmove',function(e){if(y0===null)return;dy=Math.max(0,e.touches[0].clientY-y0);sh.style.transform='translateY('+dy+'px)';},{passive:true});
+      var fin=function(){if(y0===null)return;sh.classList.remove('drag');sh.style.transform='';if(dy>90)v64SheetClose();y0=null;dy=0;};
+      sh.addEventListener('touchend',fin);sh.addEventListener('touchcancel',fin);})();}
+  if(!document.getElementById('v64-scrim'))v64DrBuild();
+  var shb=document.getElementById('v64-shb'),sto=document.getElementById('v64-store');
+  while(shb.firstChild&&sto&&shb.firstChild!==c)sto.appendChild(shb.firstChild);
+  shb.appendChild(c);
+  sh.classList.add('v64-vis');void sh.offsetWidth;sh.classList.add('on');sh.setAttribute('aria-hidden','false');sh.setAttribute('aria-label',(c.querySelector('span')||{}).textContent||'');
+  document.getElementById('v64-scrim').classList.add('on');V64.sheet=cardId;v64HistPush();v64Vib(8);v64Kb();
+  var inp=c.querySelector('input[type=search],input[type=text]');
+  if(inp)setTimeout(function(){if(V64.sheet===cardId)try{inp.focus({preventScroll:true});}catch(_e){}},V64_RM?0:400);}
+function v64SheetClose(fromPop){if(!V64.sheet)return;var id=V64.sheet;V64.sheet=null;var sh=document.getElementById('v64-sh'),c=document.getElementById(id),st=document.getElementById('v64-store');
+  try{if(sh&&sh.contains(document.activeElement))document.activeElement.blur();}catch(_e){}
+  if(sh){sh.classList.remove('on');sh.setAttribute('aria-hidden','true');sh.style.bottom='';
+    setTimeout(function(){if(V64.sheet===id)return;if(!V64.sheet)sh.classList.remove('v64-vis');if(c&&st&&c.parentNode!==st)st.appendChild(c);},V64_RM?0:440);}
+  var s=document.getElementById('v64-scrim');if(s&&!V64.dr)s.classList.remove('on');
+  if(!fromPop)v64HistPop();}
+/* clavier : la feuille reste au-dessus du clavier virtuel */
+function v64Kb(){var sh=document.getElementById('v64-sh'),vv=window.visualViewport;if(!sh||!vv)return;
+  var b=Math.max(0,window.innerHeight-(vv.height+vv.offsetTop));sh.style.bottom=(V64.sheet&&b>40)?b+'px':'';}
+try{if(window.visualViewport){window.visualViewport.addEventListener('resize',v64Kb);window.visualViewport.addEventListener('scroll',v64Kb);}}catch(_e){}
+document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;if(V64.sheet)v64SheetClose();else if(V64.dr)v64DrClose();});
+
+/* ---------- compteurs animés ---------- */
+function v64Num(t){var x=String(t||'').replace(/[^\d,.\-]/g,'').replace(',','.');var n=parseFloat(x);return isFinite(n)?n:null;}
+function v64Count(el,from,to,ms){if(!el)return;var cible=fmt(to);if(V64_RM||from===null||from===to||!isFinite(from)){el.textContent=cible;return;}
+  var tok=String(Math.random()),t0=null,ecrit=null;el.setAttribute('data-v64c',tok);
+  function pas(t){if(el.getAttribute('data-v64c')!==tok)return;
+    if(ecrit!==null&&el.textContent!==ecrit&&el.textContent!==cible)return;   /* quelqu'un d'autre a écrit (changement de mois) : on s'arrête */
+    if(!t0)t0=t;var k=Math.min(1,(t-t0)/ms),e=1-Math.pow(1-k,4);ecrit=(k>=1)?cible:fmt(from+(to-from)*e);el.textContent=ecrit;if(k<1)requestAnimationFrame(pas);else el.removeAttribute('data-v64c');}
+  requestAnimationFrame(pas);}
+
+/* ---------- squelette de chargement ---------- */
+function v64Squelette(){var hs=document.getElementById('s-home');if(!hs||!ACCT)return show('s-ok');
+  var sk=document.getElementById('v64-skel');
+  if(!sk){sk=document.createElement('div');sk.id='v64-skel';sk.setAttribute('aria-label','Chargement…');sk.setAttribute('role','status');
+    sk.innerHTML='<div class="v64-s" style="height:212px;border-radius:var(--r-xl)"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="v64-s" style="height:96px"></div><div class="v64-s" style="height:96px"></div></div><div class="v64-s" style="height:18px;width:45%;margin-top:10px"></div><div class="v64-s" style="height:170px"></div>';
+    var h=hs.querySelector('.hmhead');if(h)h.insertAdjacentElement('afterend',sk);else hs.insertBefore(sk,hs.firstChild);}
+  try{var now=new Date();document.getElementById('hm-date').textContent=JOURS[now.getDay()]+' '+now.getDate()+' '+MOIS[now.getMonth()];
+    document.getElementById('hm-salut').textContent='Salut '+(ACCT.me.prenom||'')+' !';}catch(_e){}
+  hs.classList.add('v64-sk');v64ShowOrig('s-home');v64Pill();
+  clearTimeout(V64.skT);V64.skT=setTimeout(function(){if(hs.classList.contains('v64-sk')){hs.classList.remove('v64-sk');show('s-ok');}},15000);}
+
+/* ---------- accueil : rangement + mouvements (appelé par goHome avant show('s-home')) ---------- */
+function v64Home(){var hs=document.getElementById('s-home');if(!hs||!ACCT)return;
+  var etaitSk=hs.classList.contains('v64-sk');hs.classList.remove('v64-sk');clearTimeout(V64.skT);
+  var st=document.getElementById('v64-store');if(!st){st=document.createElement('div');st.id='v64-store';st.setAttribute('aria-hidden','true');hs.appendChild(st);}
+  /* cartes déplacées : outils terrain, opportunités/recrutement, relevés PDF */
+  ['hm-pm','hm-cj','hm-dech','hm-opp','hm-recrut'].forEach(function(id){var c=document.getElementById(id);if(c&&c.parentNode!==st&&V64.sheet!==id)st.appendChild(c);});
+  var pdf=document.getElementById('hm-pdf');if(pdf){v64RelevesEcran();var z=document.getElementById('v64-rel');if(pdf.parentNode!==z)z.appendChild(pdf);}
+  var lk=hs.querySelector('.linkbtn[onclick="show(\'s-ok\')"]');if(lk&&lk.parentNode)lk.parentNode.style.display='none';
+  /* raccourcis outils */
+  var tools=[['hm-pm','pin','Aller à un PM'],['hm-cj','phone','Client par jeton'],['hm-dech','sign','Décharge PTO']].filter(function(t){return !!document.getElementById(t[0]);});
+  var row=document.getElementById('v64-tools');
+  if(tools.length){if(!row){row=document.createElement('div');row.id='v64-tools';row.className='v64-tools';row.setAttribute('aria-label','Outils terrain');
+      var ti=hs.querySelector('.tiles');if(ti)ti.insertAdjacentElement('afterend',row);else hs.appendChild(row);
+      row.addEventListener('click',function(ev){var b=ev.target.closest('[data-v64t]');if(b)v64SheetOpen(b.getAttribute('data-v64t'));});}
+    var sig=tools.map(function(t){return t[0];}).join(',');
+    if(row.getAttribute('data-sig')!==sig){row.setAttribute('data-sig',sig);row.style.setProperty('--n',tools.length);
+      row.innerHTML=tools.map(function(t){return '<button type="button" class="v64-tool" data-v64t="'+t[0]+'" aria-haspopup="dialog">'+v64Ic(t[1],20)+'<span>'+t[2]+'</span></button>';}).join('');}}
+  else if(row)row.remove();
+  try{if(oppEstSolo())oppResume();else if(oppEstAdmin())rcResume();}catch(_e){}
+  v64Alerte();
+  /* compteurs + barres */
+  [['hm-total','tot'],['hm-auj','auj'],['hm-prec','prec']].forEach(function(p){var el=document.getElementById(p[0]);if(!el)return;var n=v64Num(el.textContent);if(n===null)return;
+    var avant=(p[0] in V64.last)?V64.last[p[0]]:0;V64.last[p[0]]=n;
+    if(avant!==n){v64Count(el,avant,n,avant===0?900:650);if(V64.go&&avant!==0){el.classList.remove('v64-bump');void el.offsetWidth;el.classList.add('v64-bump');}}});
+  var bars=document.getElementById('hm-bars');if(bars){var sigb=bars.innerHTML;if(V64.lastBars!==sigb){V64.lastBars=sigb;bars.classList.remove('v64-up');void bars.offsetWidth;bars.classList.add('v64-up');}}
+  /* 1re apparition : cascade */
+  if(!V64.go){V64.go=true;if(!V64_RM){hs.classList.add('v64-go');setTimeout(function(){hs.classList.remove('v64-go');},900);}}
+  /* nouvelle saisie : surbrillance */
+  if(V64.hl){var rows=document.querySelectorAll('#hm-list .hrow .j');for(var i=0;i<rows.length&&i<3;i++){if(rows[i].textContent.toUpperCase()===String(V64.hl).toUpperCase()){var r=rows[i].closest('.hrow');r.classList.remove('v64-new');void r.offsetWidth;r.classList.add('v64-new');break;}}V64.hl=null;}
+  /* lien direct #opp / #recrut (emails, Telegram) */
+  if(!V64.lien){V64.lien=true;var hsh=location.hash||'';
+    if(hsh==='#opp'||hsh==='#recrut'){try{history.replaceState(null,'',location.pathname);}catch(_e){}
+      setTimeout(function(){if(hsh==='#opp'&&oppEstSolo())oppOuvrir();else if(hsh==='#recrut'&&oppEstAdmin())rcOuvrir();},60);}}}
+
+/* rappel sur l'accueil quand il y a du nouveau (offres pour un solo, candidatures pour l'admin) */
+function v64Alerte(){var hs=document.getElementById('s-home');if(!hs)return;var a=document.getElementById('v64-al'),txt=null,sub='',fn=null;
+  if(oppEstSolo()&&V64.oppNew>0){txt=V64.oppNew+' nouvelle'+(V64.oppNew>1?'s':'')+' offre'+(V64.oppNew>1?'s':'')+' près de chez toi';sub='Mon compte › Opportunités';fn='opp';}
+  else if(oppEstAdmin()&&V64.rcNew>0){txt=V64.rcNew+' nouvelle'+(V64.rcNew>1?'s':'')+' candidature'+(V64.rcNew>1?'s':'');sub='Mon compte › Recrutement';fn='recrut';}
+  if(!txt){if(a)a.remove();return;}
+  if(!a){a=document.createElement('button');a.type='button';a.id='v64-al';a.className='v64-alert';
+    a.addEventListener('click',function(){var f=a.getAttribute('data-go');if(f==='opp')oppOuvrir();else if(f==='recrut')rcOuvrir();});}
+  var ref=document.getElementById('v64-tools')||hs.querySelector('.tiles');if(ref&&a.previousElementSibling!==ref)ref.insertAdjacentElement('afterend',a);
+  a.setAttribute('data-go',fn);a.innerHTML=v64Ic('brief')+'<span style="flex:1;min-width:0"><b>'+esc(txt)+'</b><small>'+esc(sub)+'</small></span>'+V64_CHEV;}
+
+/* ---------- enregistrement réussi ---------- */
+function v64Saved(){var b=document.getElementById('sv-badge');
+  try{var j=document.getElementById('sa-jeton');V64.hl=j?j.value.trim():null;}catch(_e){}
+  v64Vib([12,40,18]);
+  if(b&&!b.querySelector('.v64-ok')){var t=b.textContent;b.innerHTML='<span class="v64-ok" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>'+esc(t);}
+  var tot=document.getElementById('sv-total');if(tot){var n=v64Num(tot.textContent);if(n!==null&&n>0)v64Count(tot,0,n,700);}}
+
+/* ---------- installation ---------- */
+(function(){function inst(){var t=document.querySelector('#tabs .tab[data-tab="s-ok"]');
+  if(t&&!t.getAttribute('data-v64')){t.setAttribute('data-v64','1');t.removeAttribute('onclick');t.setAttribute('aria-haspopup','menu');
+    t.addEventListener('click',function(){if(!ACCT)return show('s-ok');if(V64.dr)v64DrClose();else v64DrOpen();});}
+  document.addEventListener('click',function(ev){var tb=ev.target&&ev.target.closest?ev.target.closest('#tabs .tab'):null;if(!tb||tb.getAttribute('data-tab')==='s-ok')return;
+    if(V64.dr)v64DrClose();if(V64.sheet)v64SheetClose();},true);
+  v64Pill();
+  /* démarrage hors ligne/caché : l'appli affiche « Mon compte » en attendant le CA -> squelette de l'accueil à la place */
+  try{if(ACCT&&ACCT.me&&(navigator.onLine||caLire(ACCT.client_id))){var on=document.querySelector('.screen.on');if(on&&on.id==='s-ok'&&!aboLocked(ACCT.me))v64Squelette();}}catch(_e){}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',inst);else inst();})();
