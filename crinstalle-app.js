@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='65';
+var APPV='66';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -4570,6 +4570,7 @@ function v64DrBuild(){var d=document.getElementById('v64-dr');
   var c=(typeof comptaOk==='function'&&comptaOk()),tv=(typeof tvaOk==='function'&&tvaOk()),pa=(typeof parOk==='function'&&parOk());
   h+=grp('Mon activité');
   if(typeof cmpOk==='function'&&cmpOk())h+=row('check','À confirmer','Jetons signalés par le comparateur','cmp',CMP.n>0?'<span class="v64-bdg" aria-label="'+CMP.n+' à confirmer">'+CMP.n+'</span>':'');
+  if(typeof cmpOk==='function'&&cmpOk())h+=row('pdf','Relevé Sogetrel','Tes jetons payés par Sogetrel','relsog',(typeof rsNouveau==='function'&&rsNouveau())?'<span class="v64-bdg" aria-label="nouveau">1</span>':'');
   h+=row('pdf','Relevés mensuels','PDF de chaque mois','releves');
   if(c||tv)h+=row('euro','Compta',c?(tv?'Dépenses, factures, TVA':'Dépenses, factures'):'TVA','compta');
   h+=row('doc','Documents','Tes papiers et attestations','docs');
@@ -4597,6 +4598,7 @@ function v64DrClose(fromPop){if(!V64.dr)return;V64.dr=false;document.body.classL
 function v64Go(id,fn){V64.fromMenu=id;v64DrClose();setTimeout(function(){fn();},V64_RM?0:170);}
 function v64DrClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-v64go]'):null;if(!b)return;v64Vib(8);var k=b.getAttribute('data-v64go');
   if(k==='cmp')return v64Go('s-cmp',cmpOuvrir);
+  if(k==='relsog')return v64Go('s-relsog',rsOuvrir);
   if(k==='releves')return v64Go('s-releves',v64Releves);
   if(k==='compta')return v64Go('s-fact',function(){if(typeof openFact==='function')openFact();else show('s-fact');});
   if(k==='docs')return v64Go('s-docs',function(){buildDocs();});
@@ -4714,17 +4716,18 @@ function v64Home(){var hs=document.getElementById('s-home');if(!hs||!ACCT)return
   if(V64.hl){var rows=document.querySelectorAll('#hm-list .hrow .j');for(var i=0;i<rows.length&&i<3;i++){if(rows[i].textContent.toUpperCase()===String(V64.hl).toUpperCase()){var r=rows[i].closest('.hrow');r.classList.remove('v64-new');void r.offsetWidth;r.classList.add('v64-new');break;}}V64.hl=null;}
   /* lien direct #opp / #recrut (emails, Telegram) */
   if(!V64.lien){V64.lien=true;var hsh=location.hash||'';
-    if(hsh==='#opp'||hsh==='#recrut'||hsh==='#cmp'){try{history.replaceState(null,'',location.pathname);}catch(_e){}
-      setTimeout(function(){if(hsh==='#cmp'&&cmpOk())cmpOuvrir();else if(hsh==='#opp'&&oppEstSolo())oppOuvrir();else if(hsh==='#recrut'&&oppEstAdmin())rcOuvrir();},60);}}}
+    if(hsh==='#opp'||hsh==='#recrut'||hsh==='#cmp'||hsh==='#releve'){try{history.replaceState(null,'',location.pathname);}catch(_e){}
+      setTimeout(function(){if(hsh==='#releve'&&cmpOk())rsOuvrir();else if(hsh==='#cmp'&&cmpOk())cmpOuvrir();else if(hsh==='#opp'&&oppEstSolo())oppOuvrir();else if(hsh==='#recrut'&&oppEstAdmin())rcOuvrir();},60);}}}
 
 /* rappel sur l'accueil quand il y a du nouveau (offres pour un solo, candidatures pour l'admin) */
 function v64Alerte(){var hs=document.getElementById('s-home');if(!hs)return;var a=document.getElementById('v64-al'),txt=null,sub='',fn=null,ic='brief';
   if(typeof cmpOk==='function'&&cmpOk()&&CMP.n>0){txt=CMP.n+' jeton'+(CMP.n>1?'s':'')+' à confirmer';sub='Vrai RACC ou pas ? Tu as 48 h pour répondre';fn='cmp';ic='check';}
+  else if(typeof rsNouveau==='function'&&cmpOk()&&rsNouveau()){txt='Ton relevé Sogetrel de '+rsMoisLbl(rsNouveau())+' est arrivé';sub='Tes jetons payés, ligne par ligne';fn='relsog';ic='pdf';}
   else if(oppEstSolo()&&V64.oppNew>0){txt=V64.oppNew+' nouvelle'+(V64.oppNew>1?'s':'')+' offre'+(V64.oppNew>1?'s':'')+' près de chez toi';sub='Mon compte › Opportunités';fn='opp';}
   else if(oppEstAdmin()&&V64.rcNew>0){txt=V64.rcNew+' nouvelle'+(V64.rcNew>1?'s':'')+' candidature'+(V64.rcNew>1?'s':'');sub='Mon compte › Recrutement';fn='recrut';}
   if(!txt){if(a)a.remove();return;}
   if(!a){a=document.createElement('button');a.type='button';a.id='v64-al';a.className='v64-alert';
-    a.addEventListener('click',function(){var f=a.getAttribute('data-go');if(f==='cmp')cmpOuvrir();else if(f==='opp')oppOuvrir();else if(f==='recrut')rcOuvrir();});}
+    a.addEventListener('click',function(){var f=a.getAttribute('data-go');if(f==='cmp')cmpOuvrir();else if(f==='relsog')rsOuvrir();else if(f==='opp')oppOuvrir();else if(f==='recrut')rcOuvrir();});}
   var ref=document.getElementById('v64-tools')||hs.querySelector('.tiles');if(ref&&a.previousElementSibling!==ref)ref.insertAdjacentElement('afterend',a);
   a.setAttribute('data-go',fn);a.innerHTML=v64Ic(ic)+'<span style="flex:1;min-width:0"><b>'+esc(txt)+'</b><small>'+esc(sub)+'</small></span>'+V64_CHEV;}
 
@@ -4812,3 +4815,211 @@ function cmpClic(id,ch,b){if(!id||(ch!=='ok'&&ch!=='ko'))return;err('err-cmp');
     else err('err-cmp',(r&&r.message)||'Trop tard ou déjà traité — vois avec CRINSTALLE.');
     return cmpCharger(true);
   }).catch(function(e){err('err-cmp',e&&e.reseau?(navigator.onLine?RESEAU_MSG:HORSLIGNE_MSG):((e&&e.message)||RESEAU_MSG));cmpRendu();});}
+
+/* === v66 : Comparateur — Relevé Sogetrel dans l'appli (étape 2) ===
+   Mois visibles seulement après l'envoi des relevés par Zo (table comparateur_publications). Montants déjà
+   plafonnés à la grille côté serveur (jamais le matelas). RPC cmp_tech_releves : SES lignes uniquement. */
+/* PDF du relevé : MÊME code que le nœud n8n « Construire les relevés PDF » (seule la sortie Buffer → Uint8Array change) */
+function rsPdfBuild(d, genLe) {
+  var W = 595.28, H = 841.89, ML = 44, MR = 551.28;
+  var MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var mParts = String(d.mois || '').split('-');
+  var moisLabel = (mParts.length === 2 ? MOIS[parseInt(mParts[1], 10) - 1] + ' ' + mParts[0] : d.mois);
+
+  function esc(s) {
+    return String(s).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)')
+      .replace(/€/g, '\x80').replace(/’/g, "'").replace(/—/g, '\x97').replace(/–/g, '\x96').replace(/…/g, '\x85').replace(/ /g, ' ')
+      .replace(/[^\x00-\xFF]/g, '?');
+  }
+  function fmt(n) {
+    var v = (Math.round(parseFloat(n) * 100) / 100).toFixed(2).replace('.', ',');
+    return v.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' €';
+  }
+  var WID = { ' ': 278, ',': 278, '.': 278, '€': 556, '-': 333, '?': 556 };
+  function wTxt(s, size) {
+    var w = 0;
+    for (var i = 0; i < s.length; i++) { var c = s[i]; w += (WID[c] !== undefined ? WID[c] : 556); }
+    return w * size / 1000;
+  }
+  var C_ORANGE = '0.910 0.349 0.047', C_DARK = '0.114 0.114 0.122', C_GREY = '0.431 0.431 0.451', C_LINE = '0.855 0.855 0.867';
+  function T(f, size, color, x, y, txt) { return color + ' rg BT /' + f + ' ' + size + ' Tf ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' Td (' + esc(txt) + ') Tj ET\n'; }
+  function TR(f, size, color, xRight, y, txt) { return T(f, size, color, xRight - wTxt(esc(txt), size), y, txt); }
+  function LINE(x1, y, x2, wpt, color) { return color + ' RG ' + wpt + ' w ' + x1.toFixed(2) + ' ' + y.toFixed(2) + ' m ' + x2.toFixed(2) + ' ' + y.toFixed(2) + ' l S\n'; }
+
+  var TLBL = { 'Immeuble': 'Immeuble', 'Souterrain': 'Souterrain', 'Aerien': 'Aérien', 'Facade': 'Façade', 'PLP': 'PLP', 'Brassage PM': 'Brassage PM' };
+  var CX = { date: ML, jeton: ML + 62, typo: ML + 164, desserte: ML + 268, res: ML + 368, mnt: MR };
+
+  function tableHeader(y) {
+    var s = '';
+    s += T('F2', 8.5, C_GREY, CX.date, y, 'DATE');
+    s += T('F2', 8.5, C_GREY, CX.jeton, y, 'JETON');
+    s += T('F2', 8.5, C_GREY, CX.typo, y, 'TYPOLOGIE');
+    s += T('F2', 8.5, C_GREY, CX.desserte, y, 'DESSERTE');
+    s += T('F2', 8.5, C_GREY, CX.res, y, 'RÉSULTAT');
+    s += TR('F2', 8.5, C_GREY, CX.mnt, y, 'MONTANT');
+    s += LINE(ML, y - 5, MR, 0.9, C_DARK);
+    return s;
+  }
+
+  var pages = [], cur = '', y = 0, ROWH = 16.5;
+  function newPage(first) {
+    if (cur) pages.push(cur);
+    cur = '';
+    if (first) {
+      cur += T('F2', 17, C_ORANGE, ML, H - 58, 'CRINSTALLE');
+      cur += T('F2', 15, C_DARK, ML, H - 92, 'Relevé Sogetrel');
+      cur += T('F1', 11, C_GREY, ML, H - 108, 'Décompte de ' + moisLabel);
+      cur += T('F1', 8.5, C_GREY, 380, H - 57, 'TECHNICIEN');
+      cur += T('F2', 10, C_DARK, 452, H - 58, d.prenom);
+      cur += T('F1', 8.5, C_GREY, 380, H - 71, 'LIGNES');
+      cur += T('F2', 10, C_DARK, 452, H - 72, String(d.lignes.length));
+      cur += LINE(ML, H - 126, MR, 1.2, C_ORANGE);
+      y = H - 150;
+    } else {
+      cur += T('F1', 9, C_GREY, ML, H - 46, 'Relevé Sogetrel ' + moisLabel + ' — ' + d.prenom + ' (suite)');
+      cur += LINE(ML, H - 54, MR, 0.9, C_LINE);
+      y = H - 76;
+    }
+    cur += tableHeader(y);
+    y -= ROWH + 4;
+  }
+
+  newPage(true);
+  var nRecl = 0;
+  d.lignes.forEach(function (L, i) {
+    var lib = String(L.libelle || '').replace(/💬/g, '').replace(/\s+/g, ' ').trim();
+    if (lib.length > 200) lib = lib.substring(0, 197) + '...';
+    var libLines = [];
+    var mm = lib;
+    while (mm.length) {
+      if (mm.length <= 100) { libLines.push(mm); break; }
+      var cut = mm.lastIndexOf(' ', 100); if (cut < 60) cut = 100;
+      libLines.push(mm.substring(0, cut)); mm = mm.substring(cut).replace(/^ +/, '');
+    }
+    var rh = ROWH + libLines.length * 11;
+    if (y - (rh - ROWH) < 110) { newPage(false); }
+    if (i % 2 === 1) { cur += '0.965 0.965 0.969 rg ' + ML.toFixed(2) + ' ' + (y - 5 - libLines.length * 11).toFixed(2) + ' ' + (MR - ML).toFixed(2) + ' ' + rh.toFixed(2) + ' re f\n'; }
+    var dtxt = '';
+    if (L.date_ligne && /^\d{4}-\d{2}-\d{2}$/.test(L.date_ligne)) { var dd = L.date_ligne.split('-'); dtxt = dd[2] + '/' + dd[1] + '/' + dd[0]; }
+    else dtxt = String(L.date_ligne || '');
+    cur += T('F1', 9.5, C_DARK, CX.date, y, dtxt);
+    cur += T('F1', 9.5, C_DARK, CX.jeton, y, String(L.jeton || '').substring(0, 16));
+    cur += T('F1', 9.5, C_DARK, CX.typo, y, (TLBL[L.typologie] || L.typologie || '').substring(0, 16));
+    cur += T('F1', 9.5, C_DARK, CX.desserte, y, String(L.desserte || '').substring(0, 14));
+    var res = String(L.resultat || '').trim();
+    if (/^raccordement ok$/i.test(res)) res = 'Raccordé';
+    if (res.length > 15) res = res.substring(0, 14) + '.';
+    cur += T('F1', 8.5, C_DARK, CX.res, y, res);
+    if (L.statut_ligne === 'reclamation') {
+      nRecl++;
+      cur += TR('F2', 9.5, C_ORANGE, CX.mnt, y, 'Réclamation ?');
+    } else {
+      cur += TR('F1', 9.5, C_DARK, CX.mnt, y, fmt(L.montant));
+    }
+    var cy = y - 11.5;
+    for (var ci = 0; ci < libLines.length; ci++) { cur += T('F1', 8, C_GREY, CX.jeton, cy, (ci === 0 ? '— ' : '') + libLines[ci]); cy -= 11; }
+    y -= rh;
+  });
+
+  if (nRecl > 0) {
+    if (y < 130) newPage(false);
+    y -= 4;
+    cur += T('F1', 8.5, C_GREY, ML, y, '« Réclamation ? » : jeton saisi non retrouvé payé ce mois-ci — vérification en cours, sans engagement.');
+    y -= 14;
+  }
+  pages.push(cur);
+
+  var nP = pages.length;
+  for (var p = 0; p < nP; p++) {
+    pages[p] += LINE(ML, 52, MR, 0.75, C_LINE);
+    pages[p] += T('F1', 8, C_GREY, ML, 38, 'Relevé généré par Crinstalle IA le ' + genLe + ' — décompte ' + moisLabel + ' (hors SAV, payés au forfait).');
+    pages[p] += TR('F1', 8, C_GREY, MR, 38, 'Page ' + (p + 1) + '/' + nP);
+  }
+
+  var objs = [];
+  objs.push('<< /Type /Catalog /Pages 2 0 R >>');
+  var kids = [];
+  for (p = 0; p < nP; p++) kids.push((5 + p * 2) + ' 0 R');
+  objs.push('<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + nP + ' >>');
+  objs.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+  objs.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  for (p = 0; p < nP; p++) {
+    objs.push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + W + ' ' + H + '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + (6 + p * 2) + ' 0 R >>');
+    var stream = pages[p];
+    objs.push('<< /Length ' + stream.length + ' >>\nstream\n' + stream + 'endstream');
+  }
+  var out = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';
+  var offsets = [0];
+  for (var o = 0; o < objs.length; o++) {
+    offsets.push(out.length);
+    out += (o + 1) + ' 0 obj\n' + objs[o] + '\nendobj\n';
+  }
+  var xrefPos = out.length;
+  out += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+  for (o = 1; o <= objs.length; o++) {
+    out += String(offsets[o]).padStart(10, '0') + ' 00000 n \n';
+  }
+  out += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xrefPos + '\n%%EOF';
+  var bytes = new Uint8Array(out.length);
+  for (var bi = 0; bi < out.length; bi++) bytes[bi] = out.charCodeAt(bi) & 255;
+  return bytes;
+}
+var RS={data:null,idx:0,ec:false,out:null};var RSVU='crinstalle_relsog_vu';
+var RS_MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function rsMoisLbl(m){var p=/^(\d{4})-(\d{2})$/.exec(String(m||''));return p?(RS_MOIS[parseInt(p[2],10)-1]+' '+p[1]):String(m||'');}
+function rsVu(){try{return localStorage.getItem(RSVU)||'';}catch(_e){return '';}}
+function rsMarquerVu(m){if(!m)return;try{if(m>rsVu())localStorage.setItem(RSVU,m);}catch(_e){}try{v64Alerte();}catch(_e2){}}
+function rsNouveau(){var d=CMP.data&&CMP.data.releve_dernier;return (d&&/^\d{4}-\d{2}$/.test(d)&&d>rsVu())?d:'';}
+function rsEcran(){var s=document.createElement('section');s.className='screen';s.id='s-relsog';
+  var BACK='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  s.innerHTML='<div class="topbar"><button class="back" type="button" aria-label="Retour" id="rs-back">'+BACK+'</button><div class="ttl">Relevé Sogetrel</div><div style="width:34px"></div></div>'
+   +'<p class="sub" style="margin:2px 0 12px">Tes jetons tels que payés par Sogetrel, mois par mois (hors SAV, payés au forfait).</p>'
+   +'<div class="err" id="err-rs" role="alert"></div>'
+   +'<div id="rs-mois" role="tablist" aria-label="Mois" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px"></div>'
+   +'<div id="rs-corps"><div class="note">Chargement…</div></div><div class="grow"></div>';
+  var hs0=document.getElementById('s-home');(hs0&&hs0.parentNode?hs0.parentNode:document.body).appendChild(s);
+  document.getElementById('rs-back').addEventListener('click',function(){goHome();});
+  document.getElementById('rs-mois').addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-rsm]'):null;if(!b)return;RS.idx=parseInt(b.getAttribute('data-rsm'),10)||0;rsRendu();});
+  document.getElementById('rs-corps').addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('#rs-pdf'):null;if(b)rsPdf();});}
+function rsListe(){var l=((RS.data&&RS.data.mois)||[]).filter(function(m){return m&&m.lignes&&m.lignes.length;});
+  var ORD={paye:0,reclamation:1,regule:2};
+  l.forEach(function(m){m.lignes.sort(function(a,b){var d=(ORD[a.statut_ligne]!==undefined?ORD[a.statut_ligne]:9)-(ORD[b.statut_ligne]!==undefined?ORD[b.statut_ligne]:9);
+    return d!==0?d:String(a.date_ligne).localeCompare(String(b.date_ligne))||String(a.jeton).localeCompare(String(b.jeton));});});
+  return l;}
+function rsOuvrir(){if(!cmpOk())return;if(!document.getElementById('s-relsog'))rsEcran();err('err-rs');show('s-relsog');
+  if(RS.data)rsRendu();
+  if(!navigator.onLine){if(!RS.data)document.getElementById('rs-corps').innerHTML='<div class="note">Pas de réseau — réessaie une fois connecté.</div>';return;}
+  if(RS.ec)return;RS.ec=true;
+  rpc('cmp_tech_releves',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(d){RS.ec=false;RS.data=d||{};RS.idx=0;rsRendu();},
+   function(e){RS.ec=false;if(!RS.data)document.getElementById('rs-corps').innerHTML='';err('err-rs',e&&e.reseau?HORSLIGNE_MSG:'Impossible de charger tes relevés pour l’instant.');});}
+function rsRendu(){var l=rsListe(),c=document.getElementById('rs-corps'),mm=document.getElementById('rs-mois');if(!c||!mm)return;rsSortie();
+  if(!l.length){mm.innerHTML='';c.innerHTML='<div class="card" style="padding:16px;text-align:center"><div style="font-weight:700;margin-bottom:4px">Pas encore de relevé</div><div class="note">Ton relevé apparaîtra ici dès que CRINSTALLE l’aura vérifié et envoyé.</div></div>';return;}
+  if(RS.idx>=l.length)RS.idx=0;var m=l[RS.idx],h='',i,nR=0;
+  mm.innerHTML=l.map(function(x,k){var on=k===RS.idx;return '<button type="button" class="chip'+(on?' sel':'')+'" role="tab" aria-selected="'+(on?'true':'false')+'" data-rsm="'+k+'" style="flex:none">'+esc(rsMoisLbl(x.mois))+'</button>';}).join('');
+  h+='<div class="card" style="padding:6px 16px">';
+  for(i=0;i<m.lignes.length;i++){var L=m.lignes[i],rec=L.statut_ligne==='reclamation';if(rec)nR++;
+    var res=String(L.resultat||'').trim();if(/^raccordement ok$/i.test(res))res='Raccordé';
+    var sous=[TLBL[L.typologie]||L.typologie||'',L.desserte||'',res].filter(function(z){return !!z;}).join(' · ');
+    var lib=String(L.libelle||'').replace(/💬/g,'').replace(/\s+/g,' ').trim();
+    h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px 0'+(i?';border-top:1px solid var(--border)':'')+'">'
+      +'<div style="min-width:0"><div style="font-weight:600;direction:ltr">'+esc(L.jeton||'—')+' <span class="note" style="font-weight:400">· '+esc(fmtD(L.date_ligne))+'</span></div>'
+      +(sous?'<div class="note">'+esc(sous)+'</div>':'')+(lib?'<div class="note" style="margin-top:2px">— '+esc(lib)+'</div>':'')+'</div>'
+      +'<div style="flex:none;text-align:end;font-variant-numeric:tabular-nums;'+(rec?'color:var(--accent-l);font-weight:700':'font-weight:600')+'">'+(rec?'Réclamation ?':esc(fmt(parseFloat(L.montant)||0)))+'</div></div>';}
+  h+='</div>';
+  if(nR)h+='<div class="note" style="margin-top:8px">« Réclamation ? » : jeton saisi non retrouvé payé ce mois-ci — vérification en cours, sans engagement.</div>';
+  h+='<div class="note" style="margin-top:8px">'+m.lignes.length+' ligne'+(m.lignes.length>1?'s':'')+' · décompte de '+esc(rsMoisLbl(m.mois))+'</div>';
+  h+='<div id="rs-out"></div><button class="btn" type="button" id="rs-pdf" style="margin-top:12px">Télécharger le PDF</button>';
+  c.innerHTML=h;rsMarquerVu(l[0].mois);}
+function rsSortie(){if(RS.out&&RS.out.url){try{URL.revokeObjectURL(RS.out.url);}catch(_e){}}RS.out=null;}
+function rsPdf(){var l=rsListe(),m=l[RS.idx];if(!m)return;rsSortie();
+  var now=new Date(),genLe=String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
+  var prenom=String((RS.data&&RS.data.prenom)||(ACCT.me&&ACCT.me.prenom)||'');
+  var bytes;try{bytes=rsPdfBuild({mois:m.mois,prenom:prenom,lignes:m.lignes},genLe);}catch(e){err('err-rs','Le PDF n’a pas pu être créé.');return;}
+  var slug=prenom.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9-]+/g,'_').replace(/^_+|_+$/g,'')||'technicien';
+  var nom='releve-sogetrel-'+slug+'-'+m.mois+'.pdf',blob=new Blob([bytes],{type:'application/pdf'}),url=URL.createObjectURL(blob);RS.out={url:url,blob:blob,nom:nom};
+  var peut=false;try{peut=!!(navigator.canShare&&navigator.canShare({files:[new File([blob],nom,{type:'application/pdf'})]}));}catch(_e){}
+  var o=document.getElementById('rs-out');if(!o)return;
+  o.innerHTML='<div style="display:flex;gap:8px;margin-top:12px"><a class="btn" id="rs-dl" href="'+url+'" download="'+esc(nom)+'" target="_blank" rel="noopener" style="margin-top:0;flex:1;text-decoration:none">Ouvrir le PDF</a>'
+    +(peut?'<button class="btn ghost" type="button" id="rs-share" style="margin-top:0;flex:1">Partager</button>':'')+'</div>';
+  var sh=document.getElementById('rs-share');if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([RS.out.blob],RS.out.nom,{type:'application/pdf'})],title:'Relevé Sogetrel '+rsMoisLbl(m.mois)}).catch(function(){});}catch(_e){}});
+  var pb=document.getElementById('rs-pdf');if(pb)pb.style.display='none';}
