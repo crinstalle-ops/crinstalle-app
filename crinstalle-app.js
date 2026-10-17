@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='77';
+var APPV='78';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -5112,13 +5112,15 @@ function cadEnvoyer(){if(CAD.envoi||!CAD.fichier)return;err('err-cad');
   .then(function(){CAD.envoi=false;CAD.voirRap=false;var g=document.getElementById('cad-go');if(g){g.disabled=!CAD.fichier;g.textContent='Analyser et comparer';}var ch1=document.getElementById('cad-choisir');if(ch1)ch1.disabled=false;
     if(CAD.res&&CAD.res.route==='comparer'){if(CAD.fichier===CAD.envoye)cadViderFichier();CAR.mois='';CAR.msg='';carSortie();CAP.mois='';CAP.msg='';CAP.arme=false;clearTimeout(CAP.armeT);CAD.recapMois='';CAV.mois='';CAV.data=null;}
     cadRenduRes();CAD.etat=null;cadEtat();});}
+function cadEnAttenteMois(m){var ve=CAD.etat&&CAD.etat.validations;if(!ve||!m)return 0;
+  if(ve.par_mois&&typeof ve.par_mois==='object')return parseInt(ve.par_mois[m],10)||0;return ve.mois===m?(parseInt(ve.en_attente,10)||0):0;}
 function cadNbAValider(r){var e=r&&r.enregistrement;if(e&&typeof e.ecrites==='number'&&typeof e.inchangees==='number')return Math.max(0,e.ecrites-e.inchangees);return parseInt(r&&r.n_validations,10)||0;}
 function cadEnrTexte(r){var e=(r&&r.enregistrement)||{},n=cadNbAValider(r),t=n>0?esc(String(n))+' ligne'+(n>1?'s':'')+' à valider.':'Aucune nouvelle ligne à valider.';
   if(e.inchangees>0)t+='<br>✅ '+esc(String(e.inchangees))+' décision(s) déjà prise(s) conservée(s) (mêmes montants, même technicien).';
   if(e.a_revoir>0)t+='<br>⚠️ '+esc(String(e.a_revoir))+' décision(s) à revoir : le montant ou le technicien a changé (marquées « ⚠️ Revoir »).';
   if(e.purgees>0)t+='<br>🔄 '+esc(String(e.purgees))+' ligne(s) en attente devenue(s) sans objet : mises de côté.';
   if(e.decidees_absentes>0)t+='<br>⚠️ '+esc(String(e.decidees_absentes))+' ligne(s) déjà décidée(s) absente(s) de ce décompte : annulées (retirées de la réclamation et du récap).';
-  var ve=CAD.etat&&CAD.etat.validations;if(ve&&ve.mois===r.mois&&(parseInt(ve.en_attente,10)||0)>n)t+='<br>🗳 Au total '+esc(String(ve.en_attente))+' ligne(s) à valider ce mois-ci (malfaçons avec code comprises).';
+  var nm=cadEnAttenteMois(r.mois);if(nm>n)t+='<br>🗳 Au total '+esc(String(nm))+' ligne(s) à valider pour ce mois (malfaçons avec code comprises).';
   if(r.rapport_garde===false)t+='<br>⚠️ Rapport NON gardé : le récap « ce qu’il reste » et les malfaçons ne sont pas à jour pour ce mois. Renvoie le fichier.';
   return t;}
 function cadRenduRes(){var z=document.getElementById('cad-res');if(!z)return;var r=CAD.res,h='';if(!r){z.innerHTML='';return;}
@@ -5126,7 +5128,7 @@ function cadRenduRes(){var z=document.getElementById('cad-res');if(!z)return;var
   else if(r.route==='comparer'){
     h=(CAD.recap&&CAD.recap.mois===r.mois?cadRecapHtml():'')+'<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">✅ Comparaison faite — '+esc(rsMoisLbl(r.mois))+'</div>'
      +'<div class="note" style="margin-top:4px">'+cadEnrTexte(r)+'</div>'
-     +((cadNbAValider(r)>0||(CAD.etat&&CAD.etat.validations&&CAD.etat.validations.mois===r.mois&&CAD.etat.validations.en_attente>0))?'<button class="btn" type="button" data-cad="valider" data-m="'+esc(r.mois||'')+'" style="margin-top:10px">Valider les lignes</button>'+(cadPatron()?'<div class="note" style="margin-top:6px">Tu peux aussi valider sur @CRCOMPAR_bot : les deux restent synchronisés.</div>':''):'')
+     +((cadNbAValider(r)>0||cadEnAttenteMois(r.mois)>0)?'<button class="btn" type="button" data-cad="valider" data-m="'+esc(r.mois||'')+'" style="margin-top:10px">Valider les lignes</button>'+(cadPatron()?'<div class="note" style="margin-top:6px">Tu peux aussi valider sur @CRCOMPAR_bot : les deux restent synchronisés.</div>':''):'')
      +'<button class="btn ghost" type="button" data-cad="rap" style="margin-top:10px">'+(CAD.voirRap?'Masquer le rapport':'Voir le rapport complet')+'</button></div>'
      +(CAD.voirRap?cadBoite(cadTg(r.rapport)):'');}
   else if(r.route==='confirmer'){
@@ -5530,8 +5532,10 @@ lignes.forEach(function (l) { if (!nonChiffre(l)) total += parseFloat(l.montant)
 var CAR={mois:'',dispo:[],out:null,ec:false,msg:''};
 var CAP={data:null,ec:false,arme:false,armeT:0,msg:'',mois:''};
 function carSortie(){if(CAR.out&&CAR.out.url){try{URL.revokeObjectURL(CAR.out.url);}catch(_e){}}CAR.out=null;}
-function capCharger(){if(!cadOk()||!navigator.onLine)return;
-  var mq=CAP.mois||null;rpc('cmp_admin_releves',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_publier:false,p_mois:mq}).then(function(d){if((CAP.mois||null)!==mq)return;CAP.data=d||null;cadRenduEtat();},function(){});}
+function capCharger(){if(!cadOk())return;
+  if(!navigator.onLine){if(CAP.data&&CAP.data.chargement){CAP.data={mois:CAP.data.mois,mois_dispo:CAP.data.mois_dispo||[],erreur:true};CAP.msg=HORSLIGNE_MSG;CAP.msgMois=null;cadRenduEtat();}return;}
+  var mq=CAP.mois||null;rpc('cmp_admin_releves',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_publier:false,p_mois:mq}).then(function(d){if((CAP.mois||null)!==mq||CAP.ec)return;CAP.data=d||null;cadRenduEtat();},
+   function(){if((CAP.mois||null)!==mq||CAP.ec)return;CAP.data={mois:(CAP.data&&CAP.data.mois)||mq||'',mois_dispo:(CAP.data&&CAP.data.mois_dispo)||[],erreur:true};CAP.msg='Impossible de charger les relevés pour l’instant — réessaie.';CAP.msgMois=null;cadRenduEtat();});}
 function cadDocsHtml(){var h='<div class="note" style="margin:16px 0 4px;font-weight:700">Fin de mois</div>';
   /* PDF de réclamation */
   h+='<div class="card" style="padding:14px 16px;margin-top:6px"><div style="font-weight:700">📄 PDF de réclamation'+(CAR.mois?' — '+esc(rsMoisLbl(CAR.mois)):'')+'</div>'
@@ -5548,8 +5552,9 @@ function cadDocsHtml(){var h='<div class="note" style="margin:16px 0 4px;font-we
   if(d&&(d.mois_dispo||[]).length>1){h+='<div role="tablist" style="display:flex;gap:8px;overflow-x:auto;margin-top:8px">';
     d.mois_dispo.forEach(function(m){var on=m===d.mois;h+='<button type="button" class="chip'+(on?' sel':'')+'" data-cad="capmois" data-m="'+esc(m)+'" style="flex:none">'+esc(rsMoisLbl(m))+'</button>';});h+='</div>';}
   if(d&&d.chargement)h+='<div class="note" style="margin-top:4px">Chargement…</div>';
+  else if(d&&d.erreur){if(CAP.msg)h+='<div class="note" style="margin-top:8px;color:var(--tx)">'+CAP.msg+'</div>';}
   else if(!d||!d.mois)h+='<div class="note" style="margin-top:4px">Aucun relevé : compare d’abord un décompte.</div>';
-  if(d&&d.mois&&!d.chargement){var nt=(d.techs||[]).length;
+  if(d&&d.mois&&!d.chargement&&!d.erreur){var nt=(d.techs||[]).length;
     h+='<div class="note" style="margin-top:4px">'+(d.publie_le?'✅ Publiés le '+esc(d.publie_le)+' : chaque technicien voit son relevé dans l’appli.':'Pas encore publiés : les techniciens ne voient rien tant que tu n’as pas publié.')+'</div>'
       +'<div class="note" style="margin-top:4px">'+esc(String(nt))+' technicien'+(nt>1?'s':'')+' · '+esc(String(d.n_lignes||0))+' ligne'+((d.n_lignes||0)>1?'s':'')
       +(d.n_sans_tech?' · '+esc(String(d.n_sans_tech))+' ligne(s) sans technicien identifié (non envoyée(s))':'')+(d.n_regules_masquees?' · '+esc(String(d.n_regules_masquees))+' régule(s) sans technicien (non affichée(s))':'')+'</div>';
