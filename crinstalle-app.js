@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='78';
+var APPV='79';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -5296,8 +5296,12 @@ function cadRecapHtml(){var r=CAD.recap;if(!r||!r.mois)return '';
     if(m.a_valider&&m.a_valider.n)t+='<br>· <b>'+esc(String(m.a_valider.n))+' avec code décharge, à décider</b> dans « Lignes à valider » : '+esc(fmt(m.a_valider.montant))+' (pas retirées pour l’instant)';
     if(m.a_saisir&&m.a_saisir.n)t+='<br>· <b>'+esc(String(m.a_saisir.n))+' ticket(s) HLP saisi(s) par personne</b> : '+esc(fmt(m.a_saisir.montant))+' non retiré(s) pour l’instant';
     var csc=ML.filter(function(x){return x.contestee_sans_code;}).length;if(csc)t+='<br>· ⚠️ '+esc(String(csc))+' contestation(s) dont le code décharge a été retiré depuis : à vérifier avant d’envoyer la réclamation';
-    if(r.a_reprendre>0)t+='<br>· ⚠️ '+esc(fmt(r.a_reprendre))+' de pénalités dépassent ce que certains techs gagnent ce mois-ci (à reprendre plus tard)';
+    if(r.a_reprendre>0)t+='<br>· ⚠️ '+esc(fmt(r.a_reprendre))+' de pénalités dépassent ce que certains techs gagnent ce mois-ci : reporté(s) sur le mois suivant';
     avert.push(t);}
+  /* v79 : décisions Zo 17/10 — dettes reportées ; binôme et parts SAV figés à la comparaison */
+  if(r.dettes_entrantes>0)avert.push('↩️ Reprise des dettes du mois précédent : '+esc(fmt(r.dettes_entrantes))+' à reprendre, dont '+esc(fmt(r.dettes_reprises||0))+' repris ce mois-ci'+((r.dettes_entrantes-(r.dettes_reprises||0))>0.005?' (le reste est reporté sur le mois suivant)':'')+'.');
+  if(r.sav_modifie&&r.sav_modifie.length)avert.push('⚠️ Parts SAV : des SAV ont été ajoutés, modifiés ou supprimés depuis la comparaison ('+r.sav_modifie.map(function(x){return esc(x.prenom||x.tid)+' '+esc(String(x.parts_comparaison))+' → '+esc(String(x.parts_aujourdhui));}).join(', ')+'). Les montants restent ceux de la comparaison ; renvoie le décompte pour les recalculer.');
+  if(r.binomes_modifies>0)avert.push('⚠️ '+esc(String(r.binomes_modifies))+' binôme(s) modifié(s) depuis la comparaison : le partage reste celui de la comparaison ; renvoie le décompte pour le recalculer.');
   if(r.rg_attente&&r.rg_attente.n>0)avert.push('📦 '+esc(String(r.rg_attente.n))+' régule(s) à décider ('+esc(fmt(r.rg_attente.montant))+') : comptée(s) '+(cadPatron()?'chez toi':'chez CRINSTALLE')+' pour l’instant.');
   if(r.rdv_nh>0)avert.push('⏰ RDV non honorés : '+esc(fmt(r.rdv_nh))+' déjà retirés par Sogetrel, '+(cadPatron()?'à ta charge':'à la charge de CRINSTALLE')+'.');
   avert.push('ℹ️ Estimation : les manques réclamés ne comptent qu’une fois payés par Sogetrel.');
@@ -5309,8 +5313,8 @@ function cadRecapHtml(){var r=CAD.recap;if(!r||!r.mois)return '';
     T.forEach(function(t,i){var nm=esc(t.prenom)+(t.nom?' '+esc(String(t.nom).charAt(0))+'.':'');
       h+='<div style="padding:8px 0'+(i?';border-top:1px solid var(--border)':'')+'"><div style="display:flex;justify-content:space-between;gap:8px;font-weight:700"><span>'+nm+'</span><span style="font-variant-numeric:tabular-nums">'+esc(fmt(t.a_verser))+'</span></div>'
         +'<div class="note">Brut '+esc(fmt(t.brut))+' (prod. '+esc(fmt(t.prod))+(t.sav?' · SAV '+esc(fmt(t.sav)):'')+(t.rg?' · régules '+esc(fmt(t.rg)):'')+') − commission '+esc(cadPct(t.taux))+' '+esc(fmt(t.commission))
-        +(t.malf>0?' − malfaçons sans code '+esc(fmt(t.malf))+(t.malf_n>1?' ('+esc(String(t.malf_n))+')':''):'')+'</div>'
-        +(t.a_reprendre>0?'<div class="note" style="color:var(--accent-l);font-weight:700">⚠️ Pénalités supérieures aux gains : '+esc(fmt(t.a_reprendre))+' à reprendre plus tard (rien à verser ce mois-ci)</div>':'')+'</div>';});
+        +(t.malf>0?' − malfaçons sans code '+esc(fmt(t.malf))+(t.malf_n>1?' ('+esc(String(t.malf_n))+')':''):'')+(t.dette_entrante>0?' − reprise du mois précédent '+esc(fmt(t.dette_entrante)):'')+'</div>'
+        +(t.a_reprendre>0?'<div class="note" style="color:var(--accent-l);font-weight:700">⚠️ Pénalités supérieures aux gains : '+esc(fmt(t.a_reprendre))+' reporté(s) sur le mois suivant (rien à verser ce mois-ci)</div>':'')+'</div>';});
     if(!T.length)h+='<div class="note">Aucun technicien à payer pour ce mois.</div>';h+='</div>';}
   if(CAD.voirRecapM&&m.lignes){h+='<div style="margin-top:8px">';
     var ET={contestee:'✅ Contestée · code ',deduite:'➖ Retirée au technicien (pas de code ou « Ignorer »)',a_saisir:'⚠️ Saisie par personne',a_valider:'⏳ Code décharge saisi — à décider dans « Lignes à valider » · code '};
