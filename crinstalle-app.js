@@ -5607,3 +5607,5 @@ function mfClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-
       if(r&&r.ok){MF.form=null;document.getElementById('mf-info').textContent='✅ Malfaçon '+(r.hlp||'')+' enregistrée'+(r.code?' avec son code décharge.':' — pense à ajouter le code décharge.');try{v64Vib(12);}catch(_e){}CAD.etat=null;CAD.recap=null;return mfCharger();}
       err('err-mf',(r&&r.message)||'Enregistrement impossible.');mfRendu();},
      function(e){err('err-mf',e&&e.reseau?HORSLIGNE_MSG:'Enregistrement impossible — réessaie.');mfRendu();});}}
+
+/* publication directe via n8n (sans Chrome) vérifiée le 18/10/2026 */
