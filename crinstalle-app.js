@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='80';
+var APPV='81';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -5267,8 +5267,11 @@ function cavClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
   if(!navigator.onLine){err('err-cav',HORSLIGNE_MSG);cavRendu();return;}
   var bs=document.querySelectorAll('#cav-liste [data-id="'+id+'"]');for(var i=0;i<bs.length;i++)bs[i].disabled=true;b.textContent='Envoi…';
   var p={p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id,p_choix:ch==='tech'?'tech':ch};if(ch==='tech')p.p_tid=tid;
+  /* montant Sogetrel de la ligne (pour signaler une reprise plus grande que ce que le technicien a touché — Zo 18/10) */
+  var brutAv=NaN;try{var la=((CAV.data&&CAV.data.lignes)||[]).filter(function(x){return String(x.id)===String(id);})[0];if(la)brutAv=parseFloat(la.montant);}catch(_e){}
   rpc('cmp_admin_decider',p).then(function(r){
-    if(r&&r.ok){if(CAV.data&&CAV.data.mois)CAV.mois=CAV.data.mois;document.getElementById('cav-info').textContent=CAV_FAIT[ch]+(r.prenom?' à '+r.prenom:'')+((ch==='tech'&&r.montant_tech!==null&&r.montant_tech!==undefined)?' · montant sur son relevé : '+fmt(parseFloat(r.montant_tech)||0):'')+' · reste '+(parseInt(r.reste_total,10)||0)+' ligne(s)';try{v64Vib(12);}catch(_e){}if(CAV.choixTech===id)CAV.choixTech=null;}
+    if(r&&r.ok){if(CAV.data&&CAV.data.mois)CAV.mois=CAV.data.mois;document.getElementById('cav-info').textContent=CAV_FAIT[ch]+(r.prenom?' à '+r.prenom:'')+((ch==='tech'&&r.montant_tech!==null&&r.montant_tech!==undefined)?' · montant sur son relevé : '+fmt(parseFloat(r.montant_tech)||0):'')
+      +((ch==='tech'&&brutAv<0&&r.montant_tech!==null&&r.montant_tech!==undefined&&isFinite(parseFloat(r.montant_tech))&&parseFloat(r.montant_tech)>brutAv+0.005)?' · 🔔 reprise plus grande que ce qu’il a touché sur ce jeton : '+fmt(-parseFloat(r.montant_tech))+' retirés, '+fmt(parseFloat(r.montant_tech)-brutAv)+' à la charge de CRINSTALLE':'')+' · reste '+(parseInt(r.reste_total,10)||0)+' ligne(s)';try{v64Vib(12);}catch(_e){}if(CAV.choixTech===id)CAV.choixTech=null;}
     else err('err-cav',(r&&r.message)||'Décision non enregistrée.');
     CAD.etat=null;return cavCharger();
   }).catch(function(e){err('err-cav',e&&e.reseau?(navigator.onLine?RESEAU_MSG:HORSLIGNE_MSG):((e&&e.message)||'Décision non enregistrée — réessaie.'));cavRendu();});}
