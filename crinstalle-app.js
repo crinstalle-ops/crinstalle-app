@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='74';
+var APPV='75';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -5565,7 +5565,6 @@ function mfRendu(){var z=document.getElementById('mf-corps');if(!z)return;var ad
     h+='<div class="field"><label class="lab" for="mf-hlp">Ticket HLP</label><input type="text" id="mf-hlp" maxlength="40" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="ex. HLP-8795-20260811-4890773" value="'+esc(f.hlp)+'"></div>'
       +'<div class="field"><label class="lab" for="mf-date">Date de la reprise</label><input type="date" id="mf-date" value="'+esc(f.date)+'" max="'+mfAuj()+'"></div>'
       +'<div class="field"><label class="lab" for="mf-code">Code décharge <span class="note" style="font-weight:400">(si tu l’as)</span></label><input type="text" id="mf-code" maxlength="24" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="lettres et chiffres" value="'+esc(f.code)+'"></div>'
-      +'<div class="field"><label class="lab" for="mf-code2">Retape le code décharge</label><input type="text" id="mf-code2" maxlength="24" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="pour éviter les fautes de frappe" value="'+esc(f.code)+'"></div>'
       +'<div class="field"><label class="lab" for="mf-com">Commentaire <span class="note" style="font-weight:400">(facultatif)</span></label><input type="text" id="mf-com" maxlength="300" value="'+esc(f.commentaire)+'"></div>'
       +'<button class="btn" type="button" data-mf="save" style="margin-top:4px">Enregistrer</button>'
       +(adm&&f.id?'<button class="btn ghost" type="button" data-mf="suppr" style="margin-top:8px">'+(MF.arme===f.id?'Sûr ? Retouche pour supprimer':'Supprimer cette malfaçon')+'</button>':'')
@@ -5584,7 +5583,7 @@ function mfRendu(){var z=document.getElementById('mf-corps');if(!z)return;var ad
     h+='</div>';}
   z.innerHTML=h;}
 function mfLire(){var g=function(id){var e=document.getElementById(id);return e?e.value:'';};
-  return {tid:g('mf-tech'),hlp:mfNormHlp(g('mf-hlp')),date:g('mf-date'),code:mfNormCode(g('mf-code')),code2:mfNormCode(g('mf-code2')),commentaire:String(g('mf-com')).trim()};}
+  return {tid:g('mf-tech'),hlp:mfNormHlp(g('mf-hlp')),date:g('mf-date'),code:mfNormCode(g('mf-code')),commentaire:String(g('mf-com')).trim()};}
 function mfClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-mf]'):null;if(!b||b.disabled)return;var a=b.getAttribute('data-mf');err('err-mf');
   if(a==='new'){MF.form={id:null,tid:'',hlp:'',date:mfAuj(),code:'',commentaire:''};mfRendu();return;}
   if(a==='annuler'){MF.form=null;mfRendu();return;}
@@ -5601,7 +5600,6 @@ function mfClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-
     if(!/^[A-Z0-9]+(-[A-Z0-9]+)+$/.test(v.hlp)||v.hlp.length<8||v.hlp.length>40){err('err-mf','Ticket HLP invalide (exemple : HLP-8795-20260811-4890773).');return;}
     if(!/^\d{4}-\d{2}-\d{2}$/.test(v.date)){err('err-mf','Choisis la date.');return;}
     if(v.code&&!/^[A-Z0-9]{4,20}$/.test(v.code)){err('err-mf','Code décharge : uniquement des lettres et des chiffres (4 à 20).');return;}
-    if(v.code!==v.code2){err('err-mf','Les deux codes décharge ne sont pas identiques : vérifie-les.');return;}
     if(!navigator.onLine){err('err-mf',HORSLIGNE_MSG);return;}
     b.disabled=true;b.textContent='Enregistrement…';
     var p={p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:f.id||null,p_hlp:v.hlp,p_date:v.date,p_code:v.code||null,p_commentaire:v.commentaire||null};if(mfAdm())p.p_tid=v.tid;
