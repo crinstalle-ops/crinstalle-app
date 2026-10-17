@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='76';
+var APPV='77';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -5047,7 +5047,7 @@ function rsPdf(){var l=rsListe(),m=l[RS.idx];if(!m)return;rsSortie();
    vérifie la clé avant toute lecture du fichier). Le calcul = moteur du bot Telegram, recopié à l'identique.
    Rien n'est gardé sur le téléphone (rapport et fichier en mémoire uniquement). */
 var CADURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-comparateur-admin';
-var CAD={etat:null,ec:false,envoi:false,fichier:null,res:null,voirRap:false,voirRapEtat:false,arme:false,armeT:0,recapMois:''};
+var CAD={etat:null,ec:false,envoi:false,fichier:null,res:null,voirRap:false,voirRapEtat:false,arme:false,armeT:0,armeLe:0,recapMois:'',envoye:null};
 var CAD_MAX=10*1024*1024;
 function cadOk(){var m=ACCT&&ACCT.me;return !!(m&&m.equipe&&(m.acces==='admin'||m.cmp_admin===true));}
 function cadPatron(){return !!(ACCT&&ACCT.me&&ACCT.me.acces==='admin');}
@@ -5080,9 +5080,9 @@ function cadEtat(){var z=document.getElementById('cad-etat');if(!z)return;if(CAD
   if(!navigator.onLine){if(!CAD.etat)z.innerHTML='<div class="note" style="margin-top:12px">Pas de réseau — réessaie une fois connecté.</div>';return;}
   if(CAD.ec)return;CAD.ec=true;
   try{cadRecapCharger();capCharger();}catch(_e){}
-  rpc('cmp_admin_etat',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(d){CAD.ec=false;CAD.etat=d||{};cadRenduEtat();},
+  rpc('cmp_admin_etat',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(d){CAD.ec=false;CAD.etat=d||{};cadRenduEtat();if(CAD.res&&CAD.res.route==='comparer')cadRenduRes();},
    function(e){CAD.ec=false;err('err-cad',e&&e.reseau?HORSLIGNE_MSG:'Impossible de charger l’état du comparateur pour l’instant.');});}
-function cadChoix(){var f=document.getElementById('cad-f'),x=f.files&&f.files[0],nm=document.getElementById('cad-nom'),go=document.getElementById('cad-go');err('err-cad');CAD.fichier=null;go.disabled=true;CAD.arme=false;clearTimeout(CAD.armeT);cadGoTexte();
+function cadChoix(){if(CAD.envoi)return;var f=document.getElementById('cad-f'),x=f.files&&f.files[0],nm=document.getElementById('cad-nom'),go=document.getElementById('cad-go');err('err-cad');CAD.fichier=null;go.disabled=true;CAD.arme=false;clearTimeout(CAD.armeT);cadGoTexte();
   if(!x){nm.textContent='Aucun fichier choisi.';return;}
   if(!/\.xlsx?$/i.test(x.name)){nm.textContent='Aucun fichier choisi.';err('err-cad','Choisis le fichier Excel (.xlsx) du décompte Sogetrel.');return;}
   if(x.size>CAD_MAX){nm.textContent='Aucun fichier choisi.';err('err-cad','Fichier trop lourd (10 Mo maximum).');return;}
@@ -5096,20 +5096,21 @@ function cadGoTexte(){var g=document.getElementById('cad-go'),n=document.getElem
   if(CAD.envoi)return;g.textContent=CAD.arme?'Sûr ? Retouche pour lancer':'Analyser et comparer';g.className=CAD.arme?'btn':'btn';
   if(n)n.textContent=CAD.arme?'⚠️ La comparaison remplace la précédente du même mois et retire la publication des relevés de ce mois jusqu’à ta nouvelle publication.':'';}
 function cadGo(){if(CAD.envoi||!CAD.fichier)return;
-  if(!CAD.arme){CAD.arme=true;clearTimeout(CAD.armeT);CAD.armeT=setTimeout(function(){CAD.arme=false;cadGoTexte();},5000);cadGoTexte();return;}
+  if(!CAD.arme){CAD.arme=true;CAD.armeLe=Date.now();clearTimeout(CAD.armeT);CAD.armeT=setTimeout(function(){CAD.arme=false;cadGoTexte();},5000);cadGoTexte();return;}
+  if(Date.now()-CAD.armeLe<600)return; /* double-clic : ignoré, il faut lire l'avertissement */
   clearTimeout(CAD.armeT);CAD.arme=false;cadGoTexte();cadEnvoyer();}
 function cadViderFichier(){CAD.fichier=null;CAD.arme=false;clearTimeout(CAD.armeT);var f=document.getElementById('cad-f'),nm=document.getElementById('cad-nom'),g=document.getElementById('cad-go');
   if(f)f.value='';if(nm)nm.textContent='Aucun fichier choisi.';if(g){g.disabled=true;g.textContent='Analyser et comparer';}var n=document.getElementById('cad-arme');if(n)n.textContent='';}
 function cadEnvoyer(){if(CAD.envoi||!CAD.fichier)return;err('err-cad');
   if(!navigator.onLine){err('err-cad',HORSLIGNE_MSG);return;}
-  var go=document.getElementById('cad-go');CAD.envoi=true;if(go){go.disabled=true;go.textContent='Analyse en cours…';}
+  var go=document.getElementById('cad-go');CAD.envoi=true;CAD.envoye=CAD.fichier;if(go){go.disabled=true;go.textContent='Analyse en cours…';}var ch0=document.getElementById('cad-choisir');if(ch0)ch0.disabled=true;
   CAD.res={route:'encours'};cadRenduRes();
   fetchT(CADURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({c:ACCT.client_id,k:ACCT.cle,nom:CAD.fichier.nom,b64:CAD.fichier.b64})},120000)
   .then(function(r){return r.json().catch(function(){return {ok:false,route:'erreur',message:'Erreur technique : réponse illisible du serveur (code '+r.status+'). Réessaie dans un instant.'};});})
   .then(function(j){CAD.res=(j&&typeof j==='object')?j:{ok:false,route:'erreur',message:'Erreur technique : réponse vide.'};},
         function(){CAD.res={ok:false,route:'erreur',message:RESEAU_MSG};})
-  .then(function(){CAD.envoi=false;CAD.voirRap=false;var g=document.getElementById('cad-go');if(g){g.disabled=!CAD.fichier;g.textContent='Analyser et comparer';}
-    if(CAD.res&&CAD.res.route==='comparer'){cadViderFichier();CAR.mois='';CAR.msg='';carSortie();CAP.mois='';CAP.msg='';CAD.recapMois='';CAV.mois='';CAV.data=null;}
+  .then(function(){CAD.envoi=false;CAD.voirRap=false;var g=document.getElementById('cad-go');if(g){g.disabled=!CAD.fichier;g.textContent='Analyser et comparer';}var ch1=document.getElementById('cad-choisir');if(ch1)ch1.disabled=false;
+    if(CAD.res&&CAD.res.route==='comparer'){if(CAD.fichier===CAD.envoye)cadViderFichier();CAR.mois='';CAR.msg='';carSortie();CAP.mois='';CAP.msg='';CAP.arme=false;clearTimeout(CAP.armeT);CAD.recapMois='';CAV.mois='';CAV.data=null;}
     cadRenduRes();CAD.etat=null;cadEtat();});}
 function cadNbAValider(r){var e=r&&r.enregistrement;if(e&&typeof e.ecrites==='number'&&typeof e.inchangees==='number')return Math.max(0,e.ecrites-e.inchangees);return parseInt(r&&r.n_validations,10)||0;}
 function cadEnrTexte(r){var e=(r&&r.enregistrement)||{},n=cadNbAValider(r),t=n>0?esc(String(n))+' ligne'+(n>1?'s':'')+' à valider.':'Aucune nouvelle ligne à valider.';
@@ -5117,13 +5118,15 @@ function cadEnrTexte(r){var e=(r&&r.enregistrement)||{},n=cadNbAValider(r),t=n>0
   if(e.a_revoir>0)t+='<br>⚠️ '+esc(String(e.a_revoir))+' décision(s) à revoir : le montant ou le technicien a changé (marquées « ⚠️ Revoir »).';
   if(e.purgees>0)t+='<br>🔄 '+esc(String(e.purgees))+' ligne(s) en attente devenue(s) sans objet : mises de côté.';
   if(e.decidees_absentes>0)t+='<br>⚠️ '+esc(String(e.decidees_absentes))+' ligne(s) déjà décidée(s) absente(s) de ce décompte : annulées (retirées de la réclamation et du récap).';
+  var ve=CAD.etat&&CAD.etat.validations;if(ve&&ve.mois===r.mois&&(parseInt(ve.en_attente,10)||0)>n)t+='<br>🗳 Au total '+esc(String(ve.en_attente))+' ligne(s) à valider ce mois-ci (malfaçons avec code comprises).';
+  if(r.rapport_garde===false)t+='<br>⚠️ Rapport NON gardé : le récap « ce qu’il reste » et les malfaçons ne sont pas à jour pour ce mois. Renvoie le fichier.';
   return t;}
 function cadRenduRes(){var z=document.getElementById('cad-res');if(!z)return;var r=CAD.res,h='';if(!r){z.innerHTML='';return;}
   if(r.route==='encours')h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">Analyse du fichier…</div><div class="note">Lecture, contrôles puis comparaison. Cela prend quelques secondes.</div></div>';
   else if(r.route==='comparer'){
     h=(CAD.recap&&CAD.recap.mois===r.mois?cadRecapHtml():'')+'<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">✅ Comparaison faite — '+esc(rsMoisLbl(r.mois))+'</div>'
      +'<div class="note" style="margin-top:4px">'+cadEnrTexte(r)+'</div>'
-     +(cadNbAValider(r)>0?'<button class="btn" type="button" data-cad="valider" data-m="'+esc(r.mois||'')+'" style="margin-top:10px">Valider les lignes</button>'+(cadPatron()?'<div class="note" style="margin-top:6px">Tu peux aussi valider sur @CRCOMPAR_bot : les deux restent synchronisés.</div>':''):'')
+     +((cadNbAValider(r)>0||(CAD.etat&&CAD.etat.validations&&CAD.etat.validations.mois===r.mois&&CAD.etat.validations.en_attente>0))?'<button class="btn" type="button" data-cad="valider" data-m="'+esc(r.mois||'')+'" style="margin-top:10px">Valider les lignes</button>'+(cadPatron()?'<div class="note" style="margin-top:6px">Tu peux aussi valider sur @CRCOMPAR_bot : les deux restent synchronisés.</div>':''):'')
      +'<button class="btn ghost" type="button" data-cad="rap" style="margin-top:10px">'+(CAD.voirRap?'Masquer le rapport':'Voir le rapport complet')+'</button></div>'
      +(CAD.voirRap?cadBoite(cadTg(r.rapport)):'');}
   else if(r.route==='confirmer'){
@@ -5161,7 +5164,7 @@ function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
   if(a==='rcmois'){CAR.mois=b.getAttribute('data-m')||'';carSortie();CAR.msg='';carPdf();return;}
   if(a==='rcshare'){try{navigator.share({files:[new File([CAR.out.blob],CAR.out.nom,{type:'application/pdf'})],title:'Réclamation '+rsMoisLbl(CAR.mois)}).catch(function(){});}catch(_e){}return;}
   if(a==='pub'){capPublier();return;}
-  if(a==='capmois'){var cm=b.getAttribute('data-m')||'';if(/^\d{4}-\d{2}$/.test(cm)){CAP.mois=cm;CAP.arme=false;CAP.msg='';capCharger();}return;}
+  if(a==='capmois'){var cm=b.getAttribute('data-m')||'';if(/^\d{4}-\d{2}$/.test(cm)&&!CAP.ec){CAP.mois=cm;CAP.arme=false;clearTimeout(CAP.armeT);CAP.msg='';CAP.data={mois:cm,mois_dispo:(CAP.data&&CAP.data.mois_dispo)||[],chargement:true};cadRenduEtat();capCharger();}return;}
   if(a==='recapmois'){var rm=b.getAttribute('data-m')||'';if(/^\d{4}-\d{2}$/.test(rm)){CAD.recapMois=rm;cadRecapCharger();}return;}
   if(a==='recapT'){CAD.voirRecapT=!CAD.voirRecapT;cadRenduRes();cadRenduEtat();return;}
   if(a==='recapM'){CAD.voirRecapM=!CAD.voirRecapM;cadRenduRes();cadRenduEtat();return;}
@@ -5177,7 +5180,7 @@ function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
       if(!r||!r.ok){err('err-cad',(r&&r.message)||'Décision non enregistrée.');CAD.res=null;cadRenduRes();CAD.etat=null;cadEtat();return;}
       if(a==='ko'){CAD.res={route:'annule'};cadRenduRes();CAD.etat=null;cadEtat();return;}
       /* lecture confirmée : on relance l'envoi du même fichier (reconnu par son empreinte, confirmation valable 3 jours) */
-      if(CAD.fichier&&CAD.res&&CAD.res.route==='confirmer'&&parseInt(CAD.res.analyse_id,10)===id){cadEnvoyer();return;}
+      if(CAD.fichier&&CAD.fichier===CAD.envoye&&CAD.res&&CAD.res.route==='confirmer'&&parseInt(CAD.res.analyse_id,10)===id){cadEnvoyer();return;}
       CAD.res={ok:false,route:'info',message:'Lecture confirmée. Choisis à nouveau le même fichier puis « Analyser et comparer » pour lancer la comparaison (valable 3 jours).'};cadRenduRes();CAD.etat=null;cadEtat();},
      function(e){for(var i=0;i<bs.length;i++)bs[i].disabled=false;err('err-cad',e&&e.reseau?HORSLIGNE_MSG:'Décision non enregistrée — réessaie.');});}}
 /* ===== v70 : comparateur — VALIDATION des lignes dans l'appli (étape 3b, administrateur)
@@ -5201,7 +5204,7 @@ function cavCharger(){var z=document.getElementById('cav-liste');if(CAV.data)cav
   if(!navigator.onLine){if(!CAV.data&&z)z.innerHTML='<div class="note">Pas de réseau — réessaie une fois connecté.</div>';return Promise.resolve();}
   if(CAV.ec)return Promise.resolve();CAV.ec=true;
   var mq=CAV.mois||null;return rpc('cmp_admin_validations_mois',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:mq}).then(function(d){CAV.ec=false;if((CAV.mois||null)!==mq){cavCharger();return;}CAV.data=d||{};cavRendu();},
-   function(e){CAV.ec=false;if(!CAV.data&&z)z.innerHTML='';err('err-cav',e&&e.reseau?HORSLIGNE_MSG:'Impossible de charger les lignes pour l’instant.');});}
+   function(e){CAV.ec=false;if((CAV.mois||null)!==mq){cavCharger();return;}if(!CAV.data&&z)z.innerHTML='';err('err-cav',e&&e.reseau?HORSLIGNE_MSG:'Impossible de charger les lignes pour l’instant.');});}
 function cavMontant(r){var v=parseFloat(r.montant)||0;if(!(v>0)&&(r.type==='sous_paye'||r.type==='signalement'))return 'à chiffrer';return fmt(v);}
 function cavAvis(r){if(r.type!=='signalement')return '';
   if(r.decide_par_tech==='vrai_racc')return '👍 Le technicien CONFIRME : vrai RACC';
@@ -5254,14 +5257,15 @@ function cavClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
   if(ch==='choisir'){CAV.choixTech=id;CAV.arme=null;cavRendu();return;}
   if(!CAV_LBL[ch])return;
   var tid=null;if(ch==='tech'){var sel=document.getElementById('cav-tech-'+id);tid=sel?sel.value:'';if(!tid){err('err-cav','Choisis d’abord le technicien.');return;}}
-  if(!(CAV.arme&&CAV.arme.id===id&&CAV.arme.ch===ch&&(ch!=='tech'||CAV.arme.tid===tid))){CAV.arme={id:id,ch:ch,tid:tid};clearTimeout(CAV.armeT);
+  if(!(CAV.arme&&CAV.arme.id===id&&CAV.arme.ch===ch&&(ch!=='tech'||CAV.arme.tid===tid))){CAV.arme={id:id,ch:ch,tid:tid,le:Date.now()};clearTimeout(CAV.armeT);
     CAV.armeT=setTimeout(function(){CAV.arme=null;cavRendu();},4000);cavRendu();return;}
+  if(Date.now()-(CAV.arme.le||0)<600)return; /* double-clic : ignoré */
   clearTimeout(CAV.armeT);CAV.arme=null;
   if(!navigator.onLine){err('err-cav',HORSLIGNE_MSG);cavRendu();return;}
   var bs=document.querySelectorAll('#cav-liste [data-id="'+id+'"]');for(var i=0;i<bs.length;i++)bs[i].disabled=true;b.textContent='Envoi…';
   var p={p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id,p_choix:ch==='tech'?'tech':ch};if(ch==='tech')p.p_tid=tid;
   rpc('cmp_admin_decider',p).then(function(r){
-    if(r&&r.ok){if(CAV.data&&CAV.data.mois)CAV.mois=CAV.data.mois;document.getElementById('cav-info').textContent=CAV_FAIT[ch]+(r.prenom?' à '+r.prenom:'')+' · reste '+(parseInt(r.reste_total,10)||0)+' ligne(s)';try{v64Vib(12);}catch(_e){}if(CAV.choixTech===id)CAV.choixTech=null;}
+    if(r&&r.ok){if(CAV.data&&CAV.data.mois)CAV.mois=CAV.data.mois;document.getElementById('cav-info').textContent=CAV_FAIT[ch]+(r.prenom?' à '+r.prenom:'')+((ch==='tech'&&r.montant_tech!==null&&r.montant_tech!==undefined)?' · montant sur son relevé : '+fmt(parseFloat(r.montant_tech)||0):'')+' · reste '+(parseInt(r.reste_total,10)||0)+' ligne(s)';try{v64Vib(12);}catch(_e){}if(CAV.choixTech===id)CAV.choixTech=null;}
     else err('err-cav',(r&&r.message)||'Décision non enregistrée.');
     CAD.etat=null;return cavCharger();
   }).catch(function(e){err('err-cav',e&&e.reseau?(navigator.onLine?RESEAU_MSG:HORSLIGNE_MSG):((e&&e.message)||'Décision non enregistrée — réessaie.'));cavRendu();});}
@@ -5271,7 +5275,7 @@ function cavClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
    affichée à part, ligne par ligne). Rien n'est gardé sur le téléphone. */
 CAD.recap=null;CAD.voirRecapT=false;CAD.voirRecapM=false;
 function cadRecapCharger(){if(!cadOk()||!navigator.onLine)return;
-  var mq=CAD.recapMois||null;rpc('cmp_admin_recap',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:mq}).then(function(d){if((CAD.recapMois||null)!==mq)return;CAD.recap=(d&&d.mois)?d:null;cadRenduRes();cadRenduEtat();},function(){CAD.recap=null;});}
+  var mq=CAD.recapMois||null;rpc('cmp_admin_recap',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:mq}).then(function(d){if((CAD.recapMois||null)!==mq)return;CAD.recap=(d&&d.mois)?d:null;cadRenduRes();cadRenduEtat();},function(){if((CAD.recapMois||null)!==mq)return;CAD.recap=null;cadRenduRes();cadRenduEtat();});}
 function cadPct(t){var v=Math.round((parseFloat(t)||0)*1000)/10;return String(v).replace('.',',')+' %';}
 function cadRecapHtml(){var r=CAD.recap;if(!r||!r.mois)return '';
   if(!r.ok)return '<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">💰 '+(cadPatron()?'Ce qu’il te reste':'Ce qu’il reste à CRINSTALLE')+' — '+esc(rsMoisLbl(r.mois))+'</div><div class="note">'+esc(r.message||'Calcul impossible.')+'</div></div>';
@@ -5317,7 +5321,7 @@ function cadRecapHtml(){var r=CAD.recap;if(!r||!r.mois)return '';
         +'<button class="btn ghost" type="button" data-cad="malfsaisir" data-hlp="'+esc(x.reference||'')+'" data-date="'+esc(x.date||'')+'" data-tid="'+esc(((x.suggestion||[])[0]||{}).tid||'')+'" style="margin-top:6px;height:40px">Saisir cette malfaçon</button>';}
       h+='</div>';});
     h+='</div>';}
-  if(r.calcule_sur)h+='<div class="note" style="margin-top:8px">Fichier comparé le '+esc(r.calcule_sur)+' · mis à jour avec tes décisions.</div>';
+  if(r.calcule_sur)h+='<div class="note" style="margin-top:8px">Fichier comparé le '+esc(r.calcule_sur)+' · mis à jour avec '+(cadPatron()?'tes':'les')+' décisions.</div>';
   return h+'</div>';}
 /* ===== v72 : comparateur — PDF de RÉCLAMATION dans l'appli (étape 3c, administrateur)
    MÊME code que le nœud n8n « Construire le PDF réclamation » : générateur (sortie Buffer → Uint8Array) et regroupement des lignes. */
@@ -5531,7 +5535,7 @@ function capCharger(){if(!cadOk()||!navigator.onLine)return;
 function cadDocsHtml(){var h='<div class="note" style="margin:16px 0 4px;font-weight:700">Fin de mois</div>';
   /* PDF de réclamation */
   h+='<div class="card" style="padding:14px 16px;margin-top:6px"><div style="font-weight:700">📄 PDF de réclamation'+(CAR.mois?' — '+esc(rsMoisLbl(CAR.mois)):'')+'</div>'
-    +'<div class="note" style="margin-top:4px">Toutes les lignes que tu as réclamées, regroupées par technicien, avec le total à envoyer à Sogetrel.</div>';
+    +'<div class="note" style="margin-top:4px">Toutes les lignes '+(cadPatron()?'que tu as réclamées':'réclamées')+', regroupées par technicien, avec le total à envoyer à Sogetrel.</div>';
   if(CAR.dispo.length>1){h+='<div role="tablist" style="display:flex;gap:8px;overflow-x:auto;margin-top:8px">';
     CAR.dispo.forEach(function(m){var on=m===CAR.mois;h+='<button type="button" class="chip'+(on?' sel':'')+'" data-cad="rcmois" data-m="'+esc(m)+'" style="flex:none">'+esc(rsMoisLbl(m))+'</button>';});h+='</div>';}
   if(CAR.msg)h+='<div class="note" style="margin-top:8px;color:var(--tx)">'+CAR.msg+'</div>';
@@ -5543,15 +5547,16 @@ function cadDocsHtml(){var h='<div class="note" style="margin:16px 0 4px;font-we
   h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">📤 Relevés des techniciens'+(d&&d.mois?' — '+esc(rsMoisLbl(d.mois)):'')+'</div>';
   if(d&&(d.mois_dispo||[]).length>1){h+='<div role="tablist" style="display:flex;gap:8px;overflow-x:auto;margin-top:8px">';
     d.mois_dispo.forEach(function(m){var on=m===d.mois;h+='<button type="button" class="chip'+(on?' sel':'')+'" data-cad="capmois" data-m="'+esc(m)+'" style="flex:none">'+esc(rsMoisLbl(m))+'</button>';});h+='</div>';}
-  if(!d||!d.mois)h+='<div class="note" style="margin-top:4px">Aucun relevé : compare d’abord un décompte.</div>';
-  else{var nt=(d.techs||[]).length;
+  if(d&&d.chargement)h+='<div class="note" style="margin-top:4px">Chargement…</div>';
+  else if(!d||!d.mois)h+='<div class="note" style="margin-top:4px">Aucun relevé : compare d’abord un décompte.</div>';
+  if(d&&d.mois&&!d.chargement){var nt=(d.techs||[]).length;
     h+='<div class="note" style="margin-top:4px">'+(d.publie_le?'✅ Publiés le '+esc(d.publie_le)+' : chaque technicien voit son relevé dans l’appli.':'Pas encore publiés : les techniciens ne voient rien tant que tu n’as pas publié.')+'</div>'
       +'<div class="note" style="margin-top:4px">'+esc(String(nt))+' technicien'+(nt>1?'s':'')+' · '+esc(String(d.n_lignes||0))+' ligne'+((d.n_lignes||0)>1?'s':'')
       +(d.n_sans_tech?' · '+esc(String(d.n_sans_tech))+' ligne(s) sans technicien identifié (non envoyée(s))':'')+(d.n_regules_masquees?' · '+esc(String(d.n_regules_masquees))+' régule(s) sans technicien (non affichée(s))':'')+'</div>';
     if(nt)h+='<div class="note" style="margin-top:4px">'+(d.techs||[]).map(function(t){return esc(t.prenom)+' ('+esc(String(t.n))+')';}).join(' · ')+'</div>';
-    if(CAP.msg)h+='<div class="note" style="margin-top:8px;color:var(--tx)">'+CAP.msg+'</div>';
+    if(CAP.msg&&(!CAP.msgMois||CAP.msgMois===d.mois))h+='<div class="note" style="margin-top:8px;color:var(--tx)">'+CAP.msg+'</div>';
     if(nt)h+='<button class="btn'+(d.publie_le&&!CAP.arme?' ghost':'')+'" type="button" data-cad="pub" style="margin-top:10px"'+(CAP.ec?' disabled':'')+'>'+(CAP.ec?'Publication…':(CAP.arme?'Sûr ? Retouche pour publier':(d.publie_le?'Republier (mettre à jour)':'Publier les relevés dans l’appli')))+'</button>'
-      +'<div class="note" style="margin-top:6px">L’envoi des PDF par Telegram reste possible depuis @CRCOMPAR_bot.</div>';}
+      +(cadPatron()?'<div class="note" style="margin-top:6px">L’envoi des PDF par Telegram reste possible depuis @CRCOMPAR_bot.</div>':'');}
   return h+'</div>';}
 function carPdf(){if(CAR.ec)return;if(!navigator.onLine){err('err-cad',HORSLIGNE_MSG);return;}CAR.ec=true;CAR.msg='';carSortie();cadRenduEtat();
   rpc('cmp_admin_reclamation',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:CAR.mois||null}).then(function(d){CAR.ec=false;d=d||{};
@@ -5567,13 +5572,16 @@ function carPdf(){if(CAR.ec)return;if(!navigator.onLine){err('err-cad',HORSLIGNE
     cadRenduEtat();},
    function(e){CAR.ec=false;CAR.msg=e&&e.reseau?HORSLIGNE_MSG:'Impossible de récupérer les lignes réclamées.';cadRenduEtat();});}
 function capPublier(){if(CAP.ec||!CAP.data||!CAP.data.mois)return;
-  if(!CAP.arme){CAP.arme=true;clearTimeout(CAP.armeT);CAP.armeT=setTimeout(function(){CAP.arme=false;cadRenduEtat();},4000);cadRenduEtat();return;}
+  if(!CAP.arme){CAP.arme=true;CAP.armeLe=Date.now();CAP.armeMois=CAP.data.mois;clearTimeout(CAP.armeT);CAP.armeT=setTimeout(function(){CAP.arme=false;cadRenduEtat();},4000);cadRenduEtat();return;}
+  if(Date.now()-(CAP.armeLe||0)<600)return;
+  if(CAP.armeMois!==CAP.data.mois){CAP.arme=false;cadRenduEtat();return;} /* le mois affiché a changé depuis l'armement */
   clearTimeout(CAP.armeT);CAP.arme=false;if(!navigator.onLine){err('err-cad',HORSLIGNE_MSG);cadRenduEtat();return;}
-  CAP.ec=true;CAP.msg='';cadRenduEtat();
-  rpc('cmp_admin_releves',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_publier:true,p_mois:CAP.data.mois}).then(function(d){CAP.ec=false;
-    if(d&&d.publie_maintenant){CAP.data=d;CAP.msg='✅ Relevés publiés : les techniciens les voient maintenant dans l’appli (bannière à l’ouverture).';try{v64Vib(12);}catch(_e){}}
-    else CAP.msg='Publication non confirmée — réessaie.';cadRenduEtat();},
-   function(e){CAP.ec=false;CAP.msg=e&&e.reseau?HORSLIGNE_MSG:'Publication impossible pour l’instant.';cadRenduEtat();});}
+  var mp=CAP.data.mois;CAP.ec=true;CAP.msg='';cadRenduEtat();
+  rpc('cmp_admin_releves',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_publier:true,p_mois:mp}).then(function(d){CAP.ec=false;
+    if(CAP.data&&CAP.data.mois!==mp){cadRenduEtat();return;} /* l'écran montre un autre mois : on ne mélange pas les messages */
+    if(d&&d.publie_maintenant){CAP.data=d;CAP.msg='✅ Relevés de '+esc(rsMoisLbl(mp))+' publiés : les techniciens les voient maintenant dans l’appli (bannière à l’ouverture).';CAP.msgMois=mp;try{v64Vib(12);}catch(_e){}}
+    else{CAP.msg='Publication non confirmée — réessaie.';CAP.msgMois=mp;}cadRenduEtat();},
+   function(e){CAP.ec=false;CAP.msg=e&&e.reseau?HORSLIGNE_MSG:((e&&e.message)?esc(String(e.message)):'Publication impossible pour l’instant.');CAP.msgMois=mp;cadRenduEtat();});}
 /* ===== v73 : MALFAÇONS (nouvelle méthode Sogetrel) — le technicien saisit le ticket HLP, la date et le code décharge du chargé
    d'affaires ; l'administrateur voit et saisit pour toute l'équipe. Avec code → pénalité contestée (ligne à valider puis PDF de
    réclamation) ; sans code → pénalité retirée au technicien. Contrôles côté serveur (malf_tech_* / malf_admin_*). */
