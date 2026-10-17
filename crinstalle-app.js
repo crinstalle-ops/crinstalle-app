@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='79';
+var APPV='80';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -5165,6 +5165,7 @@ function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
   if(a==='malfsaisir'){var dd=String(b.getAttribute('data-date')||'');mfOuvrir({admin:true,hlp:b.getAttribute('data-hlp')||'',date:/^\d{4}-\d{2}-\d{2}$/.test(dd)?dd:mfAuj(),tid:b.getAttribute('data-tid')||''});return;}
   if(a==='rcmois'){CAR.mois=b.getAttribute('data-m')||'';carSortie();CAR.msg='';carPdf();return;}
   if(a==='rcshare'){try{navigator.share({files:[new File([CAR.out.blob],CAR.out.nom,{type:'application/pdf'})],title:'Réclamation '+rsMoisLbl(CAR.mois)}).catch(function(){});}catch(_e){}return;}
+  if(a==='rcsharexl'){if(!CAR.xl)return;try{navigator.share({files:[new File([CAR.xl.blob],CAR.xl.nom,{type:XLSX_MIME})],title:'Réclamation '+rsMoisLbl(CAR.mois)+' (Excel)'}).catch(function(){});}catch(_e){}return;}
   if(a==='pub'){capPublier();return;}
   if(a==='capmois'){var cm=b.getAttribute('data-m')||'';if(/^\d{4}-\d{2}$/.test(cm)&&!CAP.ec){CAP.mois=cm;CAP.arme=false;clearTimeout(CAP.armeT);CAP.msg='';CAP.data={mois:cm,mois_dispo:(CAP.data&&CAP.data.mois_dispo)||[],chargement:true};cadRenduEtat();capCharger();}return;}
   if(a==='recapmois'){var rm=b.getAttribute('data-m')||'';if(/^\d{4}-\d{2}$/.test(rm)){CAD.recapMois=rm;cadRecapCharger();}return;}
@@ -5533,23 +5534,210 @@ var total = 0;
 lignes.forEach(function (l) { if (!nonChiffre(l)) total += parseFloat(l.montant) || 0; });
   return { nb: lignes.length, groupes: groupes, nbSignalements: nbSignalements, total: Math.round(total * 100) / 100 };
 }
-var CAR={mois:'',dispo:[],out:null,ec:false,msg:''};
+// ===== Fichier Excel de réclamation (Sogetrel ne traite que l'Excel) — générateur .xlsx sans dépendance =====
+// Feuille « Réclamation » : une ligne par réclamation (mêmes lignes et montants que le PDF) + 2 colonnes à compléter par Sogetrel.
+// Feuille « Récap » : mois, nombre de lignes, total réclamé, total accordé (formules).
+function rcXlsxBuild(d, genLe) {
+  var MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var mp = String(d.mois || '').split('-');
+  var moisLabel = (mp.length === 2 && parseInt(mp[1], 10) >= 1 && parseInt(mp[1], 10) <= 12) ? MOIS[parseInt(mp[1], 10) - 1] + ' ' + mp[0] : String(d.mois || '');
+  var TYPELBL = { manque: 'Non payé', sous_paye: 'Sous-payé', signalement: 'Requalification RACC', bonus_apt: 'Bonus APT non payé', malfacon: 'Malfaçon contestée' };
+
+  function x(s) { // texte XML sûr (caractères de contrôle retirés)
+    return String(s === null || s === undefined ? '' : s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F￾￿]/g, '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function col(i) { var s = ''; i++; while (i > 0) { var r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); } return s; }
+  function cStr(ref, v, st) { return '<c r="' + ref + '" t="inlineStr"' + (st ? ' s="' + st + '"' : '') + '><is><t xml:space="preserve">' + x(v) + '</t></is></c>'; }
+  function cNum(ref, v, st) { return '<c r="' + ref + '"' + (st ? ' s="' + st + '"' : '') + '><v>' + v + '</v></c>'; }
+  function cVide(ref, st) { return '<c r="' + ref + '"' + (st ? ' s="' + st + '"' : '') + '/>'; }
+  function cForm(ref, f, v, st) { return '<c r="' + ref + '"' + (st ? ' s="' + st + '"' : '') + '><f>' + x(f) + '</f><v>' + v + '</v></c>'; }
+  function serie(iso) { // date Excel (jour seul, sans fuseau)
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || '')); if (!m) return null;
+    var t = Date.UTC(+m[1], +m[2] - 1, +m[3]); if (isNaN(t)) return null;
+    return Math.round((t - Date.UTC(1899, 11, 30)) / 86400000);
+  }
+  function r2(n) { return Math.round((parseFloat(n) || 0) * 100) / 100; }
+
+  // styles : 1 en-tête · 2 texte · 3 date · 4 montant · 5 texte à compléter (jaune) · 6 montant à compléter (jaune)
+  //          7 titre · 8 libellé gras · 9 montant gras · 10 texte gris · 11 jeton nombre (sans séparateur)
+  var styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<numFmts count="2"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/><numFmt numFmtId="165" formatCode="#,##0.00\\ &quot;€&quot;"/></numFmts>' +
+    '<fonts count="5"><font><sz val="10"/><name val="Arial"/><family val="2"/></font>' +
+    '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/><family val="2"/></font>' +
+    '<font><b/><sz val="14"/><color rgb="FFE8590C"/><name val="Arial"/><family val="2"/></font>' +
+    '<font><b/><sz val="10"/><name val="Arial"/><family val="2"/></font>' +
+    '<font><i/><sz val="9"/><color rgb="FF6E6E73"/><name val="Arial"/><family val="2"/></font></fonts>' +
+    '<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FF1D1D1F"/><bgColor indexed="64"/></patternFill></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFFFF4CC"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+    '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>' +
+    '<border><left style="thin"><color rgb="FFDADADD"/></left><right style="thin"><color rgb="FFDADADD"/></right><top style="thin"><color rgb="FFDADADD"/></top><bottom style="thin"><color rgb="FFDADADD"/></bottom><diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="12"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="top"/></xf>' +
+    '<xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment vertical="top"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+    '<xf numFmtId="165" fontId="0" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+    '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+    '<xf numFmtId="165" fontId="3" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/>' +
+    '<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf>' +
+    '<xf numFmtId="1" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="top"/></xf>' +
+    '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+
+  // ---- feuille 1 : Réclamation ----
+  var ENT = ['JETON', 'DATE', 'TECHNICIEN', 'OBJET', 'DÉTAIL', 'MONTANT RÉCLAMÉ', 'RÉPONSE SOGETREL', 'MONTANT ACCORDÉ'];
+  var rows = [], ligne = 1, total = 0, nb = 0;
+  rows.push('<row r="1" ht="30" customHeight="1">' + ENT.map(function (h, i) { return cStr(col(i) + '1', h, 1); }).join('') + '</row>');
+  d.groupes.forEach(function (g) {
+    g.lignes.forEach(function (L) {
+      ligne++; nb++;
+      var cells = [];
+      var j = String(L.jeton || '').trim();
+      // jeton entièrement numérique (sans zéro de tête) → nombre, comme dans les décomptes Sogetrel (recherche possible) ; sinon texte exact
+      if (/^[1-9]\d{0,14}$/.test(j)) cells.push(cNum('A' + ligne, j, 11)); else cells.push(cStr('A' + ligne, j, 2));
+      var sd = serie(L.date);
+      cells.push(sd !== null ? cNum('B' + ligne, sd, 3) : cStr('B' + ligne, L.date || '', 2));
+      cells.push(cStr('C' + ligne, (L.type === 'bonus_apt' && (!g.tech || g.tech === 'Non identifié')) ? 'Équipe (bonus secteur)' : (g.tech || 'Non identifié'), 2));
+      cells.push(cStr('D' + ligne, TYPELBL[L.type] || L.type || '', 2));
+      var motif = String(L.motif || '').replace(/💬/g, '').replace(/\s+/g, ' ').trim();
+      var aChiffrer = !(parseFloat(L.montant) > 0) && (L.type === 'signalement' || L.type === 'sous_paye');
+      if (aChiffrer) motif = (L.type === 'signalement' ? 'À requalifier' : 'À chiffrer') + ' selon la grille en vigueur' + (motif ? ' — ' + motif : '');
+      cells.push(cStr('E' + ligne, motif, 2));
+      if (aChiffrer) cells.push(cVide('F' + ligne, 4));
+      else { var mt = r2(L.montant); total += mt; cells.push(cNum('F' + ligne, mt, 4)); }
+      cells.push(cVide('G' + ligne, 5));
+      cells.push(cVide('H' + ligne, 6));
+      rows.push('<row r="' + ligne + '">' + cells.join('') + '</row>');
+    });
+  });
+  total = r2(total);
+  var der = Math.max(ligne, 2);
+  var sheet1 = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:H' + ligne + '"/>' +
+    '<sheetViews><sheetView workbookViewId="0" tabSelected="1"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A2" sqref="A2"/></sheetView></sheetViews>' +
+    '<sheetFormatPr defaultRowHeight="13.2"/>' +
+    '<cols><col min="1" max="1" width="13" customWidth="1"/><col min="2" max="2" width="11.5" customWidth="1"/><col min="3" max="3" width="16" customWidth="1"/>' +
+    '<col min="4" max="4" width="20" customWidth="1"/><col min="5" max="5" width="60" customWidth="1"/><col min="6" max="6" width="15" customWidth="1"/>' +
+    '<col min="7" max="7" width="34" customWidth="1"/><col min="8" max="8" width="15" customWidth="1"/></cols>' +
+    '<sheetData>' + rows.join('') + '</sheetData>' +
+    '<autoFilter ref="A1:H' + ligne + '"/>' +
+    '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>' +
+    '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>' +
+    '</worksheet>';
+
+  // ---- feuille 2 : Récap ----
+  var rf = "'Réclamation'!";
+  var rec = [
+    '<row r="1" ht="20" customHeight="1">' + cStr('A1', 'CRINSTALLE', 7) + '</row>',
+    '<row r="2">' + cStr('A2', 'Réclamation sur décompte', 8) + cStr('B2', moisLabel, 2) + '</row>',
+    '<row r="3">' + cStr('A3', 'Mois du décompte (AAAA-MM)', 8) + cStr('B3', d.mois || '', 2) + '</row>',
+    '<row r="4">' + cStr('A4', 'Généré le', 8) + cStr('B4', genLe, 2) + '</row>',
+    '<row r="5">' + cStr('A5', 'Nombre de lignes', 8) + cNum('B5', nb, 2) + '</row>',
+    '<row r="6">' + cStr('A6', 'Total réclamé', 8) + cForm('B6', 'SUM(' + rf + 'F2:F' + der + ')', total, 9) + '</row>',
+    '<row r="7">' + cStr('A7', 'Total accordé par Sogetrel', 8) + cForm('B7', 'SUM(' + rf + 'H2:H' + der + ')', 0, 9) + '</row>',
+    '<row r="9">' + cStr('A9', 'Merci de compléter, pour chaque ligne de la feuille « Réclamation », les colonnes G (réponse : accordé / refusé + motif) et H (montant accordé), puis de nous retourner ce fichier.', 10) + '</row>'
+  ];
+  if (d.nbSignalements > 0) rec.push('<row r="10">' + cStr('A10', 'Dont ' + d.nbSignalements + ' ligne' + (d.nbSignalements > 1 ? 's' : '') + ' (requalification RACC / écart de typologie) sans montant : à chiffrer selon la grille en vigueur.', 10) + '</row>');
+  var sheet2 = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    '<dimension ref="A1:B' + (d.nbSignalements > 0 ? 10 : 9) + '"/><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="13.2"/>' +
+    '<cols><col min="1" max="1" width="30" customWidth="1"/><col min="2" max="2" width="22" customWidth="1"/></cols>' +
+    '<sheetData>' + rec.join('') + '</sheetData>' +
+    '<mergeCells count="' + (d.nbSignalements > 0 ? 2 : 1) + '"><mergeCell ref="A9:B9"/>' + (d.nbSignalements > 0 ? '<mergeCell ref="A10:B10"/>' : '') + '</mergeCells>' +
+    '<pageMargins left="0.5" right="0.5" top="0.5" bottom="0.5" header="0.3" footer="0.3"/></worksheet>';
+
+  var workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    '<bookViews><workbookView activeTab="0"/></bookViews>' +
+    '<sheets><sheet name="Réclamation" sheetId="1" r:id="rId1"/><sheet name="Récap" sheetId="2" r:id="rId2"/></sheets>' +
+    '<definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">' + x(rf) + '$A$1:$H$' + ligne + '</definedName></definedNames>' +
+    '<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>';
+  var files = [
+    ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+      '<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+      '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>'],
+    ['_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>'],
+    ['docProps/core.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/">' +
+      '<dc:title>' + x('Réclamation CRINSTALLE — décompte ' + moisLabel) + '</dc:title><dc:creator>CRINSTALLE</dc:creator></cp:coreProperties>'],
+    ['xl/workbook.xml', workbook],
+    ['xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>' +
+      '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
+    ['xl/styles.xml', styles],
+    ['xl/worksheets/sheet1.xml', sheet1],
+    ['xl/worksheets/sheet2.xml', sheet2]
+  ];
+
+  // ---- ZIP (méthode « stockée », CRC-32) — aucune dépendance : même code dans n8n et dans l'appli ----
+  function utf8(str) {
+    var out = [];
+    for (var i = 0; i < str.length; i++) {
+      var c = str.charCodeAt(i);
+      if (c >= 0xD800 && c <= 0xDBFF && i + 1 < str.length) { var c2 = str.charCodeAt(i + 1); if (c2 >= 0xDC00 && c2 <= 0xDFFF) { c = 0x10000 + ((c - 0xD800) << 10) + (c2 - 0xDC00); i++; } }
+      if (c >= 0xD800 && c <= 0xDFFF) c = 0xFFFD; /* demi-paire isolée */
+      if (c < 0x80) out.push(c);
+      else if (c < 0x800) out.push(0xC0 | (c >> 6), 0x80 | (c & 63));
+      else if (c < 0x10000) out.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+      else out.push(0xF0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+    }
+    return out;
+  }
+  var CRC = []; for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); CRC[n] = c >>> 0; }
+  function crc32(b) { var c = 0xFFFFFFFF; for (var i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  var z = [];
+  function u16(v) { z.push(v & 255, (v >>> 8) & 255); }
+  function u32(v) { z.push(v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255); }
+  function put(a) { for (var i = 0; i < a.length; i++) z.push(a[i]); }
+  var cent = [];
+  files.forEach(function (f) {
+    var name = utf8(f[0]), data = utf8(f[1]), crc = crc32(data), off = z.length;
+    u32(0x04034b50); u16(20); u16(0x0800); u16(0); u16(0); u16(0x21); u32(crc); u32(data.length); u32(data.length); u16(name.length); u16(0);
+    put(name); put(data);
+    cent.push({ name: name, crc: crc, len: data.length, off: off });
+  });
+  var cdOff = z.length;
+  cent.forEach(function (e) {
+    u32(0x02014b50); u16(20); u16(20); u16(0x0800); u16(0); u16(0); u16(0x21); u32(e.crc); u32(e.len); u32(e.len);
+    u16(e.name.length); u16(0); u16(0); u16(0); u16(0); u32(0); u32(e.off); put(e.name);
+  });
+  var cdLen = z.length - cdOff;
+  u32(0x06054b50); u16(0); u16(0); u16(files.length); u16(files.length); u32(cdLen); u32(cdOff); u16(0);
+  return { bytes: new Uint8Array(z), total: total, nb: nb };
+}
+
+var XLSX_MIME='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+var CAR={mois:'',dispo:[],out:null,xl:null,ec:false,msg:''};
 var CAP={data:null,ec:false,arme:false,armeT:0,msg:'',mois:''};
-function carSortie(){if(CAR.out&&CAR.out.url){try{URL.revokeObjectURL(CAR.out.url);}catch(_e){}}CAR.out=null;}
+function carSortie(){[CAR.out,CAR.xl].forEach(function(o){if(o&&o.url){try{URL.revokeObjectURL(o.url);}catch(_e){}}});CAR.out=null;CAR.xl=null;}
 function capCharger(){if(!cadOk())return;
   if(!navigator.onLine){if(CAP.data&&CAP.data.chargement){CAP.data={mois:CAP.data.mois,mois_dispo:CAP.data.mois_dispo||[],erreur:true};CAP.msg=HORSLIGNE_MSG;CAP.msgMois=null;cadRenduEtat();}return;}
   var mq=CAP.mois||null;rpc('cmp_admin_releves',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_publier:false,p_mois:mq}).then(function(d){if((CAP.mois||null)!==mq||CAP.ec)return;CAP.data=d||null;cadRenduEtat();},
    function(){if((CAP.mois||null)!==mq||CAP.ec)return;CAP.data={mois:(CAP.data&&CAP.data.mois)||mq||'',mois_dispo:(CAP.data&&CAP.data.mois_dispo)||[],erreur:true};CAP.msg='Impossible de charger les relevés pour l’instant — réessaie.';CAP.msgMois=null;cadRenduEtat();});}
 function cadDocsHtml(){var h='<div class="note" style="margin:16px 0 4px;font-weight:700">Fin de mois</div>';
   /* PDF de réclamation */
-  h+='<div class="card" style="padding:14px 16px;margin-top:6px"><div style="font-weight:700">📄 PDF de réclamation'+(CAR.mois?' — '+esc(rsMoisLbl(CAR.mois)):'')+'</div>'
-    +'<div class="note" style="margin-top:4px">Toutes les lignes '+(cadPatron()?'que tu as réclamées':'réclamées')+', regroupées par technicien, avec le total à envoyer à Sogetrel.</div>';
+  h+='<div class="card" style="padding:14px 16px;margin-top:6px"><div style="font-weight:700">📄 Réclamation Sogetrel'+(CAR.mois?' — '+esc(rsMoisLbl(CAR.mois)):'')+'</div>'
+    +'<div class="note" style="margin-top:4px">Toutes les lignes '+(cadPatron()?'que tu as réclamées':'réclamées')+', regroupées par technicien, avec le total. <b>À envoyer à Sogetrel : le fichier Excel</b> (Sogetrel ne traite que l’Excel ; colonnes « Réponse Sogetrel » et « Montant accordé » à compléter par eux). Le PDF reste pour tes archives.</div>';
   if(CAR.dispo.length>1){h+='<div role="tablist" style="display:flex;gap:8px;overflow-x:auto;margin-top:8px">';
     CAR.dispo.forEach(function(m){var on=m===CAR.mois;h+='<button type="button" class="chip'+(on?' sel':'')+'" data-cad="rcmois" data-m="'+esc(m)+'" style="flex:none">'+esc(rsMoisLbl(m))+'</button>';});h+='</div>';}
   if(CAR.msg)h+='<div class="note" style="margin-top:8px;color:var(--tx)">'+CAR.msg+'</div>';
-  if(CAR.out)h+='<div style="display:flex;gap:8px;margin-top:10px"><a class="btn" href="'+CAR.out.url+'" download="'+esc(CAR.out.nom)+'" target="_blank" rel="noopener" style="margin-top:0;flex:1;text-decoration:none">Ouvrir le PDF</a>'
-     +(CAR.out.partage?'<button class="btn ghost" type="button" data-cad="rcshare" style="margin-top:0;flex:1">Partager</button>':'')+'</div>';
-  h+='<button class="btn'+(CAR.out?' ghost':'')+'" type="button" data-cad="rcpdf" style="margin-top:10px"'+(CAR.ec?' disabled':'')+'>'+(CAR.ec?'Création…':(CAR.out?'Recréer le PDF':'Créer le PDF de réclamation'))+'</button></div>';
+  if(CAR.xl)h+='<div style="display:flex;gap:8px;margin-top:10px"><a class="btn" href="'+CAR.xl.url+'" download="'+esc(CAR.xl.nom)+'" rel="noopener" style="margin-top:0;flex:1;text-decoration:none">📊 Excel pour Sogetrel</a>'
+     +(CAR.xl.partage?'<button class="btn ghost" type="button" data-cad="rcsharexl" style="margin-top:0;flex:1">Partager l’Excel</button>':'')+'</div>';
+  if(CAR.out)h+='<div style="display:flex;gap:8px;margin-top:8px"><a class="btn ghost" href="'+CAR.out.url+'" download="'+esc(CAR.out.nom)+'" target="_blank" rel="noopener" style="margin-top:0;flex:1;text-decoration:none">Ouvrir le PDF</a>'
+     +(CAR.out.partage?'<button class="btn ghost" type="button" data-cad="rcshare" style="margin-top:0;flex:1">Partager le PDF</button>':'')+'</div>';
+  h+='<button class="btn'+(CAR.out?' ghost':'')+'" type="button" data-cad="rcpdf" style="margin-top:10px"'+(CAR.ec?' disabled':'')+'>'+(CAR.ec?'Création…':(CAR.out?'Recréer la réclamation':'Créer la réclamation (Excel + PDF)'))+'</button></div>';
   /* publication des relevés */
   var d=CAP.data;
   h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">📤 Relevés des techniciens'+(d&&d.mois?' — '+esc(rsMoisLbl(d.mois)):'')+'</div>';
@@ -5573,11 +5761,16 @@ function carPdf(){if(CAR.ec)return;if(!navigator.onLine){err('err-cad',HORSLIGNE
     if(!L.length){CAR.msg='ℹ️ Aucune ligne réclamée pour le moment : valide d’abord des lignes avec « Réclamer ».';cadRenduEtat();return;}
     var p,bytes;try{p=rcPdfPrep(JSON.parse(JSON.stringify(L)));var now=new Date(),genLe=String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
       bytes=rcPdfBuild({mois:d.mois,nb:p.nb,groupes:p.groupes,nbSignalements:p.nbSignalements},genLe);}catch(e){CAR.msg='Le PDF n’a pas pu être créé.';cadRenduEtat();return;}
+    /* Excel pour Sogetrel (même fonction que le bot n8n, identique à l'octet) ; lignes et total recoupés avec le PDF */
+    var xl;try{xl=rcXlsxBuild({mois:d.mois,groupes:p.groupes,nbSignalements:p.nbSignalements},genLe);if(xl.nb!==p.nb||Math.abs(xl.total-p.total)>0.005)throw new Error('écart');}catch(e){CAR.msg='Le fichier Excel n’a pas pu être créé (aucun fichier produit) — réessaie ou utilise @CRCOMPAR_bot.';cadRenduEtat();return;}
     var nom='reclamation-crinstalle-'+d.mois+'.pdf',blob=new Blob([bytes],{type:'application/pdf'}),partage=false;
     try{partage=!!(navigator.canShare&&navigator.canShare({files:[new File([blob],nom,{type:'application/pdf'})]}));}catch(_e){}
     CAR.out={url:URL.createObjectURL(blob),blob:blob,nom:nom,partage:partage};
+    var nomx='reclamation-crinstalle-'+d.mois+'.xlsx',blobx=new Blob([xl.bytes],{type:XLSX_MIME}),partx=false;
+    try{partx=!!(navigator.canShare&&navigator.canShare({files:[new File([blobx],nomx,{type:XLSX_MIME})]}));}catch(_e){}
+    CAR.xl={url:URL.createObjectURL(blobx),blob:blobx,nom:nomx,partage:partx};
     CAR.msg='✅ '+esc(String(p.nb))+' ligne'+(p.nb>1?'s':'')+' · total réclamé '+esc(fmt(p.total))+(p.nbSignalements?' (+ '+esc(String(p.nbSignalements))+' à chiffrer)':'')
-      +(d.en_attente>0?'<br>⚠️ '+esc(String(d.en_attente))+' ligne(s) encore à valider : pas dans ce PDF.':'');
+      +(d.en_attente>0?'<br>⚠️ '+esc(String(d.en_attente))+' ligne(s) encore à valider : pas dans cette réclamation.':'');
     cadRenduEtat();},
    function(e){CAR.ec=false;CAR.msg=e&&e.reseau?HORSLIGNE_MSG:'Impossible de récupérer les lignes réclamées.';cadRenduEtat();});}
 function capPublier(){if(CAP.ec||!CAP.data||!CAP.data.mois)return;
