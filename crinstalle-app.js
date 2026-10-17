@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='75';
+var APPV='76';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -4834,7 +4834,8 @@ function rsPdfBuild(d, genLe) {
 
   function esc(s) {
     return String(s).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)')
-      .replace(/€/g, '\x80').replace(/’/g, "'").replace(/—/g, '\x97').replace(/–/g, '\x96').replace(/…/g, '\x85').replace(/ /g, ' ')
+      .replace(/€/g, '\x80').replace(/’/g, "'").replace(/—/g, '\x97').replace(/–/g, '\x96').replace(/…/g, '\x85').replace(/[   ]/g, ' ')
+      .replace(/œ/g, '\x9C').replace(/Œ/g, '\x8C').replace(/‘/g, "'").replace(/[“”„]/g, '"').replace(/•/g, '\x95')
       .replace(/[^\x00-\xFF]/g, '?');
   }
   function fmt(n) {
@@ -4997,7 +4998,7 @@ function rsEcran(){var s=document.createElement('section');s.className='screen';
   document.getElementById('rs-mois').addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-rsm]'):null;if(!b)return;RS.idx=parseInt(b.getAttribute('data-rsm'),10)||0;rsRendu();});
   document.getElementById('rs-corps').addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('#rs-pdf'):null;if(b)rsPdf();});}
 function rsListe(){var l=((RS.data&&RS.data.mois)||[]).filter(function(m){return m&&m.lignes&&m.lignes.length;});
-  var ORD={paye:0,reclamation:1,regule:2};
+  var ORD={paye:0,reclamation:1,regule:2,regule_affectee:2};
   l.forEach(function(m){m.lignes.sort(function(a,b){var d=(ORD[a.statut_ligne]!==undefined?ORD[a.statut_ligne]:9)-(ORD[b.statut_ligne]!==undefined?ORD[b.statut_ligne]:9);
     return d!==0?d:String(a.date_ligne).localeCompare(String(b.date_ligne))||String(a.jeton).localeCompare(String(b.jeton));});});
   return l;}
@@ -5046,7 +5047,7 @@ function rsPdf(){var l=rsListe(),m=l[RS.idx];if(!m)return;rsSortie();
    vérifie la clé avant toute lecture du fichier). Le calcul = moteur du bot Telegram, recopié à l'identique.
    Rien n'est gardé sur le téléphone (rapport et fichier en mémoire uniquement). */
 var CADURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-comparateur-admin';
-var CAD={etat:null,ec:false,envoi:false,fichier:null,res:null,voirRap:false,voirRapEtat:false};
+var CAD={etat:null,ec:false,envoi:false,fichier:null,res:null,voirRap:false,voirRapEtat:false,arme:false,armeT:0,recapMois:''};
 var CAD_MAX=10*1024*1024;
 function cadOk(){var m=ACCT&&ACCT.me;return !!(m&&m.equipe&&(m.acces==='admin'||m.cmp_admin===true));}
 function cadPatron(){return !!(ACCT&&ACCT.me&&ACCT.me.acces==='admin');}
@@ -5066,13 +5067,13 @@ function cadEcran(){var s=document.createElement('section');s.className='screen'
    +'<input type="file" id="cad-f" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden" tabindex="-1">'
    +'<button class="btn ghost" type="button" id="cad-choisir" style="margin-top:4px">Choisir le fichier Excel</button>'
    +'<div class="note" id="cad-nom" style="margin-top:6px">Aucun fichier choisi.</div>'
-   +'<button class="btn" type="button" id="cad-go" style="margin-top:10px" disabled>Analyser et comparer</button></div>'
+   +'<button class="btn" type="button" id="cad-go" style="margin-top:10px" disabled>Analyser et comparer</button><div class="note" id="cad-arme" aria-live="polite" style="margin-top:6px;color:var(--tx)"></div></div>'
    +'<div id="cad-res" aria-live="polite"></div><div id="cad-etat"></div><div class="grow"></div>';
   var hs0=document.getElementById('s-home');(hs0&&hs0.parentNode?hs0.parentNode:document.body).appendChild(s);
   document.getElementById('cad-back').addEventListener('click',function(){goHome();});
   document.getElementById('cad-choisir').addEventListener('click',function(){var f=document.getElementById('cad-f');f.value='';f.click();});
   document.getElementById('cad-f').addEventListener('change',cadChoix);
-  document.getElementById('cad-go').addEventListener('click',function(){cadEnvoyer();});
+  document.getElementById('cad-go').addEventListener('click',function(){cadGo();});
   s.addEventListener('click',cadClic);}
 function cadOuvrir(){if(!cadOk())return;if(!document.getElementById('s-cmpadm'))cadEcran();err('err-cad');show('s-cmpadm');cadRenduRes();cadEtat();}
 function cadEtat(){var z=document.getElementById('cad-etat');if(!z)return;if(CAD.etat)cadRenduEtat();
@@ -5081,7 +5082,7 @@ function cadEtat(){var z=document.getElementById('cad-etat');if(!z)return;if(CAD
   try{cadRecapCharger();capCharger();}catch(_e){}
   rpc('cmp_admin_etat',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(d){CAD.ec=false;CAD.etat=d||{};cadRenduEtat();},
    function(e){CAD.ec=false;err('err-cad',e&&e.reseau?HORSLIGNE_MSG:'Impossible de charger l’état du comparateur pour l’instant.');});}
-function cadChoix(){var f=document.getElementById('cad-f'),x=f.files&&f.files[0],nm=document.getElementById('cad-nom'),go=document.getElementById('cad-go');err('err-cad');CAD.fichier=null;go.disabled=true;
+function cadChoix(){var f=document.getElementById('cad-f'),x=f.files&&f.files[0],nm=document.getElementById('cad-nom'),go=document.getElementById('cad-go');err('err-cad');CAD.fichier=null;go.disabled=true;CAD.arme=false;clearTimeout(CAD.armeT);cadGoTexte();
   if(!x){nm.textContent='Aucun fichier choisi.';return;}
   if(!/\.xlsx?$/i.test(x.name)){nm.textContent='Aucun fichier choisi.';err('err-cad','Choisis le fichier Excel (.xlsx) du décompte Sogetrel.');return;}
   if(x.size>CAD_MAX){nm.textContent='Aucun fichier choisi.';err('err-cad','Fichier trop lourd (10 Mo maximum).');return;}
@@ -5090,6 +5091,15 @@ function cadChoix(){var f=document.getElementById('cad-f'),x=f.files&&f.files[0]
     CAD.fichier={nom:String(x.name).slice(0,120),b64:u.slice(i+1),taille:x.size};nm.textContent=x.name+' · '+Math.max(1,Math.round(x.size/1024))+' Ko';go.disabled=false;};
   r.onerror=function(){nm.textContent='Aucun fichier choisi.';err('err-cad','Le fichier n’a pas pu être lu.');};
   r.readAsDataURL(x);}
+/* n°28 : double appui — une comparaison remplace la précédente du même mois et retire la publication de ses relevés */
+function cadGoTexte(){var g=document.getElementById('cad-go'),n=document.getElementById('cad-arme');if(!g)return;
+  if(CAD.envoi)return;g.textContent=CAD.arme?'Sûr ? Retouche pour lancer':'Analyser et comparer';g.className=CAD.arme?'btn':'btn';
+  if(n)n.textContent=CAD.arme?'⚠️ La comparaison remplace la précédente du même mois et retire la publication des relevés de ce mois jusqu’à ta nouvelle publication.':'';}
+function cadGo(){if(CAD.envoi||!CAD.fichier)return;
+  if(!CAD.arme){CAD.arme=true;clearTimeout(CAD.armeT);CAD.armeT=setTimeout(function(){CAD.arme=false;cadGoTexte();},5000);cadGoTexte();return;}
+  clearTimeout(CAD.armeT);CAD.arme=false;cadGoTexte();cadEnvoyer();}
+function cadViderFichier(){CAD.fichier=null;CAD.arme=false;clearTimeout(CAD.armeT);var f=document.getElementById('cad-f'),nm=document.getElementById('cad-nom'),g=document.getElementById('cad-go');
+  if(f)f.value='';if(nm)nm.textContent='Aucun fichier choisi.';if(g){g.disabled=true;g.textContent='Analyser et comparer';}var n=document.getElementById('cad-arme');if(n)n.textContent='';}
 function cadEnvoyer(){if(CAD.envoi||!CAD.fichier)return;err('err-cad');
   if(!navigator.onLine){err('err-cad',HORSLIGNE_MSG);return;}
   var go=document.getElementById('cad-go');CAD.envoi=true;if(go){go.disabled=true;go.textContent='Analyse en cours…';}
@@ -5098,15 +5108,22 @@ function cadEnvoyer(){if(CAD.envoi||!CAD.fichier)return;err('err-cad');
   .then(function(r){return r.json().catch(function(){return {ok:false,route:'erreur',message:'Erreur technique : réponse illisible du serveur (code '+r.status+'). Réessaie dans un instant.'};});})
   .then(function(j){CAD.res=(j&&typeof j==='object')?j:{ok:false,route:'erreur',message:'Erreur technique : réponse vide.'};},
         function(){CAD.res={ok:false,route:'erreur',message:RESEAU_MSG};})
-  .then(function(){CAD.envoi=false;CAD.voirRap=false;var g=document.getElementById('cad-go');if(g){g.disabled=!CAD.fichier;g.textContent='Analyser et comparer';}cadRenduRes();CAD.etat=null;cadEtat();});}
+  .then(function(){CAD.envoi=false;CAD.voirRap=false;var g=document.getElementById('cad-go');if(g){g.disabled=!CAD.fichier;g.textContent='Analyser et comparer';}
+    if(CAD.res&&CAD.res.route==='comparer'){cadViderFichier();CAR.mois='';CAR.msg='';carSortie();CAP.mois='';CAP.msg='';CAD.recapMois='';CAV.mois='';CAV.data=null;}
+    cadRenduRes();CAD.etat=null;cadEtat();});}
+function cadNbAValider(r){var e=r&&r.enregistrement;if(e&&typeof e.ecrites==='number'&&typeof e.inchangees==='number')return Math.max(0,e.ecrites-e.inchangees);return parseInt(r&&r.n_validations,10)||0;}
+function cadEnrTexte(r){var e=(r&&r.enregistrement)||{},n=cadNbAValider(r),t=n>0?esc(String(n))+' ligne'+(n>1?'s':'')+' à valider.':'Aucune nouvelle ligne à valider.';
+  if(e.inchangees>0)t+='<br>✅ '+esc(String(e.inchangees))+' décision(s) déjà prise(s) conservée(s) (mêmes montants, même technicien).';
+  if(e.a_revoir>0)t+='<br>⚠️ '+esc(String(e.a_revoir))+' décision(s) à revoir : le montant ou le technicien a changé (marquées « ⚠️ Revoir »).';
+  if(e.purgees>0)t+='<br>🔄 '+esc(String(e.purgees))+' ligne(s) en attente devenue(s) sans objet : mises de côté.';
+  if(e.decidees_absentes>0)t+='<br>⚠️ '+esc(String(e.decidees_absentes))+' ligne(s) déjà décidée(s) absente(s) de ce décompte : annulées (retirées de la réclamation et du récap).';
+  return t;}
 function cadRenduRes(){var z=document.getElementById('cad-res');if(!z)return;var r=CAD.res,h='';if(!r){z.innerHTML='';return;}
   if(r.route==='encours')h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">Analyse du fichier…</div><div class="note">Lecture, contrôles puis comparaison. Cela prend quelques secondes.</div></div>';
   else if(r.route==='comparer'){
     h=(CAD.recap&&CAD.recap.mois===r.mois?cadRecapHtml():'')+'<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">✅ Comparaison faite — '+esc(rsMoisLbl(r.mois))+'</div>'
-     +'<div class="note" style="margin-top:4px">'+(r.n_validations>0?esc(String(r.n_validations))+' ligne'+(r.n_validations>1?'s':'')+' à valider.':'Aucune ligne à valider.')
-     +(r.enregistrement&&r.enregistrement.purgees>0?' '+esc(String(r.enregistrement.purgees))+' ligne(s) en attente devenue(s) sans objet : retirée(s).':'')
-     +(r.enregistrement&&r.enregistrement.decidees_absentes>0?' ⚠️ '+esc(String(r.enregistrement.decidees_absentes))+' ligne(s) déjà décidée(s) absente(s) de ce décompte : vérifie avant la réclamation.':'')+'</div>'
-     +(r.n_validations>0?'<button class="btn" type="button" data-cad="valider" style="margin-top:10px">Valider les lignes</button><div class="note" style="margin-top:6px">Tu peux aussi valider sur @CRCOMPAR_bot : les deux restent synchronisés.</div>':'')
+     +'<div class="note" style="margin-top:4px">'+cadEnrTexte(r)+'</div>'
+     +(cadNbAValider(r)>0?'<button class="btn" type="button" data-cad="valider" data-m="'+esc(r.mois||'')+'" style="margin-top:10px">Valider les lignes</button>'+(cadPatron()?'<div class="note" style="margin-top:6px">Tu peux aussi valider sur @CRCOMPAR_bot : les deux restent synchronisés.</div>':''):'')
      +'<button class="btn ghost" type="button" data-cad="rap" style="margin-top:10px">'+(CAD.voirRap?'Masquer le rapport':'Voir le rapport complet')+'</button></div>'
      +(CAD.voirRap?cadBoite(cadTg(r.rapport)):'');}
   else if(r.route==='confirmer'){
@@ -5127,7 +5144,7 @@ function cadRenduEtat(){var z=document.getElementById('cad-etat'),e=CAD.etat||{}
     h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🔎 Lecture en attente de ta confirmation</div><div class="note" style="margin-top:4px">'+esc(a.nom||'Fichier')+' · '+esc(rsMoisLbl(a.mois))+' · reçu le '+esc(a.le)+'</div>'
       +'<button class="btn ghost" type="button" data-cad="voirattente" style="margin-top:10px">Voir l’analyse</button><div id="cad-att"></div></div>';}
   var v=e.validations||{};
-  if(v.mois&&v.en_attente>0)h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🗳 '+esc(String(v.en_attente))+' ligne'+(v.en_attente>1?'s':'')+' à valider — '+esc(rsMoisLbl(v.mois))+'</div><button class="btn" type="button" data-cad="valider" style="margin-top:10px">Valider les lignes</button></div>';
+  if(v.mois&&v.en_attente>0)h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🗳 '+esc(String(v.en_attente))+' ligne'+(v.en_attente>1?'s':'')+' à valider — '+esc(rsMoisLbl(v.mois))+'</div><button class="btn" type="button" data-cad="valider" data-m="'+esc(v.mois)+'" style="margin-top:10px">Valider les lignes</button></div>';
   if(e.rapport&&e.rapport.id&&!(CAD.res&&CAD.res.route==='comparer')){var p=e.rapport;
     h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">Dernier rapport — '+esc(rsMoisLbl(p.mois))+'</div><div class="note">'+esc(p.nom||'')+' · '+esc(p.le)+'</div>'
       +'<button class="btn ghost" type="button" data-cad="rapetat" style="margin-top:10px">'+(CAD.voirRapEtat?'Masquer le rapport':'Voir le rapport')+'</button></div>'+(CAD.voirRapEtat?cadBoite(cadTg(p.texte)):'');}
@@ -5138,12 +5155,14 @@ function cadRenduEtat(){var z=document.getElementById('cad-etat'),e=CAD.etat||{}
     h+='</div>';}
   z.innerHTML=h;}
 function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cad]'):null;if(!b)return;var a=b.getAttribute('data-cad');
-  if(a==='valider'){cavOuvrir();return;}
+  if(a==='valider'){cavOuvrir(b.getAttribute('data-m')||'');return;}
   if(a==='rcpdf'){carPdf();return;}
   if(a==='malfsaisir'){var dd=String(b.getAttribute('data-date')||'');mfOuvrir({admin:true,hlp:b.getAttribute('data-hlp')||'',date:/^\d{4}-\d{2}-\d{2}$/.test(dd)?dd:mfAuj(),tid:b.getAttribute('data-tid')||''});return;}
   if(a==='rcmois'){CAR.mois=b.getAttribute('data-m')||'';carSortie();CAR.msg='';carPdf();return;}
   if(a==='rcshare'){try{navigator.share({files:[new File([CAR.out.blob],CAR.out.nom,{type:'application/pdf'})],title:'Réclamation '+rsMoisLbl(CAR.mois)}).catch(function(){});}catch(_e){}return;}
   if(a==='pub'){capPublier();return;}
+  if(a==='capmois'){var cm=b.getAttribute('data-m')||'';if(/^\d{4}-\d{2}$/.test(cm)){CAP.mois=cm;CAP.arme=false;CAP.msg='';capCharger();}return;}
+  if(a==='recapmois'){var rm=b.getAttribute('data-m')||'';if(/^\d{4}-\d{2}$/.test(rm)){CAD.recapMois=rm;cadRecapCharger();}return;}
   if(a==='recapT'){CAD.voirRecapT=!CAD.voirRecapT;cadRenduRes();cadRenduEtat();return;}
   if(a==='recapM'){CAD.voirRecapM=!CAD.voirRecapM;cadRenduRes();cadRenduEtat();return;}
   if(a==='rap'){CAD.voirRap=!CAD.voirRap;cadRenduRes();return;}
@@ -5164,7 +5183,7 @@ function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
 /* ===== v70 : comparateur — VALIDATION des lignes dans l'appli (étape 3b, administrateur)
    Mêmes décisions et mêmes statuts que les boutons Telegram (réclamé / ignoré ; régule globale : CRINSTALLE / pot SAV /
    technicien). Contrôle côté serveur (cmp_admin_validations / cmp_admin_decider). Double appui pour éviter les erreurs. */
-var CAV={data:null,ec:false,arme:null,armeT:0,choixTech:null,info:''};
+var CAV={data:null,ec:false,arme:null,armeT:0,choixTech:null,info:'',mois:'',voirObs:false};
 var CAV_IC={manque:'🔴 MANQUE',sous_paye:'🟠 SOUS-PAYÉ',signalement:'🟡 SIGNALEMENT',regule_globale:'📦 RÉGULE GLOBALE',bonus_apt:'🟣 BONUS APT NON PAYÉ',malfacon:'🛠 MALFAÇON CONTESTÉE (code décharge)'};
 var CAV_LBL={reclame:'✅ Réclamer',ignore:'❌ Ignorer',crinstalle:'🏢 CRINSTALLE',pot_sav:'🔵 Pot SAV',tech:'👤 Affecter'};
 var CAV_FAIT={reclame:'✅ Réclamé',ignore:'❌ Ignoré',crinstalle:'🏢 Encaissé CRINSTALLE',pot_sav:'🔵 Ajouté au pot SAV',tech:'👤 Affecté'};
@@ -5177,11 +5196,11 @@ function cavEcran(){var s=document.createElement('section');s.className='screen'
   var hs0=document.getElementById('s-home');(hs0&&hs0.parentNode?hs0.parentNode:document.body).appendChild(s);
   document.getElementById('cav-back').addEventListener('click',function(){cadOuvrir();});
   document.getElementById('cav-liste').addEventListener('click',cavClic);}
-function cavOuvrir(){if(!cadOk())return;if(!document.getElementById('s-cmpval'))cavEcran();err('err-cav');CAV.info='';document.getElementById('cav-info').textContent='';show('s-cmpval');cavCharger();}
+function cavOuvrir(m){if(!cadOk())return;if(!document.getElementById('s-cmpval'))cavEcran();err('err-cav');CAV.info='';if(typeof m==='string'&&/^\d{4}-\d{2}$/.test(m)&&m!==CAV.mois){CAV.mois=m;CAV.data=null;}document.getElementById('cav-info').textContent='';show('s-cmpval');cavCharger();}
 function cavCharger(){var z=document.getElementById('cav-liste');if(CAV.data)cavRendu();
   if(!navigator.onLine){if(!CAV.data&&z)z.innerHTML='<div class="note">Pas de réseau — réessaie une fois connecté.</div>';return Promise.resolve();}
   if(CAV.ec)return Promise.resolve();CAV.ec=true;
-  return rpc('cmp_admin_validations',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(d){CAV.ec=false;CAV.data=d||{};cavRendu();},
+  var mq=CAV.mois||null;return rpc('cmp_admin_validations_mois',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:mq}).then(function(d){CAV.ec=false;if((CAV.mois||null)!==mq){cavCharger();return;}CAV.data=d||{};cavRendu();},
    function(e){CAV.ec=false;if(!CAV.data&&z)z.innerHTML='';err('err-cav',e&&e.reseau?HORSLIGNE_MSG:'Impossible de charger les lignes pour l’instant.');});}
 function cavMontant(r){var v=parseFloat(r.montant)||0;if(!(v>0)&&(r.type==='sous_paye'||r.type==='signalement'))return 'à chiffrer';return fmt(v);}
 function cavAvis(r){if(r.type!=='signalement')return '';
@@ -5192,17 +5211,29 @@ function cavAvis(r){if(r.type!=='signalement')return '';
   return '📭 Technicien pas encore sollicité';}
 function cavBtn(id,ch,ghost){var on=CAV.arme&&CAV.arme.id===id&&CAV.arme.ch===ch;
   return '<button class="btn'+(ghost&&!on?' ghost':'')+'" type="button" data-cav="'+ch+'" data-id="'+id+'" style="margin-top:0;flex:1;min-width:0;padding-left:6px;padding-right:6px">'+(on?'Sûr ? Retouche':CAV_LBL[ch])+'</button>';}
+function cavMoisHtml(d){var md=d.mois_dispo||[];if(md.length<2)return '';var h='<div role="tablist" style="display:flex;gap:8px;overflow-x:auto;margin:0 0 8px">';
+  md.forEach(function(x){var on=x.mois===d.mois;h+='<button type="button" class="chip'+(on?' sel':'')+'" role="tab" aria-selected="'+(on?'true':'false')+'" data-cav="mois" data-m="'+esc(x.mois)+'" style="flex:none">'+esc(rsMoisLbl(x.mois))+(x.en_attente>0?' · '+esc(String(x.en_attente)):'')+'</button>';});
+  return h+'</div>';}
+var CAV_ANC={reclame:'réclamée',ignore:'ignorée',crinstalle:'CRINSTALLE',pot_sav:'pot SAV',expire:'expirée',en_attente:'en attente',attente_choix_tech:'en attente'};
+function cavObsHtml(d){var o=d.obsoletes||[];if(!o.length)return '';
+  var h='<button class="btn ghost" type="button" data-cav="obs" data-id="1" style="margin-top:14px">'+(CAV.voirObs?'Masquer':'Voir')+' les '+o.length+' ligne'+(o.length>1?'s':'')+' annulée'+(o.length>1?'s':'')+' par le dernier import</button>';
+  if(CAV.voirObs){h+='<div class="note" style="margin:6px 0">Ces lignes ne sont plus dans le décompte : elles sont retirées du PDF de réclamation et du récap. Rien n’est effacé.</div><div class="card" style="padding:4px 14px">';
+    o.forEach(function(x,i){var an=String(x.ancien||'');an=an.indexOf('affecte:')===0?'affectée à un technicien':(CAV_ANC[an]||an);
+      h+='<div style="padding:8px 0'+(i?';border-top:1px solid var(--border)':'')+'"><div style="font-weight:600">'+esc(CAV_IC[x.type]||x.type)+(x.jeton?' · 🎫 '+esc(x.jeton):'')+' · '+esc(fmt(x.montant))+'</div><div class="note">'+(x.tech_prenom?esc(x.tech_prenom)+' · ':'')+'était : '+esc(an)+'</div></div>';});
+    h+='</div>';}
+  return h;}
 function cavRendu(){var z=document.getElementById('cav-liste'),d=CAV.data||{};if(!z)return;var l=d.lignes||[],h='';
   var sub=document.getElementById('cav-sub');if(sub)sub.textContent=(d.mois?'Décompte de '+rsMoisLbl(d.mois)+' · ':'')+'Appuie deux fois sur un bouton pour confirmer.';
+  var hm=cavMoisHtml(d),ho=cavObsHtml(d);
   if(!l.length){var dc=d.decidees||{},n=0;for(var k in dc)if(Object.prototype.hasOwnProperty.call(dc,k))n+=parseInt(dc[k],10)||0;
-    z.innerHTML='<div class="card" style="padding:16px;text-align:center"><div style="font-weight:700;margin-bottom:4px">'+(n?'🎉 Validation terminée':'Rien à valider')+(d.mois?' — '+esc(rsMoisLbl(d.mois)):'')+'</div>'
-      +(n?'<div class="note">'+esc(String(dc.reclame||0))+' réclamée(s) · '+esc(String(dc.ignore||0))+' ignorée(s)'+((dc.crinstalle||dc.pot_sav||dc.affecte)?' · régules : '+esc(String(dc.crinstalle||0))+' CRINSTALLE, '+esc(String(dc.pot_sav||0))+' pot SAV, '+esc(String(dc.affecte||0))+' affectée(s)':'')+(dc.expire?' · '+esc(String(dc.expire))+' signalement(s) expiré(s)':'')+'</div>'
-        +'<div class="note" style="margin-top:8px">PDF de réclamation et envoi des relevés : pour l’instant sur @CRCOMPAR_bot (appuie sur « Commencer la validation » pour retrouver les boutons).</div>':'')+'</div>';return;}
+    z.innerHTML=hm+'<div class="card" style="padding:16px;text-align:center"><div style="font-weight:700;margin-bottom:4px">'+(n?'🎉 Validation terminée':'Rien à valider')+(d.mois?' — '+esc(rsMoisLbl(d.mois)):'')+'</div>'
+      +(n?'<div class="note">'+esc(String(dc.reclame||0))+' réclamée(s) · '+esc(String(dc.ignore||0))+' ignorée(s)'+((dc.crinstalle||dc.pot_sav||dc.affecte)?' · régules : '+esc(String(dc.crinstalle||0))+' CRINSTALLE, '+esc(String(dc.pot_sav||0))+' pot SAV, '+esc(String(dc.affecte||0))+' affectée(s)':'')+(dc.expire?' · '+esc(String(dc.expire))+' signalement(s) expiré(s)':'')+(dc.obsolete?' · '+esc(String(dc.obsolete))+' annulée(s) par le dernier import':'')+'</div>'
+        +'<div class="note" style="margin-top:8px">PDF de réclamation et publication des relevés : écran « Comparateur Sogetrel », rubrique « Fin de mois ».</div>':'')+'</div>'+ho;return;}
   var grp={},noms=[];l.forEach(function(r){var g=r.type==='regule_globale'?'\u0000rg':(r.tech_prenom||'Sans technicien');if(!grp[g]){grp[g]=[];noms.push(g);}grp[g].push(r);});
   noms.forEach(function(g){var L=grp[g];
     h+='<div class="note" style="margin:14px 0 6px;font-weight:700">'+(g==='\u0000rg'?'📦 Régules globales — à affecter':'👤 '+esc(g))+' · '+L.length+' ligne'+(L.length>1?'s':'')+'</div>';
     L.forEach(function(r){var id=r.id,av=cavAvis(r);
-      h+='<div class="card" style="padding:12px 14px;margin-bottom:10px"><div style="font-weight:700">'+esc(CAV_IC[r.type]||r.type)+'</div>'
+      h+='<div class="card" style="padding:12px 14px;margin-bottom:10px'+(r.revoir?';border:1px solid var(--accent-l)':'')+'"><div style="font-weight:700">'+esc(CAV_IC[r.type]||r.type)+(r.revoir?' · ⚠️ À REVOIR':'')+'</div>'
         +'<div style="margin-top:2px;font-variant-numeric:tabular-nums">'+(r.jeton?'🎫 '+esc(r.jeton)+' · ':'')+esc(cavMontant(r))+'</div>'
         +(r.libelle?'<div class="note" style="margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere">'+esc(String(r.libelle).replace(/💬/g,'').trim())+'</div>':'')
         +(av?'<div class="note" style="margin-top:4px;color:var(--tx)">'+esc(av)+'</div>':'');
@@ -5213,10 +5244,13 @@ function cavRendu(){var z=document.getElementById('cav-liste'),d=CAV.data||{};if
         else h+='<button class="btn ghost" type="button" data-cav="choisir" data-id="'+id+'" style="margin-top:8px">👤 Donner à un technicien</button>';}
       else h+='<div style="display:flex;gap:8px;margin-top:10px">'+cavBtn(id,'reclame',false)+cavBtn(id,'ignore',true)+'</div>';
       h+='</div>';});});
-  z.innerHTML=h;
+  z.innerHTML=hm+h+ho;
   if(CAV.choixTech&&CAV.arme&&CAV.arme.ch==='tech'){var s0=document.getElementById('cav-tech-'+CAV.choixTech);if(s0&&CAV.arme.tid)s0.value=CAV.arme.tid;}}
 function cavClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cav]'):null;if(!b||b.disabled)return;
-  var ch=b.getAttribute('data-cav'),id=parseInt(b.getAttribute('data-id'),10);if(!(id>0))return;err('err-cav');
+  var ch=b.getAttribute('data-cav');
+  if(ch==='mois'){var mm=b.getAttribute('data-m')||'';if(/^\d{4}-\d{2}$/.test(mm)&&mm!==(CAV.data&&CAV.data.mois)){CAV.mois=mm;CAV.arme=null;CAV.choixTech=null;CAV.voirObs=false;var zz=document.getElementById('cav-liste');if(zz)zz.innerHTML='<div class="note">Chargement…</div>';CAV.data=null;cavCharger();}return;}
+  if(ch==='obs'){CAV.voirObs=!CAV.voirObs;cavRendu();return;}
+  var id=parseInt(b.getAttribute('data-id'),10);if(!(id>0))return;err('err-cav');
   if(ch==='choisir'){CAV.choixTech=id;CAV.arme=null;cavRendu();return;}
   if(!CAV_LBL[ch])return;
   var tid=null;if(ch==='tech'){var sel=document.getElementById('cav-tech-'+id);tid=sel?sel.value:'';if(!tid){err('err-cav','Choisis d’abord le technicien.');return;}}
@@ -5227,7 +5261,7 @@ function cavClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
   var bs=document.querySelectorAll('#cav-liste [data-id="'+id+'"]');for(var i=0;i<bs.length;i++)bs[i].disabled=true;b.textContent='Envoi…';
   var p={p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id,p_choix:ch==='tech'?'tech':ch};if(ch==='tech')p.p_tid=tid;
   rpc('cmp_admin_decider',p).then(function(r){
-    if(r&&r.ok){document.getElementById('cav-info').textContent=CAV_FAIT[ch]+(r.prenom?' à '+r.prenom:'')+' · reste '+(parseInt(r.reste_total,10)||0)+' ligne(s)';try{v64Vib(12);}catch(_e){}if(CAV.choixTech===id)CAV.choixTech=null;}
+    if(r&&r.ok){if(CAV.data&&CAV.data.mois)CAV.mois=CAV.data.mois;document.getElementById('cav-info').textContent=CAV_FAIT[ch]+(r.prenom?' à '+r.prenom:'')+' · reste '+(parseInt(r.reste_total,10)||0)+' ligne(s)';try{v64Vib(12);}catch(_e){}if(CAV.choixTech===id)CAV.choixTech=null;}
     else err('err-cav',(r&&r.message)||'Décision non enregistrée.');
     CAD.etat=null;return cavCharger();
   }).catch(function(e){err('err-cav',e&&e.reseau?(navigator.onLine?RESEAU_MSG:HORSLIGNE_MSG):((e&&e.message)||'Décision non enregistrée — réessaie.'));cavRendu();});}
@@ -5237,12 +5271,13 @@ function cavClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
    affichée à part, ligne par ligne). Rien n'est gardé sur le téléphone. */
 CAD.recap=null;CAD.voirRecapT=false;CAD.voirRecapM=false;
 function cadRecapCharger(){if(!cadOk()||!navigator.onLine)return;
-  rpc('cmp_admin_recap',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:null}).then(function(d){CAD.recap=(d&&d.mois)?d:null;cadRenduRes();cadRenduEtat();},function(){CAD.recap=null;});}
+  var mq=CAD.recapMois||null;rpc('cmp_admin_recap',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:mq}).then(function(d){if((CAD.recapMois||null)!==mq)return;CAD.recap=(d&&d.mois)?d:null;cadRenduRes();cadRenduEtat();},function(){CAD.recap=null;});}
 function cadPct(t){var v=Math.round((parseFloat(t)||0)*1000)/10;return String(v).replace('.',',')+' %';}
 function cadRecapHtml(){var r=CAD.recap;if(!r||!r.mois)return '';
   if(!r.ok)return '<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">💰 '+(cadPatron()?'Ce qu’il te reste':'Ce qu’il reste à CRINSTALLE')+' — '+esc(rsMoisLbl(r.mois))+'</div><div class="note">'+esc(r.message||'Calcul impossible.')+'</div></div>';
   var L=function(a,b,fort){return '<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0'+(fort?';font-weight:800;font-size:17px':'')+'"><span>'+a+'</span><span style="font-variant-numeric:tabular-nums;white-space:nowrap">'+b+'</span></div>';};
   var h='<div class="card" style="padding:14px 16px;margin-top:12px;border:1px solid var(--accent-l)"><div style="font-weight:700;margin-bottom:6px">💰 '+(cadPatron()?'Ce qu’il te reste':'Ce qu’il reste à CRINSTALLE')+' — '+esc(rsMoisLbl(r.mois))+' <span class="note" style="font-weight:400">· confidentiel</span></div>'
+    +((r.mois_dispo||[]).length>1?'<div role="tablist" style="display:flex;gap:8px;overflow-x:auto;margin:2px 0 8px">'+r.mois_dispo.map(function(m){var on=m===r.mois;return '<button type="button" class="chip'+(on?' sel':'')+'" data-cad="recapmois" data-m="'+esc(m)+'" style="flex:none">'+esc(rsMoisLbl(m))+'</button>';}).join('')+'</div>':'')
     +L('Payé par Sogetrel',esc(fmt(r.total)))+L('À verser aux techniciens','− '+esc(fmt(r.verse_techs)))
     +'<div style="border-top:1px solid var(--border);margin:6px 0"></div>'+L(cadPatron()?'Il te reste':'Il reste à CRINSTALLE',esc(fmt(r.reste)),true)
     +'<div class="note" style="margin-top:6px">Dont commissions '+esc(fmt(r.commissions))+' (20 % · 15 % pour Mermri Mohamed)'+(r.patron&&r.patron.brut?(cadPatron()?' · tes interventions ':' · interventions de '+esc(r.patron.prenom||'Zo')+' ')+esc(fmt(r.patron.brut)):'')+' · le reste = surplus au-dessus des grilles et lignes sans technicien.</div>';
@@ -5252,11 +5287,13 @@ function cadRecapHtml(){var r=CAD.recap;if(!r||!r.mois)return '';
     if(m.contestees&&m.contestees.n)t+='<br>· <b>'+esc(String(m.contestees.n))+' contestée(s)</b> avec code décharge : '+esc(fmt(m.contestees.montant))+' à récupérer (dans « Lignes à valider »)';
     if(dN)t+='<br>· '+esc(String(dN))+' sans code, retirée(s) aux techniciens : '+esc(fmt(dT))+' (déjà dans le calcul)';
     if(pT)t+='<br>· sur les interventions du patron, sans code : '+esc(fmt(pT));
+    if(m.a_valider&&m.a_valider.n)t+='<br>· <b>'+esc(String(m.a_valider.n))+' avec code décharge, à décider</b> dans « Lignes à valider » : '+esc(fmt(m.a_valider.montant))+' (pas retirées pour l’instant)';
     if(m.a_saisir&&m.a_saisir.n)t+='<br>· <b>'+esc(String(m.a_saisir.n))+' ticket(s) HLP saisi(s) par personne</b> : '+esc(fmt(m.a_saisir.montant))+' non retiré(s) pour l’instant';
+    var csc=ML.filter(function(x){return x.contestee_sans_code;}).length;if(csc)t+='<br>· ⚠️ '+esc(String(csc))+' contestation(s) dont le code décharge a été retiré depuis : à vérifier avant d’envoyer la réclamation';
     if(r.a_reprendre>0)t+='<br>· ⚠️ '+esc(fmt(r.a_reprendre))+' de pénalités dépassent ce que certains techs gagnent ce mois-ci (à reprendre plus tard)';
     avert.push(t);}
-  if(r.rg_attente&&r.rg_attente.n>0)avert.push('📦 '+esc(String(r.rg_attente.n))+' régule(s) globale(s) à décider ('+esc(fmt(r.rg_attente.montant))+') : comptée(s) chez toi pour l’instant.');
-  if(r.rdv_nh>0)avert.push('⏰ RDV non honorés : '+esc(fmt(r.rdv_nh))+' déjà retirés par Sogetrel, à ta charge.');
+  if(r.rg_attente&&r.rg_attente.n>0)avert.push('📦 '+esc(String(r.rg_attente.n))+' régule(s) à décider ('+esc(fmt(r.rg_attente.montant))+') : comptée(s) '+(cadPatron()?'chez toi':'chez CRINSTALLE')+' pour l’instant.');
+  if(r.rdv_nh>0)avert.push('⏰ RDV non honorés : '+esc(fmt(r.rdv_nh))+' déjà retirés par Sogetrel, '+(cadPatron()?'à ta charge':'à la charge de CRINSTALLE')+'.');
   avert.push('ℹ️ Estimation : les manques réclamés ne comptent qu’une fois payés par Sogetrel.');
   h+='<div class="note" style="margin-top:8px;display:grid;gap:4px">'+avert.map(function(x){return '<div>'+x+'</div>';}).join('')+'</div>';
   var T=r.techs||[];
@@ -5266,15 +5303,16 @@ function cadRecapHtml(){var r=CAD.recap;if(!r||!r.mois)return '';
     T.forEach(function(t,i){var nm=esc(t.prenom)+(t.nom?' '+esc(String(t.nom).charAt(0))+'.':'');
       h+='<div style="padding:8px 0'+(i?';border-top:1px solid var(--border)':'')+'"><div style="display:flex;justify-content:space-between;gap:8px;font-weight:700"><span>'+nm+'</span><span style="font-variant-numeric:tabular-nums">'+esc(fmt(t.a_verser))+'</span></div>'
         +'<div class="note">Brut '+esc(fmt(t.brut))+' (prod. '+esc(fmt(t.prod))+(t.sav?' · SAV '+esc(fmt(t.sav)):'')+(t.rg?' · régules '+esc(fmt(t.rg)):'')+') − commission '+esc(cadPct(t.taux))+' '+esc(fmt(t.commission))
-        +(t.malf_suggeree>0?' · malfaçons suggérées '+esc(fmt(t.malf_suggeree))+' (non reprises)':'')+'</div></div>';});
+        +(t.malf>0?' − malfaçons sans code '+esc(fmt(t.malf))+(t.malf_n>1?' ('+esc(String(t.malf_n))+')':''):'')+'</div>'
+        +(t.a_reprendre>0?'<div class="note" style="color:var(--accent-l);font-weight:700">⚠️ Pénalités supérieures aux gains : '+esc(fmt(t.a_reprendre))+' à reprendre plus tard (rien à verser ce mois-ci)</div>':'')+'</div>';});
     if(!T.length)h+='<div class="note">Aucun technicien à payer pour ce mois.</div>';h+='</div>';}
   if(CAD.voirRecapM&&m.lignes){h+='<div style="margin-top:8px">';
-    var ET={contestee:'✅ Contestée · code ',deduite:'➖ Retirée au technicien (pas de code)',a_saisir:'⚠️ Saisie par personne'};
+    var ET={contestee:'✅ Contestée · code ',deduite:'➖ Retirée au technicien (pas de code ou « Ignorer »)',a_saisir:'⚠️ Saisie par personne',a_valider:'⏳ Code décharge saisi — à décider dans « Lignes à valider » · code '};
     m.lignes.forEach(function(x,i){var qui=x.prenom?esc(x.prenom)+(x.nom?' '+esc(x.nom):'')+(x.patron?(cadPatron()?' (toi)':' (patron)'):''):'';
       var sg=(x.suggestion||[]).map(function(t){return esc(t.prenom)+(t.nom?' '+esc(t.nom):'');}).join(' + ');
       h+='<div style="padding:8px 0'+(i?';border-top:1px solid var(--border)':'')+'"><div style="display:flex;justify-content:space-between;gap:8px;font-weight:600"><span style="overflow-wrap:anywhere">'+esc(x.reference||('jeton '+x.jeton))+'</span><span>'+esc(fmt(x.penalite))+'</span></div>'
         +'<div class="note">'+esc(fmtD(x.date))+' · Sogetrel : '+esc(x.nom_sogetrel||'?')+(qui?' · Appli : '+qui:'')+'</div>'
-        +'<div class="note" style="color:var(--tx)">'+(ET[x.etat]||'')+(x.etat==='contestee'?esc(x.code):'')+'</div>';
+        +'<div class="note" style="color:var(--tx)">'+(ET[x.etat]||'')+((x.etat==='contestee'||x.etat==='a_valider')?esc(x.code):'')+(x.contestee_sans_code?' ⚠️ code retiré depuis la contestation':'')+'</div>';
       if(x.etat==='a_saisir'){h+=(sg?'<div class="note">Technicien probable (même jeton dans l’appli) : '+sg+'</div>':'<div class="note">Jeton introuvable dans l’appli.</div>')
         +'<button class="btn ghost" type="button" data-cad="malfsaisir" data-hlp="'+esc(x.reference||'')+'" data-date="'+esc(x.date||'')+'" data-tid="'+esc(((x.suggestion||[])[0]||{}).tid||'')+'" style="margin-top:6px;height:40px">Saisir cette malfaçon</button>';}
       h+='</div>';});
@@ -5291,7 +5329,8 @@ function rcPdfBuild(d, genLe) {
 
   function esc(s) {
     return String(s).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)')
-      .replace(/€/g, '\x80').replace(/’/g, "'").replace(/—/g, '\x97').replace(/–/g, '\x96').replace(/…/g, '\x85').replace(/ /g, ' ')
+      .replace(/€/g, '\x80').replace(/’/g, "'").replace(/—/g, '\x97').replace(/–/g, '\x96').replace(/…/g, '\x85').replace(/[   ]/g, ' ')
+      .replace(/œ/g, '\x9C').replace(/Œ/g, '\x8C').replace(/‘/g, "'").replace(/[“”„]/g, '"').replace(/•/g, '\x95')
       .replace(/[^\x00-\xFF]/g, '?');
   }
   function fmt(n) {
@@ -5485,10 +5524,10 @@ lignes.forEach(function (l) { if (!nonChiffre(l)) total += parseFloat(l.montant)
   return { nb: lignes.length, groupes: groupes, nbSignalements: nbSignalements, total: Math.round(total * 100) / 100 };
 }
 var CAR={mois:'',dispo:[],out:null,ec:false,msg:''};
-var CAP={data:null,ec:false,arme:false,armeT:0,msg:''};
+var CAP={data:null,ec:false,arme:false,armeT:0,msg:'',mois:''};
 function carSortie(){if(CAR.out&&CAR.out.url){try{URL.revokeObjectURL(CAR.out.url);}catch(_e){}}CAR.out=null;}
 function capCharger(){if(!cadOk()||!navigator.onLine)return;
-  rpc('cmp_admin_releves',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_publier:false,p_mois:null}).then(function(d){CAP.data=d||null;cadRenduEtat();},function(){});}
+  var mq=CAP.mois||null;rpc('cmp_admin_releves',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_publier:false,p_mois:mq}).then(function(d){if((CAP.mois||null)!==mq)return;CAP.data=d||null;cadRenduEtat();},function(){});}
 function cadDocsHtml(){var h='<div class="note" style="margin:16px 0 4px;font-weight:700">Fin de mois</div>';
   /* PDF de réclamation */
   h+='<div class="card" style="padding:14px 16px;margin-top:6px"><div style="font-weight:700">📄 PDF de réclamation'+(CAR.mois?' — '+esc(rsMoisLbl(CAR.mois)):'')+'</div>'
@@ -5502,6 +5541,8 @@ function cadDocsHtml(){var h='<div class="note" style="margin:16px 0 4px;font-we
   /* publication des relevés */
   var d=CAP.data;
   h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">📤 Relevés des techniciens'+(d&&d.mois?' — '+esc(rsMoisLbl(d.mois)):'')+'</div>';
+  if(d&&(d.mois_dispo||[]).length>1){h+='<div role="tablist" style="display:flex;gap:8px;overflow-x:auto;margin-top:8px">';
+    d.mois_dispo.forEach(function(m){var on=m===d.mois;h+='<button type="button" class="chip'+(on?' sel':'')+'" data-cad="capmois" data-m="'+esc(m)+'" style="flex:none">'+esc(rsMoisLbl(m))+'</button>';});h+='</div>';}
   if(!d||!d.mois)h+='<div class="note" style="margin-top:4px">Aucun relevé : compare d’abord un décompte.</div>';
   else{var nt=(d.techs||[]).length;
     h+='<div class="note" style="margin-top:4px">'+(d.publie_le?'✅ Publiés le '+esc(d.publie_le)+' : chaque technicien voit son relevé dans l’appli.':'Pas encore publiés : les techniciens ne voient rien tant que tu n’as pas publié.')+'</div>'
