@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='72';
+var APPV='73';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -4571,6 +4571,7 @@ function v64DrBuild(){var d=document.getElementById('v64-dr');
   h+=grp('Mon activité');
   if(typeof cmpOk==='function'&&cmpOk())h+=row('check','À confirmer','Jetons signalés par le comparateur','cmp',CMP.n>0?'<span class="v64-bdg" aria-label="'+CMP.n+' à confirmer">'+CMP.n+'</span>':'');
   if(typeof cmpOk==='function'&&cmpOk())h+=row('pdf','Relevé Sogetrel','Tes jetons payés par Sogetrel','relsog',(typeof rsNouveau==='function'&&rsNouveau())?'<span class="v64-bdg" aria-label="nouveau">1</span>':'');
+  if(typeof mfOk==='function'&&mfOk())h+=row('check','Malfaçons',oppEstAdmin()?'Toute l’équipe · codes décharge':'Tes reprises et codes décharge','malf');
   h+=row('pdf','Relevés mensuels','PDF de chaque mois','releves');
   if(c||tv)h+=row('euro','Compta',c?(tv?'Dépenses, factures, TVA':'Dépenses, factures'):'TVA','compta');
   h+=row('doc','Documents','Tes papiers et attestations','docs');
@@ -4599,6 +4600,7 @@ function v64Go(id,fn){V64.fromMenu=id;v64DrClose();setTimeout(function(){fn();},
 function v64DrClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-v64go]'):null;if(!b)return;v64Vib(8);var k=b.getAttribute('data-v64go');
   if(k==='cmp')return v64Go('s-cmp',cmpOuvrir);
   if(k==='relsog')return v64Go('s-relsog',rsOuvrir);
+  if(k==='malf')return v64Go('s-malf',function(){mfOuvrir();});
   if(k==='releves')return v64Go('s-releves',v64Releves);
   if(k==='compta')return v64Go('s-fact',function(){if(typeof openFact==='function')openFact();else show('s-fact');});
   if(k==='docs')return v64Go('s-docs',function(){buildDocs();});
@@ -4717,8 +4719,8 @@ function v64Home(){var hs=document.getElementById('s-home');if(!hs||!ACCT)return
   if(V64.hl){var rows=document.querySelectorAll('#hm-list .hrow .j');for(var i=0;i<rows.length&&i<3;i++){if(rows[i].textContent.toUpperCase()===String(V64.hl).toUpperCase()){var r=rows[i].closest('.hrow');r.classList.remove('v64-new');void r.offsetWidth;r.classList.add('v64-new');break;}}V64.hl=null;}
   /* lien direct #opp / #recrut (emails, Telegram) */
   if(!V64.lien){V64.lien=true;var hsh=location.hash||'';
-    if(hsh==='#opp'||hsh==='#recrut'||hsh==='#cmp'||hsh==='#releve'||hsh==='#cmpadm'){try{history.replaceState(null,'',location.pathname);}catch(_e){}
-      setTimeout(function(){if(hsh==='#releve'&&cmpOk())rsOuvrir();else if(hsh==='#cmp'&&cmpOk())cmpOuvrir();else if(hsh==='#opp'&&oppEstSolo())oppOuvrir();else if(hsh==='#recrut'&&oppEstAdmin())rcOuvrir();else if(hsh==='#cmpadm'&&oppEstAdmin())cadOuvrir();},60);}}}
+    if(hsh==='#opp'||hsh==='#recrut'||hsh==='#cmp'||hsh==='#releve'||hsh==='#cmpadm'||hsh==='#malf'){try{history.replaceState(null,'',location.pathname);}catch(_e){}
+      setTimeout(function(){if(hsh==='#releve'&&cmpOk())rsOuvrir();else if(hsh==='#cmp'&&cmpOk())cmpOuvrir();else if(hsh==='#opp'&&oppEstSolo())oppOuvrir();else if(hsh==='#recrut'&&oppEstAdmin())rcOuvrir();else if(hsh==='#cmpadm'&&oppEstAdmin())cadOuvrir();else if(hsh==='#malf'&&mfOk())mfOuvrir();},60);}}}
 
 /* rappel sur l'accueil quand il y a du nouveau (offres pour un solo, candidatures pour l'admin) */
 function v64Alerte(){var hs=document.getElementById('s-home');if(!hs)return;var a=document.getElementById('v64-al'),txt=null,sub='',fn=null,ic='brief';
@@ -5134,6 +5136,7 @@ function cadRenduEtat(){var z=document.getElementById('cad-etat'),e=CAD.etat||{}
 function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cad]'):null;if(!b)return;var a=b.getAttribute('data-cad');
   if(a==='valider'){cavOuvrir();return;}
   if(a==='rcpdf'){carPdf();return;}
+  if(a==='malfsaisir'){var dd=String(b.getAttribute('data-date')||'');mfOuvrir({admin:true,hlp:b.getAttribute('data-hlp')||'',date:/^\d{4}-\d{2}-\d{2}$/.test(dd)?dd:mfAuj(),tid:b.getAttribute('data-tid')||''});return;}
   if(a==='rcmois'){CAR.mois=b.getAttribute('data-m')||'';carSortie();CAR.msg='';carPdf();return;}
   if(a==='rcshare'){try{navigator.share({files:[new File([CAR.out.blob],CAR.out.nom,{type:'application/pdf'})],title:'Réclamation '+rsMoisLbl(CAR.mois)}).catch(function(){});}catch(_e){}return;}
   if(a==='pub'){capPublier();return;}
@@ -5158,7 +5161,7 @@ function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
    Mêmes décisions et mêmes statuts que les boutons Telegram (réclamé / ignoré ; régule globale : CRINSTALLE / pot SAV /
    technicien). Contrôle côté serveur (cmp_admin_validations / cmp_admin_decider). Double appui pour éviter les erreurs. */
 var CAV={data:null,ec:false,arme:null,armeT:0,choixTech:null,info:''};
-var CAV_IC={manque:'🔴 MANQUE',sous_paye:'🟠 SOUS-PAYÉ',signalement:'🟡 SIGNALEMENT',regule_globale:'📦 RÉGULE GLOBALE',bonus_apt:'🟣 BONUS APT NON PAYÉ'};
+var CAV_IC={manque:'🔴 MANQUE',sous_paye:'🟠 SOUS-PAYÉ',signalement:'🟡 SIGNALEMENT',regule_globale:'📦 RÉGULE GLOBALE',bonus_apt:'🟣 BONUS APT NON PAYÉ',malfacon:'🛠 MALFAÇON CONTESTÉE (code décharge)'};
 var CAV_LBL={reclame:'✅ Réclamer',ignore:'❌ Ignorer',crinstalle:'🏢 CRINSTALLE',pot_sav:'🔵 Pot SAV',tech:'👤 Affecter'};
 var CAV_FAIT={reclame:'✅ Réclamé',ignore:'❌ Ignoré',crinstalle:'🏢 Encaissé CRINSTALLE',pot_sav:'🔵 Ajouté au pot SAV',tech:'👤 Affecté'};
 function cavEcran(){var s=document.createElement('section');s.className='screen';s.id='s-cmpval';
@@ -5240,7 +5243,14 @@ function cadRecapHtml(){var r=CAD.recap;if(!r||!r.mois)return '';
     +'<div style="border-top:1px solid var(--border);margin:6px 0"></div>'+L('Il te reste',esc(fmt(r.reste)),true)
     +'<div class="note" style="margin-top:6px">Dont commissions '+esc(fmt(r.commissions))+' (20 % · 15 % pour Mermri Mohamed)'+(r.patron&&r.patron.brut?' · tes interventions '+esc(fmt(r.patron.brut)):'')+' · le reste = surplus au-dessus des grilles et lignes sans technicien.</div>';
   var m=r.malfacons||{},avert=[];
-  if(m.n>0)avert.push('🛠 '+esc(String(m.n))+' malfaçon'+(m.n>1?'s':'')+' ('+esc(fmt(m.liste_total))+' ; Sogetrel en a déduit '+esc(fmt(m.decompte_total))+') : déjà retirées du total, <b>pas reprises</b> sur les techs dans ce calcul. Reprise possible : +'+esc(fmt(m.reprise_possible))+(m.non_trouvees?' ('+esc(String(m.non_trouvees))+' jeton(s) introuvable(s) dans l’appli)':'')+'.');
+  if(m.n>0){var ML=m.lignes||[],dT=0,dN=0,pT=0;ML.forEach(function(x){if(x.etat==='deduite'){if(x.patron)pT+=x.penalite;else{dT+=x.penalite;dN++;}}});
+    var t='🛠 '+esc(String(m.n))+' malfaçon'+(m.n>1?'s':'')+' sur le décompte ('+esc(fmt(m.liste_total))+(Math.abs((m.liste_total||0)-(m.decompte_total||0))>0.01?' ; Sogetrel en a déduit '+esc(fmt(m.decompte_total)):'')+') :';
+    if(m.contestees&&m.contestees.n)t+='<br>· <b>'+esc(String(m.contestees.n))+' contestée(s)</b> avec code décharge : '+esc(fmt(m.contestees.montant))+' à récupérer (dans « Lignes à valider »)';
+    if(dN)t+='<br>· '+esc(String(dN))+' sans code, retirée(s) aux techniciens : '+esc(fmt(dT))+' (déjà dans le calcul)';
+    if(pT)t+='<br>· sur tes interventions, sans code : '+esc(fmt(pT));
+    if(m.a_saisir&&m.a_saisir.n)t+='<br>· <b>'+esc(String(m.a_saisir.n))+' ticket(s) HLP saisi(s) par personne</b> : '+esc(fmt(m.a_saisir.montant))+' non retiré(s) pour l’instant';
+    if(r.a_reprendre>0)t+='<br>· ⚠️ '+esc(fmt(r.a_reprendre))+' de pénalités dépassent ce que certains techs gagnent ce mois-ci (à reprendre plus tard)';
+    avert.push(t);}
   if(r.rg_attente&&r.rg_attente.n>0)avert.push('📦 '+esc(String(r.rg_attente.n))+' régule(s) globale(s) à décider ('+esc(fmt(r.rg_attente.montant))+') : comptée(s) chez toi pour l’instant.');
   if(r.rdv_nh>0)avert.push('⏰ RDV non honorés : '+esc(fmt(r.rdv_nh))+' déjà retirés par Sogetrel, à ta charge.');
   avert.push('ℹ️ Estimation : les manques réclamés ne comptent qu’une fois payés par Sogetrel.');
@@ -5255,9 +5265,15 @@ function cadRecapHtml(){var r=CAD.recap;if(!r||!r.mois)return '';
         +(t.malf_suggeree>0?' · malfaçons suggérées '+esc(fmt(t.malf_suggeree))+' (non reprises)':'')+'</div></div>';});
     if(!T.length)h+='<div class="note">Aucun technicien à payer pour ce mois.</div>';h+='</div>';}
   if(CAD.voirRecapM&&m.lignes){h+='<div style="margin-top:8px">';
-    m.lignes.forEach(function(x,i){var ap=(x.techs||[]).map(function(t){return esc(t.prenom)+(t.nom?' '+esc(t.nom):'')+(t.patron?' (toi)':'');}).join(' + ');
-      h+='<div style="padding:8px 0'+(i?';border-top:1px solid var(--border)':'')+'"><div style="display:flex;justify-content:space-between;gap:8px;font-weight:600"><span>🎫 '+esc(x.jeton)+' · '+esc(fmtD(x.date))+'</span><span>'+esc(fmt(x.penalite))+'</span></div>'
-        +'<div class="note">Sogetrel : '+esc(x.nom_sogetrel||'?')+' · Appli : '+(ap||'jeton introuvable')+'</div></div>';});
+    var ET={contestee:'✅ Contestée · code ',deduite:'➖ Retirée au technicien (pas de code)',a_saisir:'⚠️ Saisie par personne'};
+    m.lignes.forEach(function(x,i){var qui=x.prenom?esc(x.prenom)+(x.nom?' '+esc(x.nom):'')+(x.patron?' (toi)':''):'';
+      var sg=(x.suggestion||[]).map(function(t){return esc(t.prenom)+(t.nom?' '+esc(t.nom):'');}).join(' + ');
+      h+='<div style="padding:8px 0'+(i?';border-top:1px solid var(--border)':'')+'"><div style="display:flex;justify-content:space-between;gap:8px;font-weight:600"><span style="overflow-wrap:anywhere">'+esc(x.reference||('jeton '+x.jeton))+'</span><span>'+esc(fmt(x.penalite))+'</span></div>'
+        +'<div class="note">'+esc(fmtD(x.date))+' · Sogetrel : '+esc(x.nom_sogetrel||'?')+(qui?' · Appli : '+qui:'')+'</div>'
+        +'<div class="note" style="color:var(--tx)">'+(ET[x.etat]||'')+(x.etat==='contestee'?esc(x.code):'')+'</div>';
+      if(x.etat==='a_saisir'){h+=(sg?'<div class="note">Technicien probable (même jeton dans l’appli) : '+sg+'</div>':'<div class="note">Jeton introuvable dans l’appli.</div>')
+        +'<button class="btn ghost" type="button" data-cad="malfsaisir" data-hlp="'+esc(x.reference||'')+'" data-date="'+esc(x.date||'')+'" data-tid="'+esc(((x.suggestion||[])[0]||{}).tid||'')+'" style="margin-top:6px;height:40px">Saisir cette malfaçon</button>';}
+      h+='</div>';});
     h+='</div>';}
   if(r.calcule_sur)h+='<div class="note" style="margin-top:8px">Fichier comparé le '+esc(r.calcule_sur)+' · mis à jour avec tes décisions.</div>';
   return h+'</div>';}
@@ -5289,7 +5305,7 @@ function rcPdfBuild(d, genLe) {
   function TR(f, size, color, xRight, y, txt) { return T(f, size, color, xRight - wAmount(esc(txt), size), y, txt); }
   function LINE(x1, y, x2, wpt, color) { return color + ' RG ' + wpt + ' w ' + x1.toFixed(2) + ' ' + y.toFixed(2) + ' m ' + x2.toFixed(2) + ' ' + y.toFixed(2) + ' l S\n'; }
 
-  var TYPELBL = { manque: 'Non payé', sous_paye: 'Sous-payé', signalement: 'Requalification RACC', bonus_apt: 'Bonus APT non payé' };
+  var TYPELBL = { manque: 'Non payé', sous_paye: 'Sous-payé', signalement: 'Requalification RACC', bonus_apt: 'Bonus APT non payé', malfacon: 'Malfaçon contestée' };
   var CX = { date: ML, jeton: ML + 66, type: ML + 172, mnt: MR };
 
   function tableHeader(y) {
@@ -5448,7 +5464,7 @@ var techs = Object.keys(parTech).sort(function (a, b) {
   if (a === 'Non identifié') return 1; if (b === 'Non identifié') return -1;
   return a.localeCompare(b, 'fr');
 });
-var ORD = { manque: 0, sous_paye: 1, signalement: 2, bonus_apt: 3 };
+var ORD = { manque: 0, sous_paye: 1, signalement: 2, bonus_apt: 3, malfacon: 4 };
 var groupes = techs.map(function (t) {
   var ls = parTech[t].sort(function (a, b) {
     var d = (ORD[a.type] !== undefined ? ORD[a.type] : 9) - (ORD[b.type] !== undefined ? ORD[b.type] : 9);
@@ -5513,3 +5529,79 @@ function capPublier(){if(CAP.ec||!CAP.data||!CAP.data.mois)return;
     if(d&&d.publie_maintenant){CAP.data=d;CAP.msg='✅ Relevés publiés : les techniciens les voient maintenant dans l’appli (bannière à l’ouverture).';try{v64Vib(12);}catch(_e){}}
     else CAP.msg='Publication non confirmée — réessaie.';cadRenduEtat();},
    function(e){CAP.ec=false;CAP.msg=e&&e.reseau?HORSLIGNE_MSG:'Publication impossible pour l’instant.';cadRenduEtat();});}
+/* ===== v73 : MALFAÇONS (nouvelle méthode Sogetrel) — le technicien saisit le ticket HLP, la date et le code décharge du chargé
+   d'affaires ; l'administrateur voit et saisit pour toute l'équipe. Avec code → pénalité contestée (ligne à valider puis PDF de
+   réclamation) ; sans code → pénalité retirée au technicien. Contrôles côté serveur (malf_tech_* / malf_admin_*). */
+var MF={data:null,ec:false,form:null,filtre:'tout',arme:0,armeT:0,info:''};
+function mfOk(){var m=ACCT&&ACCT.me;return !!(m&&m.equipe&&m.acces!=='controle');}
+function mfAdm(){return oppEstAdmin();}
+function mfNormHlp(s){return String(s||'').replace(/\s+/g,'').toUpperCase();}
+function mfNormCode(s){return String(s||'').replace(/[\s-]+/g,'').toUpperCase();}
+function mfAuj(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function mfEcran(){var s=document.createElement('section');s.className='screen';s.id='s-malf';
+  var BACK='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  s.innerHTML='<div class="topbar"><button class="back" type="button" aria-label="Retour" id="mf-back">'+BACK+'</button><div class="ttl">Malfaçons</div><div style="width:34px"></div></div>'
+   +'<p class="sub" style="margin:2px 0 12px" id="mf-sub"></p><div class="err" id="err-mf" role="alert"></div><div class="note" id="mf-info" aria-live="polite" style="min-height:18px;margin-bottom:6px"></div>'
+   +'<div id="mf-corps"><div class="note">Chargement…</div></div><div class="grow"></div>';
+  var hs0=document.getElementById('s-home');(hs0&&hs0.parentNode?hs0.parentNode:document.body).appendChild(s);
+  document.getElementById('mf-back').addEventListener('click',function(){if(MF.form){MF.form=null;mfRendu();return;}if(mfAdm()&&MF.retourAdmin){MF.retourAdmin=false;cadOuvrir();return;}goHome();});
+  s.addEventListener('click',mfClic);}
+function mfOuvrir(pre){if(!mfOk())return;if(!document.getElementById('s-malf'))mfEcran();err('err-mf');MF.info='';document.getElementById('mf-info').textContent='';
+  document.getElementById('mf-sub').textContent=mfAdm()?'Toutes les malfaçons de l’équipe. Avec le code décharge, la pénalité est contestée ; sans code, elle est retirée au technicien.':'Saisis chaque malfaçon reprise : ticket HLP, date, et le code décharge donné par le chargé d’affaires. Sans code, la pénalité Sogetrel te sera retirée.';
+  MF.form=pre?{id:null,tid:pre.tid||'',hlp:pre.hlp||'',date:pre.date||mfAuj(),code:'',commentaire:''}:null;MF.retourAdmin=!!(pre&&pre.admin);show('s-malf');mfRendu();mfCharger();}
+function mfCharger(){if(!navigator.onLine){if(!MF.data)document.getElementById('mf-corps').innerHTML='<div class="note">Pas de réseau — réessaie une fois connecté.</div>';return Promise.resolve();}
+  if(MF.ec)return Promise.resolve();MF.ec=true;
+  return rpc(mfAdm()?'malf_admin_liste':'malf_tech_liste',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(d){MF.ec=false;MF.data=d||{};mfRendu();},
+   function(e){MF.ec=false;if(!MF.data)document.getElementById('mf-corps').innerHTML='';err('err-mf',e&&e.reseau?HORSLIGNE_MSG:'Impossible de charger les malfaçons pour l’instant.');});}
+function mfRendu(){var z=document.getElementById('mf-corps');if(!z)return;var adm=mfAdm(),h='';
+  if(MF.form){var f=MF.form,T=(MF.data&&MF.data.techs)||[];
+    h+='<div class="card" style="padding:14px 16px"><div style="font-weight:700;margin-bottom:10px">'+(f.id?'Modifier la malfaçon':'Nouvelle malfaçon')+'</div>';
+    if(adm){var o='<option value="">Choisis le technicien…</option>';for(var i=0;i<T.length;i++)o+='<option value="'+esc(T[i].tid)+'"'+(T[i].tid===f.tid?' selected':'')+'>'+esc(T[i].prenom)+(T[i].nom?' '+esc(T[i].nom):'')+'</option>';
+      h+='<div class="field"><label class="lab" for="mf-tech">Technicien</label><select id="mf-tech" style="width:100%;height:52px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border);padding:0 14px;color:var(--tx);font-size:16px;font-weight:600">'+o+'</select></div>';}
+    h+='<div class="field"><label class="lab" for="mf-hlp">Ticket HLP</label><input type="text" id="mf-hlp" maxlength="40" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="ex. HLP-8795-20260811-4890773" value="'+esc(f.hlp)+'"></div>'
+      +'<div class="field"><label class="lab" for="mf-date">Date de la reprise</label><input type="date" id="mf-date" value="'+esc(f.date)+'" max="'+mfAuj()+'"></div>'
+      +'<div class="field"><label class="lab" for="mf-code">Code décharge <span class="note" style="font-weight:400">(si tu l’as)</span></label><input type="text" id="mf-code" maxlength="24" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="lettres et chiffres" value="'+esc(f.code)+'"></div>'
+      +'<div class="field"><label class="lab" for="mf-code2">Retape le code décharge</label><input type="text" id="mf-code2" maxlength="24" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="pour éviter les fautes de frappe" value="'+esc(f.code)+'"></div>'
+      +'<div class="field"><label class="lab" for="mf-com">Commentaire <span class="note" style="font-weight:400">(facultatif)</span></label><input type="text" id="mf-com" maxlength="300" value="'+esc(f.commentaire)+'"></div>'
+      +'<button class="btn" type="button" data-mf="save" style="margin-top:4px">Enregistrer</button>'
+      +(adm&&f.id?'<button class="btn ghost" type="button" data-mf="suppr" style="margin-top:8px">'+(MF.arme===f.id?'Sûr ? Retouche pour supprimer':'Supprimer cette malfaçon')+'</button>':'')
+      +'<button class="btn ghost" type="button" data-mf="annuler" style="margin-top:8px">Annuler</button></div>';
+    z.innerHTML=h;return;}
+  var L=(MF.data&&MF.data.malfacons)||[],sans=L.filter(function(m){return !m.code;}).length;
+  h+='<button class="btn" type="button" data-mf="new">+ Nouvelle malfaçon</button>';
+  if(adm&&L.length)h+='<div role="tablist" style="display:flex;gap:8px;margin-top:12px"><button type="button" class="chip'+(MF.filtre==='tout'?' sel':'')+'" data-mf="f-tout">Toutes ('+L.length+')</button><button type="button" class="chip'+(MF.filtre==='sans'?' sel':'')+'" data-mf="f-sans">Sans code ('+sans+')</button></div>';
+  var V=adm&&MF.filtre==='sans'?L.filter(function(m){return !m.code;}):L;
+  if(!V.length)h+='<div class="card" style="padding:16px;margin-top:12px;text-align:center"><div class="note">'+(L.length?'Toutes les malfaçons ont leur code décharge ✅':'Aucune malfaçon saisie.')+'</div></div>';
+  else{h+='<div class="card" style="padding:4px 16px;margin-top:12px">';
+    V.forEach(function(m,i){h+='<div style="padding:10px 0'+(i?';border-top:1px solid var(--border)':'')+'"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div style="min-width:0">'
+      +'<div style="font-weight:700;overflow-wrap:anywhere">'+esc(m.hlp)+'</div><div class="note">'+esc(fmtD(m.date))+(adm?' · '+esc(m.prenom)+(m.nom?' '+esc(m.nom):''):'')+(m.saisi_par==='admin'&&!adm?' · ajoutée par CRINSTALLE':'')+'</div>'
+      +'<div class="note" style="margin-top:2px;color:var(--tx)">'+(m.code?'✅ Code décharge '+esc(m.code):'⚠️ Code décharge à ajouter')+'</div>'+(m.commentaire?'<div class="note">— '+esc(m.commentaire)+'</div>':'')+'</div>'
+      +'<button class="btn ghost" type="button" data-mf="edit" data-id="'+esc(String(m.id))+'" style="margin-top:0;flex:none;width:auto;padding:0 14px;height:40px">'+(m.code?'Modifier':'Ajouter le code')+'</button></div></div>';});
+    h+='</div>';}
+  z.innerHTML=h;}
+function mfLire(){var g=function(id){var e=document.getElementById(id);return e?e.value:'';};
+  return {tid:g('mf-tech'),hlp:mfNormHlp(g('mf-hlp')),date:g('mf-date'),code:mfNormCode(g('mf-code')),code2:mfNormCode(g('mf-code2')),commentaire:String(g('mf-com')).trim()};}
+function mfClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-mf]'):null;if(!b||b.disabled)return;var a=b.getAttribute('data-mf');err('err-mf');
+  if(a==='new'){MF.form={id:null,tid:'',hlp:'',date:mfAuj(),code:'',commentaire:''};mfRendu();return;}
+  if(a==='annuler'){MF.form=null;mfRendu();return;}
+  if(a==='f-tout'||a==='f-sans'){MF.filtre=a==='f-sans'?'sans':'tout';mfRendu();return;}
+  if(a==='edit'){var id=parseInt(b.getAttribute('data-id'),10),m=((MF.data&&MF.data.malfacons)||[]).filter(function(x){return x.id===id;})[0];if(!m)return;
+    MF.form={id:m.id,tid:m.tid||'',hlp:m.hlp,date:String(m.date||'').slice(0,10),code:m.code||'',commentaire:m.commentaire||''};mfRendu();return;}
+  if(a==='suppr'){var f0=MF.form;if(!f0||!f0.id)return;
+    if(MF.arme!==f0.id){Object.assign(f0,mfLire());MF.arme=f0.id;clearTimeout(MF.armeT);MF.armeT=setTimeout(function(){MF.arme=0;mfRendu();},4000);mfRendu();return;}
+    clearTimeout(MF.armeT);MF.arme=0;b.disabled=true;
+    rpc('malf_admin_annuler',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:f0.id}).then(function(r){if(r&&r.ok){MF.form=null;document.getElementById('mf-info').textContent='Malfaçon supprimée.';return mfCharger();}err('err-mf',(r&&r.message)||'Suppression impossible.');mfRendu();},
+      function(e){err('err-mf',e&&e.reseau?HORSLIGNE_MSG:'Suppression impossible — réessaie.');mfRendu();});return;}
+  if(a==='save'){var f=MF.form;if(!f)return;var v=mfLire();Object.assign(f,{tid:v.tid,hlp:v.hlp,date:v.date,code:v.code,commentaire:v.commentaire});
+    if(mfAdm()&&!v.tid){err('err-mf','Choisis le technicien.');return;}
+    if(!/^[A-Z0-9]+(-[A-Z0-9]+)+$/.test(v.hlp)||v.hlp.length<8||v.hlp.length>40){err('err-mf','Ticket HLP invalide (exemple : HLP-8795-20260811-4890773).');return;}
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.date)){err('err-mf','Choisis la date.');return;}
+    if(v.code&&!/^[A-Z0-9]{4,20}$/.test(v.code)){err('err-mf','Code décharge : uniquement des lettres et des chiffres (4 à 20).');return;}
+    if(v.code!==v.code2){err('err-mf','Les deux codes décharge ne sont pas identiques : vérifie-les.');return;}
+    if(!navigator.onLine){err('err-mf',HORSLIGNE_MSG);return;}
+    b.disabled=true;b.textContent='Enregistrement…';
+    var p={p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:f.id||null,p_hlp:v.hlp,p_date:v.date,p_code:v.code||null,p_commentaire:v.commentaire||null};if(mfAdm())p.p_tid=v.tid;
+    rpc(mfAdm()?'malf_admin_enregistrer':'malf_tech_enregistrer',p).then(function(r){
+      if(r&&r.ok){MF.form=null;document.getElementById('mf-info').textContent='✅ Malfaçon '+(r.hlp||'')+' enregistrée'+(r.code?' avec son code décharge.':' — pense à ajouter le code décharge.');try{v64Vib(12);}catch(_e){}CAD.etat=null;CAD.recap=null;return mfCharger();}
+      err('err-mf',(r&&r.message)||'Enregistrement impossible.');mfRendu();},
+     function(e){err('err-mf',e&&e.reseau?HORSLIGNE_MSG:'Enregistrement impossible — réessaie.');mfRendu();});}}
