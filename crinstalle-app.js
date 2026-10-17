@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='73';
+var APPV='74';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -4571,11 +4571,14 @@ function v64DrBuild(){var d=document.getElementById('v64-dr');
   h+=grp('Mon activité');
   if(typeof cmpOk==='function'&&cmpOk())h+=row('check','À confirmer','Jetons signalés par le comparateur','cmp',CMP.n>0?'<span class="v64-bdg" aria-label="'+CMP.n+' à confirmer">'+CMP.n+'</span>':'');
   if(typeof cmpOk==='function'&&cmpOk())h+=row('pdf','Relevé Sogetrel','Tes jetons payés par Sogetrel','relsog',(typeof rsNouveau==='function'&&rsNouveau())?'<span class="v64-bdg" aria-label="nouveau">1</span>':'');
-  if(typeof mfOk==='function'&&mfOk())h+=row('check','Malfaçons',oppEstAdmin()?'Toute l’équipe · codes décharge':'Tes reprises et codes décharge','malf');
+  if(typeof mfOk==='function'&&mfOk())h+=row('check','Malfaçons',(typeof mfAdm==='function'&&mfAdm())?'Toute l’équipe · codes décharge':'Tes reprises et codes décharge','malf');
   h+=row('pdf','Relevés mensuels','PDF de chaque mois','releves');
   if(c||tv)h+=row('euro','Compta',c?(tv?'Dépenses, factures, TVA':'Dépenses, factures'):'TVA','compta');
   h+=row('doc','Documents','Tes papiers et attestations','docs');
-  if(adm)h+=grp('Gestion')+row('brief','Recrutement','Tes offres et le vivier de techniciens','recrut',V64.rcNew>0?'<span class="v64-bdg" aria-label="'+V64.rcNew+' nouvelle(s)">'+V64.rcNew+'</span>':'')+row('check','Comparateur Sogetrel','Envoyer le décompte et le comparer','cmpadm');
+  var cadm=(typeof cadOk==='function'&&cadOk());
+  if(adm||cadm)h+=grp('Gestion');
+  if(adm)h+=row('brief','Recrutement','Tes offres et le vivier de techniciens','recrut',V64.rcNew>0?'<span class="v64-bdg" aria-label="'+V64.rcNew+' nouvelle(s)">'+V64.rcNew+'</span>':'');
+  if(cadm)h+=row('check','Comparateur Sogetrel','Envoyer le décompte et le comparer','cmpadm');
   if(solo&&typeof oppEstSolo==='function'&&oppEstSolo())h+=grp('Travail')+row('brief','Opportunités','Offres près de chez toi · profil pro','opp',V64.oppNew>0?'<span class="v64-bdg" aria-label="'+V64.oppNew+' nouvelle(s)">'+V64.oppNew+'</span>':'');
   h+=grp('Mon profil');
   if(solo)h+=row('user','Informations personnelles','Email, département','infos');
@@ -4720,7 +4723,7 @@ function v64Home(){var hs=document.getElementById('s-home');if(!hs||!ACCT)return
   /* lien direct #opp / #recrut (emails, Telegram) */
   if(!V64.lien){V64.lien=true;var hsh=location.hash||'';
     if(hsh==='#opp'||hsh==='#recrut'||hsh==='#cmp'||hsh==='#releve'||hsh==='#cmpadm'||hsh==='#malf'){try{history.replaceState(null,'',location.pathname);}catch(_e){}
-      setTimeout(function(){if(hsh==='#releve'&&cmpOk())rsOuvrir();else if(hsh==='#cmp'&&cmpOk())cmpOuvrir();else if(hsh==='#opp'&&oppEstSolo())oppOuvrir();else if(hsh==='#recrut'&&oppEstAdmin())rcOuvrir();else if(hsh==='#cmpadm'&&oppEstAdmin())cadOuvrir();else if(hsh==='#malf'&&mfOk())mfOuvrir();},60);}}}
+      setTimeout(function(){if(hsh==='#releve'&&cmpOk())rsOuvrir();else if(hsh==='#cmp'&&cmpOk())cmpOuvrir();else if(hsh==='#opp'&&oppEstSolo())oppOuvrir();else if(hsh==='#recrut'&&oppEstAdmin())rcOuvrir();else if(hsh==='#cmpadm'&&cadOk())cadOuvrir();else if(hsh==='#malf'&&mfOk())mfOuvrir();},60);}}}
 
 /* rappel sur l'accueil quand il y a du nouveau (offres pour un solo, candidatures pour l'admin) */
 function v64Alerte(){var hs=document.getElementById('s-home');if(!hs)return;var a=document.getElementById('v64-al'),txt=null,sub='',fn=null,ic='brief';
@@ -5045,7 +5048,8 @@ function rsPdf(){var l=rsListe(),m=l[RS.idx];if(!m)return;rsSortie();
 var CADURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-comparateur-admin';
 var CAD={etat:null,ec:false,envoi:false,fichier:null,res:null,voirRap:false,voirRapEtat:false};
 var CAD_MAX=10*1024*1024;
-function cadOk(){return oppEstAdmin();}
+function cadOk(){var m=ACCT&&ACCT.me;return !!(m&&m.equipe&&(m.acces==='admin'||m.cmp_admin===true));}
+function cadPatron(){return !!(ACCT&&ACCT.me&&ACCT.me.acces==='admin');}
 /* texte au format Telegram (déjà échappé, seules balises <b>) → HTML sûr : tout est ré-échappé, seules nos balises <b> restent */
 function cadTg(s){var p=String(s||'').split(/(<\/?b>)/i),h='',b=false;
   for(var i=0;i<p.length;i++){var x=p[i];if(/^<b>$/i.test(x)){if(!b){h+='<b>';b=true;}continue;}if(/^<\/b>$/i.test(x)){if(b){h+='</b>';b=false;}continue;}
@@ -5236,18 +5240,18 @@ function cadRecapCharger(){if(!cadOk()||!navigator.onLine)return;
   rpc('cmp_admin_recap',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:null}).then(function(d){CAD.recap=(d&&d.mois)?d:null;cadRenduRes();cadRenduEtat();},function(){CAD.recap=null;});}
 function cadPct(t){var v=Math.round((parseFloat(t)||0)*1000)/10;return String(v).replace('.',',')+' %';}
 function cadRecapHtml(){var r=CAD.recap;if(!r||!r.mois)return '';
-  if(!r.ok)return '<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">💰 Ce qu’il te reste — '+esc(rsMoisLbl(r.mois))+'</div><div class="note">'+esc(r.message||'Calcul impossible.')+'</div></div>';
+  if(!r.ok)return '<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">💰 '+(cadPatron()?'Ce qu’il te reste':'Ce qu’il reste à CRINSTALLE')+' — '+esc(rsMoisLbl(r.mois))+'</div><div class="note">'+esc(r.message||'Calcul impossible.')+'</div></div>';
   var L=function(a,b,fort){return '<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0'+(fort?';font-weight:800;font-size:17px':'')+'"><span>'+a+'</span><span style="font-variant-numeric:tabular-nums;white-space:nowrap">'+b+'</span></div>';};
-  var h='<div class="card" style="padding:14px 16px;margin-top:12px;border:1px solid var(--accent-l)"><div style="font-weight:700;margin-bottom:6px">💰 Ce qu’il te reste — '+esc(rsMoisLbl(r.mois))+' <span class="note" style="font-weight:400">· confidentiel</span></div>'
+  var h='<div class="card" style="padding:14px 16px;margin-top:12px;border:1px solid var(--accent-l)"><div style="font-weight:700;margin-bottom:6px">💰 '+(cadPatron()?'Ce qu’il te reste':'Ce qu’il reste à CRINSTALLE')+' — '+esc(rsMoisLbl(r.mois))+' <span class="note" style="font-weight:400">· confidentiel</span></div>'
     +L('Payé par Sogetrel',esc(fmt(r.total)))+L('À verser aux techniciens','− '+esc(fmt(r.verse_techs)))
-    +'<div style="border-top:1px solid var(--border);margin:6px 0"></div>'+L('Il te reste',esc(fmt(r.reste)),true)
-    +'<div class="note" style="margin-top:6px">Dont commissions '+esc(fmt(r.commissions))+' (20 % · 15 % pour Mermri Mohamed)'+(r.patron&&r.patron.brut?' · tes interventions '+esc(fmt(r.patron.brut)):'')+' · le reste = surplus au-dessus des grilles et lignes sans technicien.</div>';
+    +'<div style="border-top:1px solid var(--border);margin:6px 0"></div>'+L(cadPatron()?'Il te reste':'Il reste à CRINSTALLE',esc(fmt(r.reste)),true)
+    +'<div class="note" style="margin-top:6px">Dont commissions '+esc(fmt(r.commissions))+' (20 % · 15 % pour Mermri Mohamed)'+(r.patron&&r.patron.brut?(cadPatron()?' · tes interventions ':' · interventions de '+esc(r.patron.prenom||'Zo')+' ')+esc(fmt(r.patron.brut)):'')+' · le reste = surplus au-dessus des grilles et lignes sans technicien.</div>';
   var m=r.malfacons||{},avert=[];
   if(m.n>0){var ML=m.lignes||[],dT=0,dN=0,pT=0;ML.forEach(function(x){if(x.etat==='deduite'){if(x.patron)pT+=x.penalite;else{dT+=x.penalite;dN++;}}});
     var t='🛠 '+esc(String(m.n))+' malfaçon'+(m.n>1?'s':'')+' sur le décompte ('+esc(fmt(m.liste_total))+(Math.abs((m.liste_total||0)-(m.decompte_total||0))>0.01?' ; Sogetrel en a déduit '+esc(fmt(m.decompte_total)):'')+') :';
     if(m.contestees&&m.contestees.n)t+='<br>· <b>'+esc(String(m.contestees.n))+' contestée(s)</b> avec code décharge : '+esc(fmt(m.contestees.montant))+' à récupérer (dans « Lignes à valider »)';
     if(dN)t+='<br>· '+esc(String(dN))+' sans code, retirée(s) aux techniciens : '+esc(fmt(dT))+' (déjà dans le calcul)';
-    if(pT)t+='<br>· sur tes interventions, sans code : '+esc(fmt(pT));
+    if(pT)t+='<br>· sur les interventions du patron, sans code : '+esc(fmt(pT));
     if(m.a_saisir&&m.a_saisir.n)t+='<br>· <b>'+esc(String(m.a_saisir.n))+' ticket(s) HLP saisi(s) par personne</b> : '+esc(fmt(m.a_saisir.montant))+' non retiré(s) pour l’instant';
     if(r.a_reprendre>0)t+='<br>· ⚠️ '+esc(fmt(r.a_reprendre))+' de pénalités dépassent ce que certains techs gagnent ce mois-ci (à reprendre plus tard)';
     avert.push(t);}
@@ -5266,7 +5270,7 @@ function cadRecapHtml(){var r=CAD.recap;if(!r||!r.mois)return '';
     if(!T.length)h+='<div class="note">Aucun technicien à payer pour ce mois.</div>';h+='</div>';}
   if(CAD.voirRecapM&&m.lignes){h+='<div style="margin-top:8px">';
     var ET={contestee:'✅ Contestée · code ',deduite:'➖ Retirée au technicien (pas de code)',a_saisir:'⚠️ Saisie par personne'};
-    m.lignes.forEach(function(x,i){var qui=x.prenom?esc(x.prenom)+(x.nom?' '+esc(x.nom):'')+(x.patron?' (toi)':''):'';
+    m.lignes.forEach(function(x,i){var qui=x.prenom?esc(x.prenom)+(x.nom?' '+esc(x.nom):'')+(x.patron?(cadPatron()?' (toi)':' (patron)'):''):'';
       var sg=(x.suggestion||[]).map(function(t){return esc(t.prenom)+(t.nom?' '+esc(t.nom):'');}).join(' + ');
       h+='<div style="padding:8px 0'+(i?';border-top:1px solid var(--border)':'')+'"><div style="display:flex;justify-content:space-between;gap:8px;font-weight:600"><span style="overflow-wrap:anywhere">'+esc(x.reference||('jeton '+x.jeton))+'</span><span>'+esc(fmt(x.penalite))+'</span></div>'
         +'<div class="note">'+esc(fmtD(x.date))+' · Sogetrel : '+esc(x.nom_sogetrel||'?')+(qui?' · Appli : '+qui:'')+'</div>'
@@ -5533,8 +5537,8 @@ function capPublier(){if(CAP.ec||!CAP.data||!CAP.data.mois)return;
    d'affaires ; l'administrateur voit et saisit pour toute l'équipe. Avec code → pénalité contestée (ligne à valider puis PDF de
    réclamation) ; sans code → pénalité retirée au technicien. Contrôles côté serveur (malf_tech_* / malf_admin_*). */
 var MF={data:null,ec:false,form:null,filtre:'tout',arme:0,armeT:0,info:''};
-function mfOk(){var m=ACCT&&ACCT.me;return !!(m&&m.equipe&&m.acces!=='controle');}
-function mfAdm(){return oppEstAdmin();}
+function mfOk(){var m=ACCT&&ACCT.me;return !!(m&&m.equipe&&(m.acces!=='controle'||cadOk()));}
+function mfAdm(){return cadOk();}
 function mfNormHlp(s){return String(s||'').replace(/\s+/g,'').toUpperCase();}
 function mfNormCode(s){return String(s||'').replace(/[\s-]+/g,'').toUpperCase();}
 function mfAuj(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
