@@ -1884,7 +1884,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='89';
+var APPV='90';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -6111,3 +6111,68 @@ function iaqDemander(){if(IAQ.ec||!ACCT)return;var el=document.getElementById('i
 (function(){try{if(DICOS&&DICOS.ar&&DICOS.ar.exact){var a=DICOS.ar.exact;a['Pose ta question']=a['Pose ta question']||'اطرح سؤالك';
   a['Tes chiffres expliqués par l’assistant IA']=a['Tes chiffres expliqués par l’assistant IA']||'أرقامك يشرحها المساعد الذكي';}}catch(_e){}})();
 try{var st=document.createElement('style');st.textContent='.iaq-dots{display:inline-block;letter-spacing:2px;animation:iaqP 1.2s infinite ease-in-out}@keyframes iaqP{0%,100%{opacity:.25}50%{opacity:1}}@media (prefers-reduced-motion:reduce){.iaq-dots{animation:none}}';document.head.appendChild(st);}catch(_e){}
+
+/* === v90 : jeton lu sur une capture d'écran ou une photo (Zo 19/10) — équipe seulement ; l'IA lit l'écran « Informations »,
+   le technicien vérifie, puis le jeton va dans la saisie et le client complète le « Portefeuille clients DEP 84 » (jamais d'écrasement) === */
+var CAPURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-ia-capture';
+var CAP={ec:false,res:null,msg:'',pf:''};
+function capOk(){var m=ACCT&&ACCT.me;return !!(m&&m.equipe&&m.acces!=='controle');}
+function capZone(){var j=document.getElementById('sa-jeton');if(!j||document.getElementById('cap-zone'))return;
+  var z=document.createElement('div');z.id='cap-zone';z.style.cssText='margin-top:8px';
+  z.innerHTML='<div style="display:flex;gap:8px"><button type="button" class="btn ghost" id="cap-photo" style="flex:1;height:42px;font-size:14px;margin-top:0">📷 Photo</button>'
+    +'<button type="button" class="btn ghost" id="cap-capture" style="flex:1;height:42px;font-size:14px;margin-top:0">🖼️ Capture d’écran</button></div>'
+    +'<input type="file" id="cap-f1" accept="image/*" capture="environment" style="display:none"><input type="file" id="cap-f2" accept="image/*" style="display:none">'
+    +'<div class="note" style="margin-top:6px">L’appli lit le jeton et le client sur l’écran « Informations » du rendez-vous.</div><div id="cap-res" aria-live="polite"></div>';
+  j.parentNode.appendChild(z);
+  document.getElementById('cap-photo').addEventListener('click',function(){capChoisir('cap-f1');});
+  document.getElementById('cap-capture').addEventListener('click',function(){capChoisir('cap-f2');});
+  ['cap-f1','cap-f2'].forEach(function(id){document.getElementById(id).addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)capLire(f);});});
+  document.getElementById('cap-res').addEventListener('click',capClic);}
+function capMaj(){var z=document.getElementById('cap-zone');if(!z&&capOk())capZone();z=document.getElementById('cap-zone');if(!z)return;
+  z.style.display=(capOk()&&!(ss&&ss.editId))?'':'none';}
+function capChoisir(id){if(CAP.ec)return;if(!navigator.onLine){CAP.res=null;CAP.msg=HORSLIGNE_MSG;capRendu();return;}document.getElementById(id).click();}
+function capImage(f){return new Promise(function(ok,ko){var u=null;try{u=URL.createObjectURL(f);}catch(_e){return ko(new Error('format'));}
+  var im=new Image();im.onload=function(){var w=im.naturalWidth,h=im.naturalHeight;try{URL.revokeObjectURL(u);}catch(_e){}
+    if(Math.max(w,h)<700)return ko(new Error('petite'));var s=Math.min(1,1568/Math.max(w,h));var c=document.createElement('canvas');c.width=Math.round(w*s);c.height=Math.round(h*s);
+    try{c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',0.85));}catch(e){ko(new Error('format'));}};
+  im.onerror=function(){try{URL.revokeObjectURL(u);}catch(_e){}ko(new Error('format'));};im.src=u;});}
+function capLire(f){if(CAP.ec||!ACCT)return;CAP.ec=true;CAP.res=null;CAP.msg='';CAP.pf='';capRendu();
+  capImage(f).then(function(img){return fetchT(CAPURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'lire',c:ACCT.client_id,k:ACCT.cle,image:img})},60000).then(function(r){return r.json();});})
+  .then(function(j){CAP.ec=false;if(j&&j.ok===true&&/^[A-Z]?\d{6,9}$/.test(String(j.jeton||''))){CAP.res=j;}else{CAP.msg=String((j&&j.message)||'Lecture impossible : tape le jeton.');}capRendu();},
+    function(e){CAP.ec=false;CAP.msg=e&&e.message==='petite'?'Image trop petite : prends une capture d’écran entière ou une photo plus proche.':(e&&e.message==='format'?'Ce fichier n’est pas une image lisible.':'Lecture impossible pour l’instant : tape le jeton.');capRendu();});}
+var CAP_TY={Aerien:'Aérien',Facade:'Façade',Souterrain:'Souterrain',Immeuble:'Immeuble',PLP:'PLP'};
+function capTypo(r){if(!r)return '';var pto=String(r.statut_pto||'').toLowerCase();if(/existant/.test(pto))return 'PLP';if(/construire/.test(pto)&&r.desserte)return r.desserte;return '';}
+function capRendu(){var box=document.getElementById('cap-res');if(!box)return;var h='';
+  if(CAP.ec)h='<div class="card" style="padding:12px 14px;margin-top:10px"><span class="note">Lecture de l’image… <span class="iaq-dots">●●●</span></span></div>';
+  else if(CAP.res){var r=CAP.res,ty=capTypo(r),inp='width:100%;box-sizing:border-box;margin-top:4px';
+    h='<div class="card" style="padding:14px 16px;margin-top:10px"><div style="font-weight:700;margin-bottom:8px">Vérifie avant de valider</div>'
+     +'<label class="note" for="cap-jt">Jeton</label><input type="text" id="cap-jt" value="'+esc(r.jeton)+'" maxlength="12" style="'+inp+';font-weight:700;letter-spacing:1px;direction:ltr">'
+     +'<label class="note" for="cap-nom" style="display:block;margin-top:8px">Client</label><input type="text" id="cap-nom" value="'+esc(r.nom)+'" maxlength="80" style="'+inp+'">'
+     +'<label class="note" for="cap-adr" style="display:block;margin-top:8px">Adresse</label><input type="text" id="cap-adr" value="'+esc(r.adresse)+'" maxlength="120" style="'+inp+'">'
+     +'<div style="display:flex;gap:8px;margin-top:8px"><div style="width:38%"><label class="note" for="cap-cp">Code postal</label><input type="tel" id="cap-cp" value="'+esc(r.cp)+'" maxlength="5" style="'+inp+';direction:ltr"></div>'
+     +'<div style="flex:1"><label class="note" for="cap-com">Commune</label><input type="text" id="cap-com" value="'+esc(r.commune)+'" maxlength="60" style="'+inp+'"></div></div>'
+     +(r.tel?'<div class="note" style="margin-top:8px">📞 '+esc(r.tel)+'</div>':'')
+     +((r.type_rdv||r.statut_pto)?'<div class="note" style="margin-top:8px">'+esc([r.type_rdv,r.statut_pto].filter(Boolean).join(' · '))+'</div>':'')
+     +(ty&&CAP_TY[ty]?'<button type="button" class="chip" data-cap="typo" data-t="'+esc(ty)+'" style="margin-top:8px">Typologie proposée : '+esc(CAP_TY[ty])+' — choisir</button>':'')
+     +'<button type="button" class="btn" data-cap="ok" style="width:100%;height:46px;margin-top:12px">✅ Utiliser ce jeton</button>'
+     +'<button type="button" class="btn ghost" data-cap="annuler" style="width:100%;height:40px;margin-top:6px">Annuler</button></div>';}
+  else if(CAP.msg)h='<div class="note" style="margin-top:10px;color:var(--warn)">'+esc(CAP.msg)+'</div>';
+  if(CAP.pf)h+='<div class="note" style="margin-top:8px">'+esc(CAP.pf)+'</div>';
+  box.innerHTML=h;var b1=document.getElementById('cap-photo'),b2=document.getElementById('cap-capture');if(b1)b1.disabled=CAP.ec;if(b2)b2.disabled=CAP.ec;}
+function capClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cap]'):null;if(!b||!CAP.res)return;var a=b.getAttribute('data-cap');
+  if(a==='annuler'){CAP.res=null;CAP.msg='';CAP.pf='';capRendu();return;}
+  if(a==='typo'){var t=b.getAttribute('data-t');var tc=document.querySelector('#sa-typos .chip[data-t="'+t+'"]');if(tc){pickTypo(tc,t);try{tc.scrollIntoView({block:'center',behavior:'smooth'});}catch(_e){}}return;}
+  if(a!=='ok')return;
+  var v=function(id){var e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+  var jt=v('cap-jt').toUpperCase().replace(/[\s.\-]/g,'');
+  if(!/^[A-Z]?\d{6,9}$/.test(jt)){CAP.pf='';CAP.msg='';var e0=document.getElementById('cap-jt');if(e0){e0.focus();}CAP.pf='Jeton invalide : 6 à 9 chiffres (ou une lettre + chiffres pour un PRO).';capRendu();return;}
+  var r=CAP.res,donnees={action:'client',c:ACCT.client_id,k:ACCT.cle,id:r.id,jeton:jt,nom:v('cap-nom'),adresse:v('cap-adr'),cp:v('cap-cp').replace(/\s/g,''),commune:v('cap-com'),tel:r.tel||''};
+  var sj=document.getElementById('sa-jeton');if(sj){sj.value=jt;try{sj.dispatchEvent(new Event('input',{bubbles:true}));}catch(_e){}}
+  try{v64Vib(10);}catch(_e){}
+  CAP.res=null;CAP.msg='';CAP.pf='✅ Jeton '+jt+' mis dans ta saisie. Portefeuille clients : enregistrement…';capRendu();
+  fetchT(CAPURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(donnees)},45000).then(function(x){return x.json();})
+  .then(function(j){CAP.pf='✅ Jeton '+jt+' mis dans ta saisie. '+(j&&j.message?'Portefeuille clients : '+String(j.message):'');capRendu();},
+    function(){CAP.pf='✅ Jeton '+jt+' mis dans ta saisie. (Portefeuille clients non mis à jour : réseau.)';capRendu();});}
+(function(){if(typeof openSaisie!=='function')return;var o=openSaisie;openSaisie=function(){var r=o.apply(this,arguments);try{CAP.res=null;CAP.msg='';CAP.pf='';capMaj();capRendu();}catch(_e){}return r;};})();
+(function(){if(typeof editFiche!=='function')return;var o=editFiche;editFiche=function(){var r=o.apply(this,arguments);try{capMaj();}catch(_e){}return r;};})();
+setTimeout(function(){try{if(ACCT)capMaj();}catch(_e){}},0);
