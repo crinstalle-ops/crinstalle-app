@@ -91,6 +91,15 @@ DICOS.ar={dir:'rtl',exact:{
  "Échec — prestation à 0 €":"فشل — خدمة بـ 0 €",
  "Commentaire obligatoire (explique la raison)":"تعليق إلزامي (اشرح السبب)",
  "(obligatoire)":"(إلزامي)",
+ "Motifs à compléter":"أسباب يجب إكمالها",
+ "Motif à compléter":"سبب يجب إكماله",
+ "Post-prod ou retirage : explique pourquoi c’était complexe":"ما بعد الإنتاج أو إعادة السحب: اشرح لماذا كان العمل معقدا",
+ "Sogetrel demande la raison de chaque post-production et de chaque retirage. Touche « Compléter » et écris en quelques mots pourquoi c’était complexe.":"تطلب Sogetrel سبب كل ما بعد إنتاج وكل إعادة سحب. اضغط « إكمال » واكتب ببضع كلمات لماذا كان العمل معقدا.",
+ "Compléter":"إكمال",
+ "Tout est complété ✅":"تم إكمال كل شيء ✅",
+ "Ton commentaire :":"تعليقك:",
+ "Aucun commentaire":"لا يوجد تعليق",
+ "Rien à compléter : chaque post-prod et chaque retirage a son motif.":"لا شيء لإكماله: لكل ما بعد إنتاج ولكل إعادة سحب سببه.",
  "Motif obligatoire : explique pourquoi c’était complexe":"السبب إلزامي: اشرح لماذا كان العمل معقدا",
  "Motif obligatoire pour une post-production ou un retirage : explique en quelques mots pourquoi c’était complexe (10 caractères minimum).":"السبب إلزامي لما بعد الإنتاج أو لإعادة السحب: اشرح ببضع كلمات لماذا كان العمل معقدا (10 أحرف على الأقل).",
  "Explique la raison de l’échec en commentaire.":"اشرح سبب الفشل في التعليق.",
@@ -1875,7 +1884,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='86';
+var APPV='87';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -6017,3 +6026,47 @@ function mfClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-
      function(e){err('err-mf',e&&e.reseau?HORSLIGNE_MSG:'Enregistrement impossible — réessaie.');mfRendu();});}}
 
 /* publication directe via n8n (sans Chrome) vérifiée le 18/10/2026 */
+
+
+/* === v87 : motifs à compléter (équipe) — post-prod / retirage enregistrés sans motif valable (Zo 18/10) ===
+   Liste fournie par le serveur (solo_motifs_manquants : ses saisies des 60 derniers jours, jamais de montant).
+   « Compléter » ouvre directement la saisie en modification ; la règle du motif s'applique (appli + serveur). */
+var MOT={n:0,l:[],ec:false};
+function motOk(){var m=ACCT&&ACCT.me;return !!(m&&m.equipe&&m.acces!=='controle');}
+function motCharger(){if(!motOk()||MOT.ec||!navigator.onLine)return;MOT.ec=true;
+  rpc('solo_motifs_manquants',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(d){MOT.ec=false;
+    MOT.l=(d&&Array.isArray(d.lignes))?d.lignes:[];MOT.n=MOT.l.length;try{motAlerte();}catch(_e){}
+    var sc=document.getElementById('s-motif');if(sc&&sc.classList.contains('on'))motRendu();},
+   function(){MOT.ec=false;});}
+function motAlerte(){var hs=document.getElementById('s-home');if(!hs)return;var a=document.getElementById('mot-al');
+  if(!MOT.n||!motOk()){if(a)a.remove();return;}
+  if(!a){a=document.createElement('button');a.type='button';a.id='mot-al';a.className='v64-alert';a.addEventListener('click',motOuvrir);}
+  var ref=document.getElementById('v64-al')||document.getElementById('v64-tools')||hs.querySelector('.tiles');
+  if(ref&&a.previousElementSibling!==ref)ref.insertAdjacentElement('afterend',a);
+  a.innerHTML=v64Ic('check')+'<span style="flex:1;min-width:0"><b><span>Motifs à compléter</span> ('+MOT.n+')</b><small>'+esc('Post-prod ou retirage : explique pourquoi c’était complexe')+'</small></span>'+V64_CHEV;}
+function motEcran(){var s=document.createElement('section');s.className='screen';s.id='s-motif';
+  var BACK='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  s.innerHTML='<div class="topbar"><button class="back" type="button" aria-label="Retour" id="mot-back">'+BACK+'</button><div class="ttl">Motif à compléter</div><div style="width:34px"></div></div>'
+   +'<p class="sub" style="margin:2px 0 14px">Sogetrel demande la raison de chaque post-production et de chaque retirage. Touche « Compléter » et écris en quelques mots pourquoi c’était complexe.</p>'
+   +'<div class="err" id="err-motif" role="alert"></div><div id="mot-liste"><div class="note">Chargement…</div></div><div class="grow"></div>';
+  var hs0=document.getElementById('s-home');(hs0&&hs0.parentNode?hs0.parentNode:document.body).appendChild(s);
+  document.getElementById('mot-back').addEventListener('click',function(){goHome();});
+  s.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-mot]'):null;if(!b||b.disabled)return;
+    motCompleter(parseInt(b.getAttribute('data-mot'),10),b);});}
+function motOuvrir(){if(!motOk())return;if(!document.getElementById('s-motif'))motEcran();err('err-motif');show('s-motif');motRendu();motCharger();}
+function motRendu(){var box=document.getElementById('mot-liste');if(!box)return;var l=MOT.l||[],h='',i;
+  if(!l.length){h='<div class="card" style="padding:16px;text-align:center"><div style="font-weight:700;margin-bottom:4px">Tout est complété ✅</div><div class="note">Rien à compléter : chaque post-prod et chaque retirage a son motif.</div></div>';}
+  else for(i=0;i<l.length;i++){var x=l[i];var id=parseInt(x.id,10);if(!(id>0))continue;
+    h+='<div class="card" style="padding:14px 16px;margin-bottom:12px">'
+      +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px"><div style="font-weight:700;font-size:17px;direction:ltr">'+esc(x.jeton||'—')+'</div><div class="note">'+esc(fmtD(x.date))+'</div></div>'
+      +'<div class="note" style="margin-top:2px">'+esc(typoLabel(x.typo,x.typoret))+(x.pp?' · Post-prod':'')+(x.binome_avec?' · 👥 '+esc(x.binome_avec):'')+'</div>'
+      +'<div style="margin-top:8px;font-size:14px">'+(x.commentaire?'<span>Ton commentaire :</span> <i>'+esc(x.commentaire)+'</i>':'<i class="note">Aucun commentaire</i>')+'</div>'
+      +'<button class="btn" type="button" data-mot="'+id+'" style="width:100%;height:48px;margin-top:12px">Compléter</button></div>';}
+  box.innerHTML=h;}
+function motCompleter(id,b){if(!ACCT||!(id>0))return;if(b)b.disabled=true;err('err-motif');
+  rpc('solo_intervention',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id}).then(function(f){if(b)b.disabled=false;FICHE=f;editFiche();
+      setTimeout(function(){var c=document.getElementById('sa-com');if(c){try{c.focus();c.select();}catch(_e){}}},150);},
+    function(e){if(b)b.disabled=false;err('err-motif',e&&e.reseau?HORSLIGNE_MSG:((e&&e.message)||'Petit souci réseau, réessaie.'));});}
+(function(){if(typeof goHome!=='function')return;var g=goHome;goHome=function(){var r=g.apply(this,arguments);try{motCharger();}catch(_e){}return r;};})();
+/* réouverture avec le compte gardé sur le téléphone : l'accueil est affiché pendant le chargement du fichier, avant ce module → charger aussi maintenant */
+setTimeout(function(){try{if(ACCT)motCharger();}catch(_e){}},0);
