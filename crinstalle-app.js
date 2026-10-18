@@ -4795,7 +4795,7 @@ function cmpInstall(){if(!cmpOk())return;cmpCharger(false).catch(function(){});}
 function cmpEcran(){var s=document.createElement('section');s.className='screen';s.id='s-cmp';
   var BACK='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
   s.innerHTML='<div class="topbar"><button class="back" type="button" aria-label="Retour" id="cmp-back">'+BACK+'</button><div class="ttl">À confirmer</div><div style="width:34px"></div></div>'
-   +'<p class="sub" style="margin:2px 0 14px">CRINSTALLE vérifie le décompte Sogetrel. Pour ces jetons, ton commentaire parle d’un RACC : confirme si c’était vraiment un RACC.</p>'
+   +'<p class="sub" style="margin:2px 0 14px">Ton commentaire dit que ces jetons sont passés en RACC (ex. « PLP passé en racc »), mais Sogetrel ne les a pas payés comme un RACC. Si c’était vraiment un RACC, CRINSTALLE réclame la différence à Sogetrel pour que tu sois payé.</p>'/* v88 : explication + amende 300 € (Zo 18/10) */
    +'<div class="note" id="cmp-info" role="status" aria-live="polite" style="margin-bottom:10px;color:var(--ok)"></div>'
    +'<div class="err" id="err-cmp" role="alert"></div>'
    +'<div id="cmp-liste"><div class="note">Chargement…</div></div>'
@@ -4816,7 +4816,7 @@ function cmpBtn(id,ch){var arme=CMP.arme&&CMP.arme.id===id&&CMP.arme.ch===ch;var
   return '<button class="btn'+(arme?'':' ghost')+'" type="button" data-cmp="'+id+'" data-ch="'+ch+'" style="flex:1;height:48px;font-size:14.5px'+(arme?(ok?';background:var(--ok);border-color:var(--ok)':';background:var(--danger);border-color:var(--danger)'):'')+'">'+txt+'</button>';}
 function cmpRendu(){var d=CMP.data||{},l=d.a_confirmer||[],r=d.repondus||[],h='',i;var box=document.getElementById('cmp-liste');if(!box)return;
   if(!l.length){h='<div class="card" style="padding:16px;text-align:center"><div style="font-weight:700;margin-bottom:4px">Rien à confirmer ✅</div><div class="note">Quand CRINSTALLE aura besoin de toi sur un jeton, il apparaîtra ici.</div></div>';}
-  else{h='<div class="note" style="margin-bottom:10px;color:var(--warn)">Avant de répondre : vrai RACC ou pas ? N’oubliez pas : c’est 200 € d’amende s’ils s’en aperçoivent. Sans réponse dans les 48 h, la ligne est abandonnée.</div>';
+  else{h='<div class="note" style="margin-bottom:10px;color:var(--warn)">Réponds honnêtement : quand Sogetrel paie en PLP, c’est qu’ils pensent que ce n’était pas un RACC. Réclamer un faux RACC, c’est 300 € d’amende. Sans réponse dans les 48 h, rien n’est réclamé.</div>';
     for(i=0;i<l.length;i++){var x=l[i];var rest=cmpReste(x.echeance);
       h+='<div class="card" style="padding:14px 16px;margin-bottom:12px">'
         +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px"><div style="font-weight:700;font-size:17px;direction:ltr">'+esc(x.jeton||'—')+'</div><div class="note">'+esc(fmtD(x.date))+'</div></div>'
