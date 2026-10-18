@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='83';
+var APPV='84';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -5176,7 +5176,7 @@ function cadRenduEtat(){var z=document.getElementById('cad-etat'),e=CAD.etat||{}
     h+='</div>';}
   z.innerHTML=h;}
 function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cad]'):null;if(!b)return;var a=b.getAttribute('data-cad');
-  if(a==='ialancer'){if(b.disabled||IA.ec)return;var im=b.getAttribute('data-m')||'';if(/^\d{4}-\d{2}$/.test(im)){IA.mois=im;iaLancer('mois',im,'',null);}return;}
+  if(a==='ialancer'){if(b.disabled||IA.ec)return;var im=b.getAttribute('data-m')||'';if(/^\d{4}-\d{2}$/.test(im))iaLancer('mois',im,'',null);return;}
   if(a==='iacreer'||a==='iaignorer'){iaDecider(parseInt(b.getAttribute('data-id'),10),a==='iacreer'?'creer':'ignorer');return;}
   if(a==='iapistes'){IA.voirPistes=!IA.voirPistes;cadRenduEtat();return;}
   if(a==='ialecture'){if(b.disabled||IA.ec)return;var li=parseInt(b.getAttribute('data-id'),10),lm=b.getAttribute('data-m')||'';if(li>0&&/^\d{4}-\d{2}$/.test(lm))iaLecture(li,lm);return;}
@@ -5774,7 +5774,7 @@ function iaSuivre(mois,fini){clearTimeout(IA.pollT);
     if(t)IA.tache.t=t;cadRenduEtat();iaSuivre(mois,fini);});},3000);}
 function iaApres(action,cible,d,fini){try{v64Vib(10);}catch(_e){}cadRenduEtat();if(fini)fini(d);}
 /* ----- carte « Assistant IA » de l'écran administrateur ----- */
-function iaMoisDefaut(){var e=CAD.etat||{},v=e.validations||{};return IA.mois||v.mois||(CAD.recap&&CAD.recap.mois)||(e.rapport&&e.rapport.mois)||'';}
+function iaMoisDefaut(){var e=CAD.etat||{},v=e.validations||{};if(IA.ec&&IA.tache&&IA.tache.action==='mois'&&IA.tache.mois)return IA.tache.mois;return v.mois||(CAD.recap&&CAD.recap.mois)||(e.rapport&&e.rapport.mois)||'';}
 function iaHtml(){var mois=iaMoisDefaut();if(!/^\d{4}-\d{2}$/.test(mois))return '';
   if(IA.charge!==mois&&!IA.ec){IA.charge=mois;iaCharger(mois,function(d){if(iaMoisDefaut()!==mois)return;IA.data=d;cadRenduEtat();});}
   var d=(IA.data&&IA.data.mois===mois)?IA.data:null,h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🤖 Assistant IA — '+esc(rsMoisLbl(mois))+'</div>'
@@ -5792,6 +5792,7 @@ function iaHtml(){var mois=iaMoisDefaut();if(!/^\d{4}-\d{2}$/.test(mois))return 
   h+='<button class="btn'+(deja?' ghost':'')+'" type="button" data-cad="ialancer" data-m="'+esc(mois)+'" style="margin-top:10px"'+(IA.ec?' disabled':'')+'>'+(enc?'Analyse en cours…':(deja?'Relancer (seulement les nouveautés)':'Lancer l’analyse IA'))+'</button>';
   /* résumé */
   var rs=iaProps(d,'resume')[0];
+  if(rs&&rs.resultat&&d.rapport_id&&String(rs.cible)!==String(d.rapport_id)){h+='<div class="note" style="margin-top:12px">📝 Un nouveau rapport existe depuis le dernier résumé : relance l’analyse IA pour le résumer.</div>';rs=null;}
   if(rs&&rs.resultat){var R=rs.resultat;h+='<div style="font-weight:700;margin-top:14px">📝 Résumé du rapport</div><div class="note" style="margin-top:4px;color:var(--tx);white-space:pre-wrap">'+esc(R.resume||'')+'</div>';
     if((R.a_faire||[]).length)h+='<div style="font-weight:600;margin-top:8px">À faire</div><div class="note" style="display:grid;gap:3px;margin-top:2px">'+R.a_faire.map(function(x){return '<div>• '+esc(x)+'</div>';}).join('')+'</div>';
     if((R.alertes||[]).length)h+='<div style="font-weight:600;margin-top:8px">⚠️ Points à vérifier</div><div class="note" style="display:grid;gap:3px;margin-top:2px">'+R.alertes.map(function(x){return '<div>• '+esc(x)+'</div>';}).join('')+'</div>';}
@@ -5840,6 +5841,7 @@ function iaLecture(id,mois){
 /* ----- brouillon de mail pour Sogetrel (carte « Réclamation ») ----- */
 function iaMailHtml(){if(!CAR.xl||!CAR.mois)return '';var d=IA.mailD,p=d&&d.mois===CAR.mois?iaProps(d,'mail')[0]:null,R=p&&p.resultat;
   var enc=IA.ec&&IA.tache&&IA.tache.action==='mail',h='';
+  if(R&&typeof CAR.total==='number'&&R.total!==fmt(CAR.total)){h+='<div class="note" style="margin-top:8px;color:var(--tx)">Les lignes réclamées ont changé depuis le dernier brouillon ('+esc(R.total||'')+' → '+esc(fmt(CAR.total))+') : refais le mail.</div>';R=null;}
   if(R){h+='<div class="card" style="padding:12px 14px;margin-top:10px"><div style="font-weight:700">✉️ Mail pour Sogetrel (brouillon de l’IA)</div>'
       +'<div class="note" style="margin-top:6px;color:var(--tx)"><b>Objet :</b> '+esc(R.objet||'')+'</div>'
       +'<div class="note" style="margin-top:6px;color:var(--tx);white-space:pre-wrap">'+esc(R.corps||'')+'</div>'
@@ -5851,7 +5853,7 @@ function iaMailHtml(){if(!CAR.xl||!CAR.mois)return '';var d=IA.mailD,p=d&&d.mois
 function iaMail(){var m=CAR.mois;if(!/^\d{4}-\d{2}$/.test(String(m||'')))return;IA.mailMsg='';
   iaLancer('mail',m,'',function(d){var fin=function(d2){IA.mailD=d2;var p=d2&&iaProps(d2,'mail')[0];IA.mailMsg=p?'':(IA.msg||'Pas de mail disponible (aucune ligne réclamée ?).');IA.msg='';cadRenduEtat();};
     if(d)fin(d);else iaCharger(m,fin);});}
-function iaCopierMail(){var p=IA.mailD&&iaProps(IA.mailD,'mail')[0],R=p&&p.resultat;if(!R)return;var t='Objet : '+R.objet+'\n\n'+R.corps;
+function iaCopierMail(){var p=IA.mailD&&iaProps(IA.mailD,'mail')[0],R=p&&p.resultat;if(!R||(typeof CAR.total==='number'&&R.total!==fmt(CAR.total)))return;var t='Objet : '+R.objet+'\n\n'+R.corps;
   try{navigator.clipboard.writeText(t).then(function(){IA.mailMsg='✅ Mail copié : colle-le dans ta messagerie.';cadRenduEtat();},function(){IA.mailMsg='Copie impossible : sélectionne le texte à la main.';cadRenduEtat();});}catch(_e){IA.mailMsg='Copie impossible : sélectionne le texte à la main.';cadRenduEtat();}}
 /* ----- décisions sur une proposition (double appui) ----- */
 function iaDecider(id,ch){if(!(id>0))return;
@@ -5912,7 +5914,7 @@ function carPdf(){if(CAR.ec)return;if(!navigator.onLine){err('err-cad',HORSLIGNE
     var xl;try{xl=rcXlsxBuild({mois:d.mois,groupes:p.groupes,nbSignalements:p.nbSignalements},genLe);if(xl.nb!==p.nb||Math.abs(xl.total-p.total)>0.005)throw new Error('écart');}catch(e){CAR.msg='Le fichier Excel n’a pas pu être créé (aucun fichier produit) — réessaie ou utilise @CRCOMPAR_bot.';cadRenduEtat();return;}
     var nom='reclamation-crinstalle-'+d.mois+'.pdf',blob=new Blob([bytes],{type:'application/pdf'}),partage=false;
     try{partage=!!(navigator.canShare&&navigator.canShare({files:[new File([blob],nom,{type:'application/pdf'})]}));}catch(_e){}
-    CAR.out={url:URL.createObjectURL(blob),blob:blob,nom:nom,partage:partage};
+    CAR.out={url:URL.createObjectURL(blob),blob:blob,nom:nom,partage:partage};CAR.total=p.total;
     var nomx='reclamation-crinstalle-'+d.mois+'.xlsx',blobx=new Blob([xl.bytes],{type:XLSX_MIME}),partx=false;
     try{partx=!!(navigator.canShare&&navigator.canShare({files:[new File([blobx],nomx,{type:XLSX_MIME})]}));}catch(_e){}
     CAR.xl={url:URL.createObjectURL(blobx),blob:blobx,nom:nomx,partage:partx};
