@@ -1884,7 +1884,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='87';
+var APPV='89';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -4601,6 +4601,7 @@ function v64DrBuild(){var d=document.getElementById('v64-dr');
   if(adm||cadm)h+=grp('Gestion');
   if(adm)h+=row('brief','Recrutement','Tes offres et le vivier de techniciens','recrut',V64.rcNew>0?'<span class="v64-bdg" aria-label="'+V64.rcNew+' nouvelle(s)">'+V64.rcNew+'</span>':'');
   if(cadm)h+=row('check','Comparateur Sogetrel','Envoyer le décompte et le comparer','cmpadm');
+  if(adm&&typeof iaqOuvrir==='function')h+=row('grid','Pose ta question','Tes chiffres expliqués par l’assistant IA','iaq');
   if(solo&&typeof oppEstSolo==='function'&&oppEstSolo())h+=grp('Travail')+row('brief','Opportunités','Offres près de chez toi · profil pro','opp',V64.oppNew>0?'<span class="v64-bdg" aria-label="'+V64.oppNew+' nouvelle(s)">'+V64.oppNew+'</span>':'');
   h+=grp('Mon profil');
   if(solo)h+=row('user','Informations personnelles','Email, département','infos');
@@ -4631,6 +4632,7 @@ function v64DrClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[da
   if(k==='docs')return v64Go('s-docs',function(){buildDocs();});
   if(k==='recrut')return v64Go('s-recrut',function(){rcOuvrir();});
   if(k==='cmpadm')return v64Go('s-cmpadm',function(){cadOuvrir();});
+  if(k==='iaq')return v64Go('s-iaq',function(){iaqOuvrir();});
   if(k==='opp')return v64Go('s-opp',function(){oppOuvrir();});
   if(k==='parrain')return v64Go('s-fact',function(){if(typeof openFact==='function')openFact();else show('s-fact');try{cpSeg('par');}catch(_e){}});
   if(k==='infos'||k==='grille'||k==='lien')return v64Go('s-ok',function(){v64Profil(k);});
@@ -6070,3 +6072,42 @@ function motCompleter(id,b){if(!ACCT||!(id>0))return;if(b)b.disabled=true;err('e
 (function(){if(typeof goHome!=='function')return;var g=goHome;goHome=function(){var r=g.apply(this,arguments);try{motCharger();}catch(_e){}return r;};})();
 /* réouverture avec le compte gardé sur le téléphone : l'accueil est affiché pendant le chargement du fichier, avant ce module → charger aussi maintenant */
 setTimeout(function(){try{if(ACCT)motCharger();}catch(_e){}},0);
+
+/* === v89 : « Pose ta question » (Zo 19/10) — admin seulement ; l'IA lit les chiffres via des fonctions préparées (lecture seule), chaque chiffre de la réponse est vérifié === */
+var IAQURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-ia-question';
+var IAQ={ec:false,hist:[]};
+var IAQ_EX=['Combien a fait chaque technicien ce mois-ci ?','Qui n’a rien saisi cette semaine ?','CA de l’équipe mois par mois depuis juillet','Combien d’échecs ce mois-ci, et qui ?'];
+function iaqEcran(){var s=document.createElement('section');s.className='screen';s.id='s-iaq';
+  var BACK='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  s.innerHTML='<div class="topbar"><button class="back" type="button" aria-label="Retour" id="iaq-back">'+BACK+'</button><div class="ttl">Pose ta question</div><div style="width:34px"></div></div>'
+   +'<p class="sub" style="margin:2px 0 12px">Pose une question sur les chiffres de l’équipe. L’assistant lit les vraies données et ne répond qu’avec des chiffres vérifiés.</p>'
+   +'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px" id="iaq-ex">'+IAQ_EX.map(function(t,i){return '<button type="button" class="chip" data-iaqex="'+i+'">'+esc(t)+'</button>';}).join('')+'</div>'
+   +'<label for="iaq-q" class="note" style="display:block;margin-bottom:6px">Ta question</label>'
+   +'<textarea id="iaq-q" rows="3" maxlength="300" placeholder="ex. Combien de PLP a fait Lotfi en octobre ?" style="'+DECH_TA+'"></textarea>'
+   +'<button class="btn" type="button" id="iaq-go" style="width:100%;height:48px;margin-top:10px">Demander</button>'
+   +'<div class="err" id="err-iaq" role="alert"></div>'
+   +'<div id="iaq-res" aria-live="polite" style="margin-top:14px"></div>'
+   +'<div class="note" style="margin-top:10px">Lecture seule : l’assistant ne modifie rien. 40 questions par jour.</div><div class="grow"></div>';
+  var hs0=document.getElementById('s-home');(hs0&&hs0.parentNode?hs0.parentNode:document.body).appendChild(s);
+  document.getElementById('iaq-back').addEventListener('click',function(){goHome();});
+  document.getElementById('iaq-go').addEventListener('click',iaqDemander);
+  document.getElementById('iaq-q').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();iaqDemander();}});
+  document.getElementById('iaq-ex').addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-iaqex]'):null;if(!b)return;
+    var q=document.getElementById('iaq-q');q.value=IAQ_EX[parseInt(b.getAttribute('data-iaqex'),10)]||'';try{q.focus();}catch(_e){}});}
+function iaqOuvrir(){if(!oppEstAdmin())return;if(!document.getElementById('s-iaq'))iaqEcran();err('err-iaq');show('s-iaq');iaqRendu();}
+function iaqRendu(){var box=document.getElementById('iaq-res');if(!box)return;var h='';
+  if(IAQ.ec)h+='<div class="card" style="padding:14px 16px;margin-bottom:12px"><div style="font-weight:600;margin-bottom:6px">'+esc(IAQ.ec)+'</div><div class="note">L’assistant lit tes chiffres… <span class="iaq-dots">●●●</span> (environ 20 secondes)</div></div>';
+  IAQ.hist.forEach(function(x){h+='<div class="card" style="padding:14px 16px;margin-bottom:12px"><div class="note" style="margin-bottom:6px">'+esc(x.q)+'</div>'
+    +'<div style="font-size:15px;line-height:1.45;white-space:pre-wrap'+(x.ok?'':';color:var(--warn)')+'">'+esc(x.r)+'</div></div>';});
+  box.innerHTML=h;var b=document.getElementById('iaq-go');if(b){b.disabled=!!IAQ.ec;b.textContent=IAQ.ec?'Recherche…':'Demander';}}
+function iaqDemander(){if(IAQ.ec||!ACCT)return;var el=document.getElementById('iaq-q');var q=String(el&&el.value||'').replace(/\s+/g,' ').trim();err('err-iaq');
+  if(q.length<4){err('err-iaq','Écris ta question (au moins quelques mots).');return;}
+  if(!navigator.onLine){err('err-iaq',HORSLIGNE_MSG);return;}
+  IAQ.ec=q;iaqRendu();
+  fetchT(IAQURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({c:ACCT.client_id,k:ACCT.cle,question:q})},120000)
+  .then(function(r){return r.json();}).then(function(j){IAQ.ec=false;var ok=!!(j&&j.ok===true);var m=String((j&&j.message)||'').trim()||'Pas de réponse. Réessaie.';
+      IAQ.hist.unshift({q:q,r:m,ok:ok});IAQ.hist=IAQ.hist.slice(0,10);if(ok&&el)el.value='';iaqRendu();},
+    function(){IAQ.ec=false;iaqRendu();err('err-iaq','Impossible de joindre l’assistant pour l’instant — réessaie.');});}
+(function(){try{if(DICOS&&DICOS.ar&&DICOS.ar.exact){var a=DICOS.ar.exact;a['Pose ta question']=a['Pose ta question']||'اطرح سؤالك';
+  a['Tes chiffres expliqués par l’assistant IA']=a['Tes chiffres expliqués par l’assistant IA']||'أرقامك يشرحها المساعد الذكي';}}catch(_e){}})();
+try{var st=document.createElement('style');st.textContent='.iaq-dots{display:inline-block;letter-spacing:2px;animation:iaqP 1.2s infinite ease-in-out}@keyframes iaqP{0%,100%{opacity:.25}50%{opacity:1}}@media (prefers-reduced-motion:reduce){.iaq-dots{animation:none}}';document.head.appendChild(st);}catch(_e){}
