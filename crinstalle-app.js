@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='82';
+var APPV='83';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -5150,7 +5150,8 @@ function cadRenduRes(){var z=document.getElementById('cad-res');if(!z)return;var
      +'<div class="note" style="margin-top:4px">La mise en page a changé ou un contrôle n’est pas vert. Regarde les colonnes choisies, les contrôles ❌ et les points à regarder. Rien n’est comparé ni enregistré tant que tu n’as pas confirmé.</div></div>'
      +cadBoite(cadTg(r.resume))
      +'<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" type="button" data-cad="ok" data-id="'+esc(String(r.analyse_id||''))+'" style="margin-top:0;flex:1">✅ Lecture juste, comparer</button>'
-     +'<button class="btn ghost" type="button" data-cad="ko" data-id="'+esc(String(r.analyse_id||''))+'" style="margin-top:0;flex:1">❌ Annuler</button></div>';}
+     +'<button class="btn ghost" type="button" data-cad="ko" data-id="'+esc(String(r.analyse_id||''))+'" style="margin-top:0;flex:1">❌ Annuler</button></div>'
+     +(r.analyse_id?iaLectureHtml(r.analyse_id,r.mois):'');}
   else if(r.route==='bloque')h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">⛔ Fichier non exploitable — aucune comparaison</div><div class="note" style="margin-top:4px">Vérifie que c’est bien le décompte Sogetrel complet. Si tu penses qu’il est correct, envoie-moi une capture du fichier.</div></div>'+cadBoite(cadTg(r.resume));
   else if(r.route==='info')h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">✅ Lecture confirmée</div><div class="note" style="margin-top:4px">'+esc(r.message||'')+'</div></div>';
   else if(r.route==='annule')h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">❌ Comparaison annulée</div><div class="note">La mise en page de ce fichier n’a pas été validée.</div></div>';
@@ -5163,6 +5164,7 @@ function cadRenduEtat(){var z=document.getElementById('cad-etat'),e=CAD.etat||{}
     h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🔎 Lecture en attente de ta confirmation</div><div class="note" style="margin-top:4px">'+esc(a.nom||'Fichier')+' · '+esc(rsMoisLbl(a.mois))+' · reçu le '+esc(a.le)+'</div>'
       +'<button class="btn ghost" type="button" data-cad="voirattente" style="margin-top:10px">Voir l’analyse</button><div id="cad-att"></div></div>';}
   var v=e.validations||{};
+  h+=iaVoirApres(function(){return iaHtml();});
   if(v.mois&&v.en_attente>0)h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🗳 '+esc(String(v.en_attente))+' ligne'+(v.en_attente>1?'s':'')+' à valider — '+esc(rsMoisLbl(v.mois))+'</div><button class="btn" type="button" data-cad="valider" data-m="'+esc(v.mois)+'" style="margin-top:10px">Valider les lignes</button></div>';
   if(e.rapport&&e.rapport.id&&!(CAD.res&&CAD.res.route==='comparer')){var p=e.rapport;
     h+='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">Dernier rapport — '+esc(rsMoisLbl(p.mois))+'</div><div class="note">'+esc(p.nom||'')+' · '+esc(p.le)+'</div>'
@@ -5174,6 +5176,12 @@ function cadRenduEtat(){var z=document.getElementById('cad-etat'),e=CAD.etat||{}
     h+='</div>';}
   z.innerHTML=h;}
 function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cad]'):null;if(!b)return;var a=b.getAttribute('data-cad');
+  if(a==='ialancer'){if(b.disabled||IA.ec)return;var im=b.getAttribute('data-m')||'';if(/^\d{4}-\d{2}$/.test(im)){IA.mois=im;iaLancer('mois',im,'',null);}return;}
+  if(a==='iacreer'||a==='iaignorer'){iaDecider(parseInt(b.getAttribute('data-id'),10),a==='iacreer'?'creer':'ignorer');return;}
+  if(a==='iapistes'){IA.voirPistes=!IA.voirPistes;cadRenduEtat();return;}
+  if(a==='ialecture'){if(b.disabled||IA.ec)return;var li=parseInt(b.getAttribute('data-id'),10),lm=b.getAttribute('data-m')||'';if(li>0&&/^\d{4}-\d{2}$/.test(lm))iaLecture(li,lm);return;}
+  if(a==='iamail'){if(b.disabled||IA.ec)return;iaMail();return;}
+  if(a==='iacopier'){iaCopierMail();return;}
   if(a==='valider'){cavOuvrir(b.getAttribute('data-m')||'');return;}
   if(a==='rcpdf'){carPdf();return;}
   if(a==='malfsaisir'){var dd=String(b.getAttribute('data-date')||'');mfOuvrir({admin:true,hlp:b.getAttribute('data-hlp')||'',date:/^\d{4}-\d{2}-\d{2}$/.test(dd)?dd:mfAuj(),tid:b.getAttribute('data-tid')||''});return;}
@@ -5189,7 +5197,7 @@ function cadClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
   if(a==='rapetat'){CAD.voirRapEtat=!CAD.voirRapEtat;cadRenduEtat();return;}
   if(a==='voirattente'){var z=document.getElementById('cad-att'),at=CAD.etat&&CAD.etat.a_confirmer;if(!z||!at)return;
     if(z.innerHTML){z.innerHTML='';return;}
-    z.innerHTML=cadBoite(cadTg(at.resume||'Analyse indisponible.'))+'<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" type="button" data-cad="ok" data-id="'+esc(String(at.id))+'" style="margin-top:0;flex:1">✅ Lecture juste</button><button class="btn ghost" type="button" data-cad="ko" data-id="'+esc(String(at.id))+'" style="margin-top:0;flex:1">❌ Refuser</button></div>';return;}
+    z.innerHTML=cadBoite(cadTg(at.resume||'Analyse indisponible.'))+'<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" type="button" data-cad="ok" data-id="'+esc(String(at.id))+'" style="margin-top:0;flex:1">✅ Lecture juste</button><button class="btn ghost" type="button" data-cad="ko" data-id="'+esc(String(at.id))+'" style="margin-top:0;flex:1">❌ Refuser</button></div>'+iaLectureHtml(at.id,at.mois);return;}
   if(a==='ok'||a==='ko'){var id=parseInt(b.getAttribute('data-id'),10);if(!(id>0)||b.disabled)return;
     if(!navigator.onLine){err('err-cad',HORSLIGNE_MSG);return;}
     var bs=document.querySelectorAll('#s-cmpadm [data-cad="ok"],#s-cmpadm [data-cad="ko"]');for(var i=0;i<bs.length;i++)bs[i].disabled=true;err('err-cad');
@@ -5242,7 +5250,7 @@ function cavObsHtml(d){var o=d.obsoletes||[];if(!o.length)return '';
       h+='<div style="padding:8px 0'+(i?';border-top:1px solid var(--border)':'')+'"><div style="font-weight:600">'+esc(CAV_IC[x.type]||x.type)+(x.jeton?' · 🎫 '+esc(x.jeton):'')+' · '+esc(fmt(x.montant))+'</div><div class="note">'+(x.tech_prenom?esc(x.tech_prenom)+' · ':'')+'était : '+esc(an)+'</div></div>';});
     h+='</div>';}
   return h;}
-function cavRendu(){var z=document.getElementById('cav-liste'),d=CAV.data||{};if(!z)return;var l=d.lignes||[],h='';
+function cavRendu(){var z=document.getElementById('cav-liste'),d=CAV.data||{};if(!z)return;var l=d.lignes||[],h='';try{iaCavCharger();}catch(_e){}
   var sub=document.getElementById('cav-sub');if(sub)sub.textContent=(d.mois?'Décompte de '+rsMoisLbl(d.mois)+' · ':'')+'Appuie deux fois sur un bouton pour confirmer.';
   var hm=cavMoisHtml(d),ho=cavObsHtml(d);
   if(!l.length){var dc=d.decidees||{},n=0;for(var k in dc)if(Object.prototype.hasOwnProperty.call(dc,k))n+=parseInt(dc[k],10)||0;
@@ -5256,7 +5264,7 @@ function cavRendu(){var z=document.getElementById('cav-liste'),d=CAV.data||{};if
       h+='<div class="card" style="padding:12px 14px;margin-bottom:10px'+(r.revoir?';border:1px solid var(--accent-l)':'')+'"><div style="font-weight:700">'+esc(CAV_IC[r.type]||r.type)+(r.revoir?' · ⚠️ À REVOIR':'')+'</div>'
         +'<div style="margin-top:2px;font-variant-numeric:tabular-nums">'+(r.jeton?'🎫 '+esc(r.jeton)+' · ':'')+esc(cavMontant(r))+'</div>'
         +(r.libelle?'<div class="note" style="margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere">'+esc(String(r.libelle).replace(/💬/g,'').trim())+'</div>':'')
-        +(av?'<div class="note" style="margin-top:4px;color:var(--tx)">'+esc(av)+'</div>':'');
+        +(av?'<div class="note" style="margin-top:4px;color:var(--tx)">'+esc(av)+'</div>':'')+iaCavAvis(r);
       if(r.type==='regule_globale'){
         h+='<div style="display:flex;gap:8px;margin-top:10px">'+cavBtn(id,'crinstalle',false)+cavBtn(id,'pot_sav',true)+'</div>';
         if(CAV.choixTech===id){var t=d.techs||[],o='<option value="">Choisis le technicien…</option>';for(var i=0;i<t.length;i++)o+='<option value="'+esc(t[i].tid)+'">'+esc(t[i].prenom)+'</option>';
@@ -5735,6 +5743,127 @@ function rcXlsxBuild(d, genLe) {
   return { bytes: new Uint8Array(z), total: total, nb: nb };
 }
 
+/* ===== v83 : ASSISTANT IA (Claude) du comparateur — l'IA PROPOSE, Zo DÉCIDE.
+   Lancement → workflow n8n APP_IA_Comparateur (contrôle d'accès, budget, une tâche à la fois : en base) ;
+   suivi réel (questions faites / total) par cmp_admin_ia_etat ; seule action possible sur une proposition : créer la ligne à valider
+   (cmp_admin_ia_decider, double appui) ou l'ignorer. Aucun montant, aucune décision existante n'est modifié par l'IA. */
+var IAURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-ia-admin';
+var IA={data:null,mois:'',charge:'',ec:false,tache:null,pollT:0,debut:0,msg:'',arme:null,armeT:0,voirPistes:false,cav:null,cavMois:'',cavCharge:'',lec:{},lecMsg:{},mailMsg:''};
+var IA_REFUS={acces:'Accès refusé.',inactive:'L’assistant IA n’est pas encore activé.',en_cours:'Une analyse IA est déjà en cours : patiente quelques instants.',mois:'Mois invalide.',action:'Demande invalide.',cible:'Demande invalide.'};
+function iaUsd(n){return (Math.round((parseFloat(n)||0)*100)/100).toFixed(2).replace('.',',')+' $';}
+function iaProps(d,type){return ((d&&d.propositions)||[]).filter(function(p){return p.type===type;});}
+function iaCharger(mois,cb){if(!cadOk()||!/^\d{4}-\d{2}$/.test(String(mois||'')))return;
+  rpc('cmp_admin_ia_etat',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_mois:mois}).then(function(d){if(cb)cb(d||null);},function(){if(cb)cb(null);});}
+/* lancement d'une analyse ; action = mois | lecture | mail ; fini(d) appelé quand la tâche est terminée (ou en erreur) */
+function iaLancer(action,mois,cible,fini){if(IA.ec)return;if(!navigator.onLine){IA.msg=HORSLIGNE_MSG;cadRenduEtat();return;}
+  IA.ec=true;IA.msg='';IA.tache={id:0,action:action,cible:cible||'',mois:mois};IA.debut=Date.now();cadRenduEtat();
+  fetchT(IAURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({c:ACCT.client_id,k:ACCT.cle,action:action,mois:mois,cible:cible||''})},30000)
+  .then(function(r){return r.json();}).then(function(j){var r=(j&&j.r)||{};
+    if(!r.ok){IA.ec=false;IA.tache=null;IA.msg=r.refus==='budget'?'Budget IA du mois atteint ('+iaUsd(r.depense)+' sur '+iaUsd(r.plafond)+').':(IA_REFUS[r.refus]||'L’assistant IA n’a pas pu démarrer.');iaApres(action,cible,null,fini);return;}
+    IA.tache.id=parseInt(r.tache_id,10)||0;iaSuivre(mois,fini);},
+   function(){IA.ec=false;IA.tache=null;IA.msg='Impossible de joindre l’assistant IA pour l’instant — réessaie.';iaApres(action,cible,null,fini);});}
+function iaSuivre(mois,fini){clearTimeout(IA.pollT);
+  IA.pollT=setTimeout(function(){iaCharger(mois,function(d){if(!IA.tache)return;
+    var t=d&&(d.taches||[]).filter(function(x){return parseInt(x.id,10)===IA.tache.id;})[0];
+    if(d&&IA.tache.action==='mois'){IA.data=d;IA.charge=mois;}
+    if(t&&t.statut!=='en_cours'){var a=IA.tache.action,c=IA.tache.cible;IA.ec=false;IA.tache=null;
+      if(t.erreurs>0)IA.msg='⚠️ '+t.erreurs+' question(s) sans réponse valable'+(t.message?' : '+t.message:'')+'. Relance plus tard pour compléter (ce qui est déjà fait n’est pas refacturé).';
+      else if(t.message)IA.msg=t.message;
+      iaApres(a,c,d,fini);return;}
+    if(Date.now()-IA.debut>16*60000){IA.ec=false;IA.tache=null;IA.msg='L’analyse IA ne répond plus. Réessaie dans quelques minutes.';iaApres('', '', null, fini);return;}
+    if(t)IA.tache.t=t;cadRenduEtat();iaSuivre(mois,fini);});},3000);}
+function iaApres(action,cible,d,fini){try{v64Vib(10);}catch(_e){}cadRenduEtat();if(fini)fini(d);}
+/* ----- carte « Assistant IA » de l'écran administrateur ----- */
+function iaMoisDefaut(){var e=CAD.etat||{},v=e.validations||{};return IA.mois||v.mois||(CAD.recap&&CAD.recap.mois)||(e.rapport&&e.rapport.mois)||'';}
+function iaHtml(){var mois=iaMoisDefaut();if(!/^\d{4}-\d{2}$/.test(mois))return '';
+  if(IA.charge!==mois&&!IA.ec){IA.charge=mois;iaCharger(mois,function(d){if(iaMoisDefaut()!==mois)return;IA.data=d;cadRenduEtat();});}
+  var d=(IA.data&&IA.data.mois===mois)?IA.data:null,h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">🤖 Assistant IA — '+esc(rsMoisLbl(mois))+'</div>'
+    +'<div class="note" style="margin-top:4px">Claude lit les commentaires des techniciens, les régules à décider et le rapport, puis <b>propose</b>. Rien n’est réclamé ni décidé sans ton clic.</div>';
+  if(!d){return h+'<div class="note" style="margin-top:8px">Chargement…</div></div>';}
+  if(!d.cle_configuree)return h+'<div class="note" style="margin-top:8px">L’assistant IA n’est pas encore activé.</div></div>';
+  var b=d.budget||{};h+='<div class="note" style="margin-top:6px">Utilisé ce mois : '+esc(iaUsd(b.depense))+' sur '+esc(iaUsd(b.plafond))+'</div>';
+  var enc=IA.ec&&IA.tache&&IA.tache.action==='mois';
+  if(enc){var t=IA.tache.t||{},tot=parseInt(t.total,10)||0,fa=parseInt(t.faits,10)||0,sec=Math.round((Date.now()-IA.debut)/1000);
+    h+='<div style="font-weight:600;margin-top:10px">Claude analyse… <span style="font-weight:500;color:var(--tx2)">· '+esc(String(sec))+' s'+(tot?' · '+esc(String(fa))+'/'+esc(String(tot))+' question'+(tot>1?'s':''):'')+'</span></div>'
+      +(tot?'<div class="cad-bar" aria-hidden="true"><i style="animation:none;transform:none;width:'+Math.max(4,Math.round(fa/tot*100))+'%"></i></div>':'<div class="cad-bar" aria-hidden="true"><i></i></div>')
+      +'<div class="note" style="margin-top:6px">Il prend le temps de vérifier chaque point (en général moins d’une minute). Tu peux quitter l’écran : le travail continue.</div>';}
+  if(IA.msg&&!(IA.tache&&IA.tache.action!=='mois'))h+='<div class="note" style="margin-top:8px;color:var(--tx)">'+esc(IA.msg)+'</div>';
+  var deja=(d.taches||[]).some(function(x){return x.action==='mois'&&x.statut!=='en_cours';});
+  h+='<button class="btn'+(deja?' ghost':'')+'" type="button" data-cad="ialancer" data-m="'+esc(mois)+'" style="margin-top:10px"'+(IA.ec?' disabled':'')+'>'+(enc?'Analyse en cours…':(deja?'Relancer (seulement les nouveautés)':'Lancer l’analyse IA'))+'</button>';
+  /* résumé */
+  var rs=iaProps(d,'resume')[0];
+  if(rs&&rs.resultat){var R=rs.resultat;h+='<div style="font-weight:700;margin-top:14px">📝 Résumé du rapport</div><div class="note" style="margin-top:4px;color:var(--tx);white-space:pre-wrap">'+esc(R.resume||'')+'</div>';
+    if((R.a_faire||[]).length)h+='<div style="font-weight:600;margin-top:8px">À faire</div><div class="note" style="display:grid;gap:3px;margin-top:2px">'+R.a_faire.map(function(x){return '<div>• '+esc(x)+'</div>';}).join('')+'</div>';
+    if((R.alertes||[]).length)h+='<div style="font-weight:600;margin-top:8px">⚠️ Points à vérifier</div><div class="note" style="display:grid;gap:3px;margin-top:2px">'+R.alertes.map(function(x){return '<div>• '+esc(x)+'</div>';}).join('')+'</div>';}
+  /* propositions issues des commentaires */
+  var cs=iaProps(d,'commentaire'),nv=cs.filter(function(p){return p.statut==='nouvelle';}),pistes=cs.filter(function(p){return p.statut==='info'&&p.resultat&&p.resultat.action_proposee;}),
+      faites=cs.filter(function(p){return p.statut==='appliquee'||p.statut==='ignoree';});
+  h+='<div style="font-weight:700;margin-top:14px">💬 Commentaires des techniciens</div>';
+  if(!cs.length)h+='<div class="note" style="margin-top:4px">Pas encore analysés pour ce mois.</div>';
+  else if(!nv.length)h+='<div class="note" style="margin-top:4px">'+esc(String(cs.length))+' commentaire(s) lus : rien de nouveau à réclamer'+(faites.length?' ('+faites.length+' proposition(s) déjà traitée(s))':'')+'.</div>';
+  nv.forEach(function(p){var R=p.resultat||{},req=R.action==='requalification',ar=IA.arme&&IA.arme.id===p.id;
+    h+='<div class="card" style="padding:12px 14px;margin-top:8px"><div style="font-weight:700">'+(req?'🔁 Requalification':'🧱 Post-production / complexe')+' <span style="font-weight:500;color:var(--tx2)">· confiance '+esc(String(R.confiance))+' %</span></div>'
+      +'<div style="margin-top:2px">🎫 '+esc(R.jeton||'')+' · '+esc(R.prenom||'?')+' · '+esc(R.typologie||'')+(R.date?' · '+esc(R.date.split('-').reverse().join('/')):'')+'</div>'
+      +'<div class="note" style="margin-top:4px;color:var(--tx)">🤖 '+esc(R.explication||'')+'</div>'
+      +'<div class="note" style="margin-top:4px">'+(req?'« Créer la ligne » ajoute une requalification dans « Lignes à valider » : le technicien sera prévenu pour confirmer (vrai RACC ou pas), puis tu réclames ou non.':'« Créer la ligne » ajoute un sous-payé « à chiffrer » dans « Lignes à valider » : tu le réclames ou non.')+'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" type="button" data-cad="iacreer" data-id="'+esc(String(p.id))+'" style="margin-top:0;flex:1">'+(ar&&IA.arme.ch==='creer'?'Sûr ? Retouche':'Créer la ligne')+'</button>'
+      +'<button class="btn ghost" type="button" data-cad="iaignorer" data-id="'+esc(String(p.id))+'" style="margin-top:0;flex:1">'+(ar&&IA.arme.ch==='ignorer'?'Sûr ? Retouche':'Ignorer')+'</button></div></div>';});
+  if(pistes.length){h+='<button class="btn ghost" type="button" data-cad="iapistes" style="margin-top:8px">'+(IA.voirPistes?'Masquer':'Voir')+' les '+pistes.length+' piste(s) moins sûre(s)</button>';
+    if(IA.voirPistes)h+=pistes.map(function(p){var R=p.resultat||{};return '<div class="note" style="margin-top:6px">• 🎫 '+esc(R.jeton||'')+' · '+esc(R.prenom||'')+' · '+esc(R.typologie||'')+' — '+esc(R.explication||'')+' ('+esc(String(R.confiance))+' %)</div>';}).join('');}
+  var rg=iaProps(d,'regule');
+  if(rg.length)h+='<div class="note" style="margin-top:12px">📦 '+esc(String(rg.length))+' régule(s) à décider ont un avis de l’IA : il s’affiche sous chaque ligne dans « Lignes à valider ».</div>';
+  return h+'</div>';}
+/* ----- avis IA sous une régule dans « Lignes à valider » ----- */
+function iaCavAvis(r){if(!r||r.type!=='regule_globale')return '';var d=IA.cav;if(!d||d.mois!==(CAV.data&&CAV.data.mois))return '';
+  var p=iaProps(d,'regule').filter(function(x){return String(x.cible)===String(r.id);})[0];if(!p||!p.resultat)return '';var R=p.resultat;
+  var ch=R.choix==='technicien'?'donner à '+(R.prenom||'?'):(R.choix==='crinstalle'?'garder chez CRINSTALLE':(R.choix==='pot_sav'?'mettre au pot SAV':'pas d’avis clair'));
+  return '<div class="note" style="margin-top:6px;color:var(--tx);border-inline-start:3px solid var(--accent);padding-inline-start:8px">🤖 Avis de l’IA : <b>'+esc(ch)+'</b> (confiance '+esc(String(R.confiance))+' %) — '+esc(R.raison||'')+' <span style="color:var(--tx2)">· '+esc(p.le||'')+'</span></div>';}
+function iaCavCharger(){var m=CAV.data&&CAV.data.mois;if(!m||IA.cavCharge===m)return;IA.cavCharge=m;
+  iaCharger(m,function(d){if(!d||!CAV.data||CAV.data.mois!==m)return;IA.cav=d;cavRendu();});}
+/* ----- avis IA sur la lecture d'un fichier (carte « Vérifie la lecture ») ----- */
+function iaLectureHtml(id,mois){var h='<div id="ia-lec-'+esc(String(id))+'">';var R=IA.lec[id];
+  if(R){var lb=R.avis==='ok'?'✅ Lecture qui paraît fiable':(R.avis==='doute'?'⚠️ Doute':'❌ Problème');
+    h+='<div class="card" style="padding:12px 14px;margin-top:10px"><div style="font-weight:700">🤖 Avis de l’IA : '+esc(lb)+'</div>'
+      +((R.points||[]).length?'<div class="note" style="display:grid;gap:3px;margin-top:6px">'+R.points.map(function(x){return '<div>• '+esc(x)+'</div>';}).join('')+'</div>':'')
+      +(R.conseil?'<div class="note" style="margin-top:6px;color:var(--tx)">'+esc(R.conseil)+'</div>':'')
+      +'<div class="note" style="margin-top:6px">C’est un avis : la décision « Lecture juste » reste la tienne.</div></div>';}
+  else{var enc=IA.ec&&IA.tache&&IA.tache.action==='lecture'&&String(IA.tache.cible)===String(id);
+    h+='<button class="btn ghost" type="button" data-cad="ialecture" data-id="'+esc(String(id))+'" data-m="'+esc(String(mois||''))+'" style="margin-top:10px"'+(IA.ec?' disabled':'')+'>'+(enc?'🤖 Claude relit la lecture…':'🤖 Avis de l’IA sur la lecture')+'</button>'
+      +(IA.lecMsg[id]?'<div class="note" style="margin-top:6px;color:var(--tx)">'+esc(IA.lecMsg[id])+'</div>':'');}
+  return h+'</div>';}
+function iaLecture(id,mois){
+  var montrer=function(d){var p=iaProps(d,'lecture').filter(function(x){return String(x.cible)===String(id);})[0];
+    if(p&&p.resultat){IA.lec[id]=p.resultat;IA.lecMsg[id]='';}else IA.lecMsg[id]=IA.msg||'Pas d’avis disponible.';IA.msg='';
+    var z=document.getElementById('ia-lec-'+id);if(z)z.outerHTML=iaLectureHtml(id,mois);};
+  iaLancer('lecture',mois,String(id),function(d){if(d)montrer(d);else iaCharger(mois,function(d2){montrer(d2||{});});});
+  var z=document.getElementById('ia-lec-'+id);if(z)z.outerHTML=iaLectureHtml(id,mois);}
+/* ----- brouillon de mail pour Sogetrel (carte « Réclamation ») ----- */
+function iaMailHtml(){if(!CAR.xl||!CAR.mois)return '';var d=IA.mailD,p=d&&d.mois===CAR.mois?iaProps(d,'mail')[0]:null,R=p&&p.resultat;
+  var enc=IA.ec&&IA.tache&&IA.tache.action==='mail',h='';
+  if(R){h+='<div class="card" style="padding:12px 14px;margin-top:10px"><div style="font-weight:700">✉️ Mail pour Sogetrel (brouillon de l’IA)</div>'
+      +'<div class="note" style="margin-top:6px;color:var(--tx)"><b>Objet :</b> '+esc(R.objet||'')+'</div>'
+      +'<div class="note" style="margin-top:6px;color:var(--tx);white-space:pre-wrap">'+esc(R.corps||'')+'</div>'
+      +'<div class="note" style="margin-top:6px">Relis-le avant de l’envoyer avec l’Excel. Le total a été vérifié : '+esc(R.total||'')+'.</div>'
+      +'<button class="btn ghost" type="button" data-cad="iacopier" style="margin-top:8px">Copier le mail</button></div>';}
+  h+='<button class="btn ghost" type="button" data-cad="iamail" style="margin-top:8px"'+(IA.ec?' disabled':'')+'>'+(enc?'🤖 Claude rédige…':(R?'🤖 Refaire le mail (si les lignes ont changé)':'🤖 Préparer le mail pour Sogetrel'))+'</button>'
+    +(IA.mailMsg?'<div class="note" style="margin-top:6px;color:var(--tx)">'+esc(IA.mailMsg)+'</div>':'');
+  return h;}
+function iaMail(){var m=CAR.mois;if(!/^\d{4}-\d{2}$/.test(String(m||'')))return;IA.mailMsg='';
+  iaLancer('mail',m,'',function(d){var fin=function(d2){IA.mailD=d2;var p=d2&&iaProps(d2,'mail')[0];IA.mailMsg=p?'':(IA.msg||'Pas de mail disponible (aucune ligne réclamée ?).');IA.msg='';cadRenduEtat();};
+    if(d)fin(d);else iaCharger(m,fin);});}
+function iaCopierMail(){var p=IA.mailD&&iaProps(IA.mailD,'mail')[0],R=p&&p.resultat;if(!R)return;var t='Objet : '+R.objet+'\n\n'+R.corps;
+  try{navigator.clipboard.writeText(t).then(function(){IA.mailMsg='✅ Mail copié : colle-le dans ta messagerie.';cadRenduEtat();},function(){IA.mailMsg='Copie impossible : sélectionne le texte à la main.';cadRenduEtat();});}catch(_e){IA.mailMsg='Copie impossible : sélectionne le texte à la main.';cadRenduEtat();}}
+/* ----- décisions sur une proposition (double appui) ----- */
+function iaDecider(id,ch){if(!(id>0))return;
+  if(!(IA.arme&&IA.arme.id===id&&IA.arme.ch===ch)){IA.arme={id:id,ch:ch,le:Date.now()};clearTimeout(IA.armeT);IA.armeT=setTimeout(function(){IA.arme=null;cadRenduEtat();},4000);cadRenduEtat();return;}
+  if(Date.now()-(IA.arme.le||0)<600)return;clearTimeout(IA.armeT);IA.arme=null;
+  if(!navigator.onLine){IA.msg=HORSLIGNE_MSG;cadRenduEtat();return;}
+  rpc('cmp_admin_ia_decider',{p_client:ACCT.client_id,p_cle:ACCT.cle,p_id:id,p_choix:ch}).then(function(r){r=r||{};
+    IA.msg=r.ok?(ch==='ignorer'?'Proposition ignorée.':(r.type==='signalement'?'✅ Requalification ajoutée dans « Lignes à valider » : le technicien va être prévenu pour confirmer.':'✅ Sous-payé « à chiffrer » ajouté dans « Lignes à valider ».')):(r.message||'Action impossible.');
+    IA.charge='';cadRenduEtat();try{cadEtat();}catch(_e){}},
+   function(e){IA.msg=e&&e.reseau?HORSLIGNE_MSG:((e&&e.message)?String(e.message):'Action impossible pour l’instant.');cadRenduEtat();});}
+/* une erreur dans l'assistant IA ne doit jamais casser l'écran du comparateur */
+function iaVoirApres(f){try{return f();}catch(e){return '';}}
 var XLSX_MIME='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 var CAR={mois:'',dispo:[],out:null,xl:null,ec:false,msg:''};
 var CAP={data:null,ec:false,arme:false,armeT:0,msg:'',mois:''};
@@ -5754,6 +5883,7 @@ function cadDocsHtml(){var h='<div class="note" style="margin:16px 0 4px;font-we
      +(CAR.xl.partage?'<button class="btn ghost" type="button" data-cad="rcsharexl" style="margin-top:0;flex:1">Partager l’Excel</button>':'')+'</div>';
   if(CAR.out)h+='<div style="display:flex;gap:8px;margin-top:8px"><a class="btn ghost" href="'+CAR.out.url+'" download="'+esc(CAR.out.nom)+'" target="_blank" rel="noopener" style="margin-top:0;flex:1;text-decoration:none">Ouvrir le PDF</a>'
      +(CAR.out.partage?'<button class="btn ghost" type="button" data-cad="rcshare" style="margin-top:0;flex:1">Partager le PDF</button>':'')+'</div>';
+  h+=iaMailHtml();
   h+='<button class="btn'+(CAR.out?' ghost':'')+'" type="button" data-cad="rcpdf" style="margin-top:10px"'+(CAR.ec?' disabled':'')+'>'+(CAR.ec?'Création…':(CAR.out?'Recréer la réclamation':'Créer la réclamation (Excel + PDF)'))+'</button></div>';
   /* publication des relevés */
   var d=CAP.data;
