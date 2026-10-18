@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='84';
+var APPV='85';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -5839,9 +5839,10 @@ function iaLecture(id,mois){
   iaLancer('lecture',mois,String(id),function(d){if(d)montrer(d);else iaCharger(mois,function(d2){montrer(d2||{});});});
   var z=document.getElementById('ia-lec-'+id);if(z)z.outerHTML=iaLectureHtml(id,mois);}
 /* ----- brouillon de mail pour Sogetrel (carte « Réclamation ») ----- */
+function iaMemeTotal(R){if(!R||typeof CAR.total!=='number')return true;var v=typeof R.total_num==='number'?R.total_num:parseFloat(String(R.total||'').replace(/[^\d,.-]/g,'').replace(',','.'));return isFinite(v)&&Math.abs(v-CAR.total)<0.005;}
 function iaMailHtml(){if(!CAR.xl||!CAR.mois)return '';var d=IA.mailD,p=d&&d.mois===CAR.mois?iaProps(d,'mail')[0]:null,R=p&&p.resultat;
   var enc=IA.ec&&IA.tache&&IA.tache.action==='mail',h='';
-  if(R&&typeof CAR.total==='number'&&R.total!==fmt(CAR.total)){h+='<div class="note" style="margin-top:8px;color:var(--tx)">Les lignes réclamées ont changé depuis le dernier brouillon ('+esc(R.total||'')+' → '+esc(fmt(CAR.total))+') : refais le mail.</div>';R=null;}
+  if(R&&!iaMemeTotal(R)){h+='<div class="note" style="margin-top:8px;color:var(--tx)">Les lignes réclamées ont changé depuis le dernier brouillon ('+esc(R.total||'')+' → '+esc(fmt(CAR.total))+') : refais le mail.</div>';R=null;}
   if(R){h+='<div class="card" style="padding:12px 14px;margin-top:10px"><div style="font-weight:700">✉️ Mail pour Sogetrel (brouillon de l’IA)</div>'
       +'<div class="note" style="margin-top:6px;color:var(--tx)"><b>Objet :</b> '+esc(R.objet||'')+'</div>'
       +'<div class="note" style="margin-top:6px;color:var(--tx);white-space:pre-wrap">'+esc(R.corps||'')+'</div>'
@@ -5853,7 +5854,7 @@ function iaMailHtml(){if(!CAR.xl||!CAR.mois)return '';var d=IA.mailD,p=d&&d.mois
 function iaMail(){var m=CAR.mois;if(!/^\d{4}-\d{2}$/.test(String(m||'')))return;IA.mailMsg='';
   iaLancer('mail',m,'',function(d){var fin=function(d2){IA.mailD=d2;var p=d2&&iaProps(d2,'mail')[0];IA.mailMsg=p?'':(IA.msg||'Pas de mail disponible (aucune ligne réclamée ?).');IA.msg='';cadRenduEtat();};
     if(d)fin(d);else iaCharger(m,fin);});}
-function iaCopierMail(){var p=IA.mailD&&iaProps(IA.mailD,'mail')[0],R=p&&p.resultat;if(!R||(typeof CAR.total==='number'&&R.total!==fmt(CAR.total)))return;var t='Objet : '+R.objet+'\n\n'+R.corps;
+function iaCopierMail(){var p=IA.mailD&&iaProps(IA.mailD,'mail')[0],R=p&&p.resultat;if(!R||!iaMemeTotal(R))return;var t='Objet : '+R.objet+'\n\n'+R.corps;
   try{navigator.clipboard.writeText(t).then(function(){IA.mailMsg='✅ Mail copié : colle-le dans ta messagerie.';cadRenduEtat();},function(){IA.mailMsg='Copie impossible : sélectionne le texte à la main.';cadRenduEtat();});}catch(_e){IA.mailMsg='Copie impossible : sélectionne le texte à la main.';cadRenduEtat();}}
 /* ----- décisions sur une proposition (double appui) ----- */
 function iaDecider(id,ch){if(!(id>0))return;
