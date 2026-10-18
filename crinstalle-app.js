@@ -1868,7 +1868,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='81';
+var APPV='82';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -4478,6 +4478,12 @@ function v64Vib(p){try{if(navigator.vibrate)navigator.vibrate(p);}catch(_e){}}
 /* enregistrement */
 '#btn-save:disabled{opacity:1;color:transparent;position:relative}#btn-save:disabled::after{content:"";position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;animation:v64sp .7s linear infinite}',
 '@keyframes v64sp{to{transform:rotate(360deg)}}',
+/* v82 : attente de l'analyse du décompte (barre indéterminée : le serveur ne donne pas d'avancement réel, on n'invente pas de pourcentage) */
+'#cad-go.cad-ec{position:relative;opacity:1}#cad-go.cad-ec::before{content:"";display:inline-block;width:16px;height:16px;margin-inline-end:10px;vertical-align:-3px;border-radius:50%;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;animation:v64sp .7s linear infinite}',
+'.cad-bar{height:6px;border-radius:99px;background:var(--tint);overflow:hidden;margin-top:12px}.cad-bar i{display:block;height:100%;width:38%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent-l));animation:cadbar 1.4s ease-in-out infinite}',
+'@keyframes cadbar{0%{transform:translateX(-105%)}100%{transform:translateX(270%)}}',
+'.cad-etapes{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}.cad-etapes span{font-size:12px;padding:3px 9px;border-radius:99px;background:var(--tint);color:var(--tx2)}',
+'@media (prefers-reduced-motion:reduce){.cad-bar i{animation:none;width:100%;opacity:.55}#cad-go.cad-ec::before{animation:none}}',
 '.v64-ok{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--ok);color:#fff;align-items:center;justify-content:center;margin-inline-end:6px;vertical-align:-5px;animation:v64pop .45s var(--v64e) both}',
 '.v64-ok path{stroke-dasharray:24;stroke-dashoffset:24;animation:v64draw .45s var(--v64e) .15s forwards}@keyframes v64draw{to{stroke-dashoffset:0}}@keyframes v64pop{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}',
 /* page « Mon profil » ouverte depuis le menu */
@@ -5101,15 +5107,20 @@ function cadGo(){if(CAD.envoi||!CAD.fichier)return;
   clearTimeout(CAD.armeT);CAD.arme=false;cadGoTexte();cadEnvoyer();}
 function cadViderFichier(){CAD.fichier=null;CAD.arme=false;clearTimeout(CAD.armeT);var f=document.getElementById('cad-f'),nm=document.getElementById('cad-nom'),g=document.getElementById('cad-go');
   if(f)f.value='';if(nm)nm.textContent='Aucun fichier choisi.';if(g){g.disabled=true;g.textContent='Analyser et comparer';}var n=document.getElementById('cad-arme');if(n)n.textContent='';}
+/* chronomètre de l'attente (secondes écoulées ; message rassurant si c'est long) */
+function cadChrono(){if(!CAD.envoi){clearInterval(CAD.chronoT);return;}var c=document.getElementById('cad-chrono'),n=document.getElementById('cad-chrono-n'),sec=Math.max(0,Math.round((Date.now()-(CAD.debut||Date.now()))/1000));
+  if(c)c.textContent='· '+sec+' s';
+  if(n&&sec>=25)n.textContent=sec>=75?'C’est plus long que d’habitude (gros fichier ou serveur chargé). On attend encore un peu ; au-delà de 2 minutes, un message d’erreur s’affichera et tu pourras réessayer.':'Gros fichier : ça peut prendre jusqu’à une minute. Ne ferme pas l’appli.';}
 function cadEnvoyer(){if(CAD.envoi||!CAD.fichier)return;err('err-cad');
   if(!navigator.onLine){err('err-cad',HORSLIGNE_MSG);return;}
-  var go=document.getElementById('cad-go');CAD.envoi=true;CAD.envoye=CAD.fichier;if(go){go.disabled=true;go.textContent='Analyse en cours…';}var ch0=document.getElementById('cad-choisir');if(ch0)ch0.disabled=true;
-  CAD.res={route:'encours'};cadRenduRes();
+  var go=document.getElementById('cad-go');CAD.envoi=true;CAD.envoye=CAD.fichier;if(go){go.disabled=true;go.textContent='Analyse en cours…';go.classList.add('cad-ec');}var ch0=document.getElementById('cad-choisir');if(ch0)ch0.disabled=true;
+  CAD.res={route:'encours'};CAD.debut=Date.now();cadRenduRes();
+  clearInterval(CAD.chronoT);CAD.chronoT=setInterval(cadChrono,1000);
   fetchT(CADURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({c:ACCT.client_id,k:ACCT.cle,nom:CAD.fichier.nom,b64:CAD.fichier.b64})},120000)
   .then(function(r){return r.json().catch(function(){return {ok:false,route:'erreur',message:'Erreur technique : réponse illisible du serveur (code '+r.status+'). Réessaie dans un instant.'};});})
   .then(function(j){CAD.res=(j&&typeof j==='object')?j:{ok:false,route:'erreur',message:'Erreur technique : réponse vide.'};},
         function(){CAD.res={ok:false,route:'erreur',message:RESEAU_MSG};})
-  .then(function(){CAD.envoi=false;CAD.voirRap=false;var g=document.getElementById('cad-go');if(g){g.disabled=!CAD.fichier;g.textContent='Analyser et comparer';}var ch1=document.getElementById('cad-choisir');if(ch1)ch1.disabled=false;
+  .then(function(){CAD.envoi=false;CAD.voirRap=false;clearInterval(CAD.chronoT);var g=document.getElementById('cad-go');if(g){g.disabled=!CAD.fichier;g.textContent='Analyser et comparer';g.classList.remove('cad-ec');}var ch1=document.getElementById('cad-choisir');if(ch1)ch1.disabled=false;
     if(CAD.res&&CAD.res.route==='comparer'){if(CAD.fichier===CAD.envoye)cadViderFichier();CAR.mois='';CAR.msg='';carSortie();CAP.mois='';CAP.msg='';CAP.arme=false;clearTimeout(CAP.armeT);CAD.recapMois='';CAV.mois='';CAV.data=null;}
     cadRenduRes();CAD.etat=null;cadEtat();});}
 function cadEnAttenteMois(m){var ve=CAD.etat&&CAD.etat.validations;if(!ve||!m)return 0;
@@ -5124,7 +5135,10 @@ function cadEnrTexte(r){var e=(r&&r.enregistrement)||{},n=cadNbAValider(r),t=n>0
   if(r.rapport_garde===false)t+='<br>⚠️ Rapport NON gardé : le récap « ce qu’il reste » et les malfaçons ne sont pas à jour pour ce mois. Renvoie le fichier.';
   return t;}
 function cadRenduRes(){var z=document.getElementById('cad-res');if(!z)return;var r=CAD.res,h='';if(!r){z.innerHTML='';return;}
-  if(r.route==='encours')h='<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">Analyse du fichier…</div><div class="note">Lecture, contrôles puis comparaison. Cela prend quelques secondes.</div></div>';
+  if(r.route==='encours')h='<div class="card" style="padding:14px 16px;margin-top:12px" role="status" aria-live="polite"><div style="font-weight:700">Analyse du fichier… <span id="cad-chrono" style="font-weight:500;color:var(--tx2)"></span></div>'
+     +'<div class="cad-bar" aria-hidden="true"><i></i></div>'
+     +'<div class="cad-etapes" aria-hidden="true"><span>📄 Lecture</span><span>🔎 Contrôles</span><span>⚖️ Comparaison</span><span>📝 Rapport</span></div>'
+     +'<div class="note" id="cad-chrono-n" style="margin-top:8px">Lecture, contrôles puis comparaison avec les saisies. Cela prend en général quelques secondes — ne ferme pas l’appli.</div></div>';
   else if(r.route==='comparer'){
     h=(CAD.recap&&CAD.recap.mois===r.mois?cadRecapHtml():'')+'<div class="card" style="padding:14px 16px;margin-top:12px"><div style="font-weight:700">✅ Comparaison faite — '+esc(rsMoisLbl(r.mois))+'</div>'
      +'<div class="note" style="margin-top:4px">'+cadEnrTexte(r)+'</div>'
