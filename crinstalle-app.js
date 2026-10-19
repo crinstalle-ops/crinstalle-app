@@ -1884,7 +1884,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='90';
+var APPV='91';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -6176,3 +6176,27 @@ function capClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data
 (function(){if(typeof openSaisie!=='function')return;var o=openSaisie;openSaisie=function(){var r=o.apply(this,arguments);try{CAP.res=null;CAP.msg='';CAP.pf='';capMaj();capRendu();}catch(_e){}return r;};})();
 (function(){if(typeof editFiche!=='function')return;var o=editFiche;editFiche=function(){var r=o.apply(this,arguments);try{capMaj();}catch(_e){}return r;};})();
 setTimeout(function(){try{if(ACCT)capMaj();}catch(_e){}},0);
+
+/* === v91 (Zo 19/10) : une facture du mois déjà faite → on reprend SON numéro (elle sera remplacée), au lieu d'en proposer un nouveau.
+   Évite deux factures pour le même mois (cas Mohamed : N° 19 puis N° 20 pour août). === */
+function factNumMois(){var num=document.getElementById('fa-num'),sel=document.getElementById('fa-mois');if(!num||!sel||!ACCT)return;
+  var note=document.getElementById('fa-numnote');
+  if(!note){note=document.createElement('div');note.id='fa-numnote';note.className='note';note.style.cssText='margin-top:6px;color:var(--warn);display:none';num.parentNode.appendChild(note);}
+  var l=ACCT._factl||[],ms=sel.value,f=null,i;
+  if(FACTMODE==='mois')for(i=0;i<l.length;i++){if(l[i]&&l[i].mois===ms){f=l[i];break;}}
+  if(f){num.value=String(f.num||'');num.setAttribute('data-auto','1');
+    var y=parseInt(ms.slice(0,4),10),mo=parseInt(ms.slice(5,7),10)-1;
+    note.textContent='Tu as déjà fait ta facture de '+(MOIS[mo]||ms)+' '+y+' (N° '+f.num+', '+fmt(parseFloat(f.mt)||0)+'). Si tu la refais, elle remplacera celle-ci. Pour une autre facture, change le numéro.';
+    note.style.display='';}
+  else{if(num.getAttribute('data-auto')==='1'){num.removeAttribute('data-auto');var d=(ACCT._factp&&ACCT._factp.dernier_num)||'';num.value=d?factNumSuivant(d):'';}
+    note.style.display='none';note.textContent='';}}
+(function(){
+  if(typeof factArchCharger==='function'){var o=factArchCharger;factArchCharger=function(){var r=o.apply(this,arguments);
+    try{rpc('solo_factures',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(x){ACCT._factl=(x&&x.factures)||[];factNumMois();},function(){});}catch(_e){}return r;};}
+  if(typeof factMode==='function'){var m=factMode;factMode=function(){var r=m.apply(this,arguments);try{factNumMois();}catch(_e){}return r;};}
+  document.addEventListener('change',function(e){if(e.target&&e.target.id==='fa-mois'){try{factNumMois();}catch(_e){}}});
+  document.addEventListener('input',function(e){if(e.target&&e.target.id==='fa-num'){e.target.removeAttribute('data-auto');var n=document.getElementById('fa-numnote');if(n){n.style.display='none';}}});
+})();
+/* retour dans l'appli (après l'ouverture du PDF) : la liste des factures est rechargée → le numéro proposé reste juste */
+(function(){var rf=function(){try{if(!document.hidden&&document.querySelector('#s-fact.on')&&typeof factArchCharger==='function')factArchCharger();}catch(_e){}};
+  document.addEventListener('visibilitychange',rf);window.addEventListener('pageshow',rf);})();
