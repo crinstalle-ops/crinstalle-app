@@ -1884,7 +1884,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='91';
+var APPV='92';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -6200,3 +6200,16 @@ function factNumMois(){var num=document.getElementById('fa-num'),sel=document.ge
 /* retour dans l'appli (après l'ouverture du PDF) : la liste des factures est rechargée → le numéro proposé reste juste */
 (function(){var rf=function(){try{if(!document.hidden&&document.querySelector('#s-fact.on')&&typeof factArchCharger==='function')factArchCharger();}catch(_e){}};
   document.addEventListener('visibilitychange',rf);window.addEventListener('pageshow',rf);})();
+
+/* === v92 (Zo 19/10) : une facture par jour et par technicien de l'équipe (l'administrateur n'est pas limité). Le serveur refuse aussi. === */
+var FACTQ=null;
+function factQuotaRendu(){var b=document.getElementById('btn-fact');if(!b)return;var n=document.getElementById('fa-quota');
+  if(!n){n=document.createElement('div');n.id='fa-quota';n.className='note';n.setAttribute('role','status');n.style.cssText='color:var(--warn);display:none;margin-bottom:8px';b.parentNode.insertBefore(n,b);}
+  var q=FACTQ&&FACTQ.bloque&&FACTQ.facture;
+  if(q){n.textContent='🧾 Tu as déjà généré ta facture aujourd’hui (N° '+q.num+' à '+q.heure+'). Tu pourras en refaire une demain. Pour la revoir : « Mes factures » plus bas.';n.style.display='';b.disabled=true;b.setAttribute('aria-disabled','true');}
+  else{n.style.display='none';n.textContent='';if(b.getAttribute('aria-disabled')==='true'){b.disabled=false;b.removeAttribute('aria-disabled');}}}
+function factQuota(){if(!ACCT)return;try{rpc('solo_facture_quota',{p_client:ACCT.client_id,p_cle:ACCT.cle}).then(function(r){FACTQ=r||null;factQuotaRendu();},function(){});}catch(_e){}}
+(function(){
+  if(typeof factArchCharger==='function'){var o=factArchCharger;factArchCharger=function(){var r=o.apply(this,arguments);factQuota();return r;};}
+  if(typeof factGenerer==='function'){var g=factGenerer;factGenerer=function(){if(FACTQ&&FACTQ.bloque){factQuotaRendu();err('err-fact','Une seule facture par jour : tu pourras en refaire une demain.');return;}return g.apply(this,arguments);};}
+})();
