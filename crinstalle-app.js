@@ -1884,7 +1884,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='93';
+var APPV='94';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -6122,7 +6122,7 @@ function capZone(){var j=document.getElementById('sa-jeton');if(!j||document.get
   z.innerHTML='<div style="display:flex;gap:8px"><button type="button" class="btn ghost" id="cap-photo" style="flex:1;height:42px;font-size:14px;margin-top:0">📷 Photo</button>'
     +'<button type="button" class="btn ghost" id="cap-capture" style="flex:1;height:42px;font-size:14px;margin-top:0">🖼️ Capture d’écran</button></div>'
     +'<input type="file" id="cap-f1" accept="image/*" capture="environment" style="display:none"><input type="file" id="cap-f2" accept="image/*" style="display:none">'
-    +'<div class="note" style="margin-top:6px">Prends l’écran « Informations » où l’on voit <b>Jeton</b>, <b>Adresse</b> et <b>Abonné</b>. <button type="button" id="cap-voir" style="background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;font:inherit;cursor:pointer">Voir l’exemple</button></div><div id="cap-res" aria-live="polite"></div>';
+    +'<div class="note" style="margin-top:6px">Prends l’écran « Informations » où l’on voit le <b>jeton</b>, l’<b>adresse</b> et le <b>nom du client</b> (« Abonné » ou bloc « Client »). <button type="button" id="cap-voir" style="background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;font:inherit;cursor:pointer">Voir l’exemple</button></div><div id="cap-res" aria-live="polite"></div>';
   j.parentNode.appendChild(z);
   document.getElementById('cap-photo').addEventListener('click',function(){capChoisir('cap-f1');});
   document.getElementById('cap-capture').addEventListener('click',function(){capChoisir('cap-f2');});
@@ -6141,9 +6141,9 @@ function capLire(f){if(CAP.ec||!ACCT)return;CAP.ec=true;CAP.res=null;CAP.msg='';
   capImage(f).then(function(img){return fetchT(CAPURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'lire',c:ACCT.client_id,k:ACCT.cle,image:img})},60000).then(function(r){return r.json();});})
   .then(function(j){CAP.ec=false;if(j&&j.ok===true&&/^[A-Z]?\d{6,9}$/.test(String(j.jeton||''))){CAP.res=j;}else{CAP.msg=String((j&&j.message)||'Lecture impossible : tape le jeton.');CAP.ex=!!(j&&j.code==='exemple');}capRendu();},
     function(e){CAP.ec=false;CAP.msg=e&&e.message==='petite'?'Image trop petite : prends une capture d’écran entière ou une photo plus proche.':(e&&e.message==='format'?'Ce fichier n’est pas une image lisible.':'Lecture impossible pour l’instant : tape le jeton.');capRendu();});}
-/* v93 (Zo 19/10) : seule une capture qui montre Jeton + Adresse + Abonné est acceptée ; sinon rien n'est pris et on montre cet exemple (données fictives) */
+/* v93 (Zo 19/10) / v94 (21/10, écran SAV) : seule une capture qui montre jeton + adresse + nom du client (Abonné ou bloc Client) est acceptée ; sinon rien n'est pris et on montre cet exemple (données fictives) */
 function capExemple(){var L=function(k,v,on){return '<div style="padding:5px 12px;font-size:13px;line-height:1.35;color:#333'+(on?';background:#fff4c2;border-left:4px solid #f0b400;font-weight:600':'')+'"><b style="color:#111">'+k+' :</b> '+v+(on?' <span style="color:#b07d00">◀</span>':'')+'</div>';};
-  return '<div style="margin-top:10px;border-radius:10px;overflow:hidden;border:1px solid rgba(127,127,127,.35);background:#eceff1;max-width:360px" role="img" aria-label="Exemple de bon écran : Informations du rendez-vous avec Jeton, Adresse et Abonné">'
+  return '<div style="margin-top:10px;border-radius:10px;overflow:hidden;border:1px solid rgba(127,127,127,.35);background:#eceff1;max-width:360px" role="img" aria-label="Exemple de bon écran : Informations du rendez-vous avec le jeton, l’adresse et le nom du client">'
    +'<div style="background:#1f5a8a;color:#fff;padding:9px 12px 0"><div style="font-size:15px;font-weight:600">Raccordement client</div><div style="font-size:13px;opacity:.9;margin:2px 0 6px;background:#fff4c2;color:#1f2a33;display:table;padding:1px 6px;border-radius:4px;font-weight:700">Jeton 24310587 ◀</div><div style="font-size:12px;font-weight:700;border-bottom:2px solid #fff;display:inline-block;padding:4px 2px;margin-top:2px">INFORMATIONS</div></div>'
    +'<div style="background:#fff;margin:8px;border-radius:0 0 8px 8px;padding-bottom:6px"><div style="background:#1f5a8a;color:#fff;padding:6px 12px;font-size:13px;font-weight:600">Rendez-vous</div>'
    +L('Type','Raccordement client')+L('Date RDV','mardi 20 octobre à 09:00')+L('Adresse','14 CHEMIN DES OLIVIERS<br>84300 CAVAILLON',1)+L('Abonné','Lefèvre Martine',1)+L('Jeton','24310587')+L('Statut PTO','PTO à construire')
@@ -6165,7 +6165,7 @@ function capRendu(){var box=document.getElementById('cap-res');if(!box)return;va
      +'<button type="button" class="btn" data-cap="ok" style="width:100%;height:46px;margin-top:12px">✅ Utiliser ce jeton</button>'
      +'<button type="button" class="btn ghost" data-cap="annuler" style="width:100%;height:40px;margin-top:6px">Annuler</button></div>';}
   else if(CAP.msg)h='<div class="note" style="margin-top:10px;color:var(--warn)">'+esc(CAP.msg)+'</div>';
-  if(!CAP.ec&&!CAP.res&&CAP.ex)h+=capExemple()+'<div class="note" style="margin-top:6px">Sur cet écran, la lecture remplit le jeton, le client et l’adresse. Sinon, tape le jeton à la main.</div>';
+  if(!CAP.ec&&!CAP.res&&CAP.ex)h+=capExemple()+'<div class="note" style="margin-top:6px">Sur l’écran SAV, le nom et l’adresse sont dans le bloc « Client » en bas : fais défiler pour qu’il soit sur la capture. Sinon, tape le jeton à la main.</div>';
   if(CAP.pf)h+='<div class="note" style="margin-top:8px">'+esc(CAP.pf)+'</div>';
   box.innerHTML=h;var b1=document.getElementById('cap-photo'),b2=document.getElementById('cap-capture');if(b1)b1.disabled=CAP.ec;if(b2)b2.disabled=CAP.ec;}
 function capClic(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cap]'):null;if(!b||!CAP.res)return;var a=b.getAttribute('data-cap');
