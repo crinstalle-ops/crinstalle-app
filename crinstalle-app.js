@@ -1668,26 +1668,31 @@ function cjCarte(c,i){c=c||{};var h='<div class="card" style="padding:12px 14px;
   else if(c.cp){h+='<div class="note" style="margin-top:10px">📮 Code postal : '+esc(c.cp)+(c.par?' — ajouté par '+esc(c.par):'')+'</div>';}
   return h+cjRoute(c)+'</div>';}
 /* v98 (Zo 25/10) : demande à Meryem depuis la fiche (fiche route optique / message libre), même si le jeton n'est pas dans le portefeuille */
-var DMURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-demande-meryem',CJ_DM={jeton:'',ouvert:false,ec:false,msg:'',info:'',fait:{}};
+/* v99 (Zo 25/10) : type de demande (route optique / autre demande) — Meryem peut répondre par écrit (bot) */
+var DMURL='https://n8n.srv915623.hstgr.cloud/webhook/crinstalle-demande-meryem',CJ_DM={jeton:'',ouvert:false,ec:false,msg:'',info:'',type:'route',fait:{}};
 function cjDmOk(){var m=ACCT&&ACCT.me;return !!(m&&m.equipe&&m.acces!=='controle');}
 function cjDemande(){var j=CJ_RES&&CJ_RES.jeton;if(!cjDmOk()||!/^[A-Z]?\d{6,9}$/.test(String(j||'')))return '';
-  if(CJ_DM.jeton!==j){CJ_DM={jeton:j,ouvert:false,ec:false,msg:'',info:'',fait:CJ_DM.fait||{}};}
+  if(CJ_DM.jeton!==j){var aR=!!(CJ_RES.clients&&CJ_RES.clients.length&&CJ_RES.clients.some(function(c){return c&&c.route;}));CJ_DM={jeton:j,ouvert:false,ec:false,msg:'',info:'',type:aR?'autre':'route',fait:CJ_DM.fait||{}};}
   var vide=!(CJ_RES.clients&&CJ_RES.clients.length),h='<div class="card" style="padding:12px 14px;margin-top:10px">';
   if(CJ_DM.fait[j])return h+'<div class="note" style="color:var(--tx)">'+esc(CJ_DM.info||'✅ Demande envoyée à Meryem.')+'</div></div>';
   if(!CJ_DM.ouvert)return h+(vide?'<div class="note" style="margin-bottom:8px">Ce jeton n’est pas encore dans le portefeuille : Meryem peut t’envoyer sa fiche (nom, adresse, route optique).</div>':'')
     +'<button type="button" class="btn ghost" data-cjdm="ouvrir" style="width:100%;margin-top:0">📨 Demander à Meryem</button>'+(CJ_DM.info?'<div class="note" style="margin-top:8px;color:var(--warn)">'+esc(CJ_DM.info)+'</div>':'')+'</div>';
-  return h+'<div style="font-weight:700;margin-bottom:6px">📨 Demande à Meryem — jeton '+esc(j)+'</div>'
-    +'<div class="note" style="margin-bottom:6px">Elle t’envoie la fiche (route optique) ou te répond. Tu es prévenu sur Telegram.</div>'
-    +'<textarea id="cj-dm-msg" maxlength="300" rows="3" placeholder="Message pour Meryem (facultatif) — ex. route optique svp, client absent…" style="width:100%;box-sizing:border-box;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border-s);color:var(--tx);padding:10px 12px;font-size:16px;font-family:inherit;resize:vertical">'+esc(CJ_DM.msg)+'</textarea>'
+  var aut=CJ_DM.type==='autre';
+  return h+'<div style="font-weight:700;margin-bottom:8px">📨 Demande à Meryem — jeton '+esc(j)+'</div>'
+    +'<div role="radiogroup" aria-label="Type de demande" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button type="button" class="chip'+(aut?'':' sel')+'" role="radio" aria-checked="'+(!aut)+'" data-cjdm="t-route">🛣️ Route optique</button><button type="button" class="chip'+(aut?' sel':'')+'" role="radio" aria-checked="'+aut+'" data-cjdm="t-autre">💬 Autre demande</button></div>'
+    +'<div class="note" style="margin-bottom:6px">'+(aut?'Écris ta demande : Meryem te répond sur Telegram.':'Elle t’envoie la fiche (route optique) ou te répond. Tu es prévenu sur Telegram.')+'</div>'
+    +'<textarea id="cj-dm-msg" maxlength="300" rows="3" placeholder="'+(aut?'Ta demande — ex. rappelle le client, il ne répond pas':'Message pour Meryem (facultatif) — ex. PBO introuvable…')+'" style="width:100%;box-sizing:border-box;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--border-s);color:var(--tx);padding:10px 12px;font-size:16px;font-family:inherit;resize:vertical">'+esc(CJ_DM.msg)+'</textarea>'
     +'<button type="button" class="btn" data-cjdm="envoyer" style="width:100%;margin-top:8px"'+(CJ_DM.ec?' disabled':'')+'>'+(CJ_DM.ec?'Envoi…':'Envoyer la demande')+'</button>'
     +'<button type="button" class="btn ghost" data-cjdm="fermer" style="width:100%;height:40px;margin-top:6px">Annuler</button>'
     +(CJ_DM.info?'<div class="note" style="margin-top:8px;color:var(--warn)">'+esc(CJ_DM.info)+'</div>':'')+'</div>';}
 function cjDmClic(a){if(!CJ_RES||CJ_DM.ec)return;var t=document.getElementById('cj-dm-msg');if(t)CJ_DM.msg=String(t.value||'').slice(0,300);
   if(a==='ouvrir'){CJ_DM.ouvert=true;CJ_DM.info='';cjRendu(document.getElementById('cj-info')?document.getElementById('cj-info').textContent:'');var f=document.getElementById('cj-dm-msg');if(f)try{f.focus();}catch(_e){}return;}
+  if(a==='t-route'||a==='t-autre'){CJ_DM.type=a==='t-autre'?'autre':'route';CJ_DM.info='';cjRendu(document.getElementById('cj-info')?document.getElementById('cj-info').textContent:'');return;}
   if(a==='fermer'){CJ_DM.ouvert=false;CJ_DM.info='';cjRendu(document.getElementById('cj-info')?document.getElementById('cj-info').textContent:'');return;}
   if(a!=='envoyer')return;if(!navigator.onLine){CJ_DM.info='Pas de réseau — réessaie une fois connecté.';cjRendu(document.getElementById('cj-info').textContent);return;}
+  if(CJ_DM.type==='autre'&&String(CJ_DM.msg||'').trim().length<3){CJ_DM.info='Écris ta demande pour Meryem (quelques mots).';cjRendu(document.getElementById('cj-info').textContent);var f2=document.getElementById('cj-dm-msg');if(f2)try{f2.focus();}catch(_e){}return;}
   var j=CJ_DM.jeton;CJ_DM.ec=true;CJ_DM.info='';cjRendu(document.getElementById('cj-info').textContent);
-  fetchT(DMURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({c:ACCT.client_id,k:ACCT.cle,jeton:j,message:CJ_DM.msg})},30000).then(function(r){return r.json();})
+  fetchT(DMURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({c:ACCT.client_id,k:ACCT.cle,jeton:j,message:CJ_DM.msg,type:CJ_DM.type})},30000).then(function(r){return r.json();})
   .then(function(r){if(CJ_DM.jeton!==j)return;CJ_DM.ec=false;if(r&&r.ok){CJ_DM.fait[j]=true;CJ_DM.info=String(r.message||'✅ Demande envoyée à Meryem.');try{v64Vib(10);}catch(_e){}}else{CJ_DM.info=String((r&&r.message)||RESEAU_MSG);}
       cjRendu(document.getElementById('cj-info').textContent);},
     function(){if(CJ_DM.jeton!==j)return;CJ_DM.ec=false;CJ_DM.info=RESEAU_MSG;cjRendu(document.getElementById('cj-info').textContent);});}
@@ -1932,7 +1937,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='98';
+var APPV='99';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
