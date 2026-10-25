@@ -1643,9 +1643,15 @@ function cjPastille(h){return '<span aria-hidden="true" style="display:inline-bl
 function cjCoupe(t,f){return '<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" style="vertical-align:-6px;margin-right:6px;flex:none"><circle cx="11" cy="11" r="10.2" fill="none" stroke="rgba(127,127,127,.7)" stroke-width=".8"/><circle cx="11" cy="11" r="7.6" fill="none" stroke="'+t+'" stroke-width="4"/><circle cx="11" cy="11" r="3.4" fill="'+f+'" stroke="rgba(127,127,127,.8)" stroke-width=".8"/></svg>';}
 function cjColore(v){var tube='',fib='';var h=esc(v).replace(/\b(tube|fibre)(\s*:?\s*)([A-Za-zÀ-ÿ]+)/gi,function(all,k,sp,c){var x=cjCoul(c);if(!x)return all;
     if(/^t/i.test(k))tube=tube||x;else fib=fib||x;return k+sp+cjPastille(x)+c;});return {h:h,tube:tube,fib:fib};}
+/* v97 (Zo 25/10) : la réf. du PM de la route optique ouvre « Aller à un PM » déjà rempli → boutons Google Maps / Waze */
+function cjVersPm(ref){ref=String(ref||'').trim().slice(0,40);if(!ref)return;var hm=document.getElementById('hm-pm');if(!hm){cjMsg('« Aller à un PM » n’est pas disponible.');return;}
+  try{if(typeof v64SheetOpen==='function')v64SheetOpen('hm-pm');}catch(_e){}
+  var i=document.getElementById('pm-q');if(!i)return;i.value=ref;pmChercher();try{hm.scrollIntoView({block:'start',behavior:'smooth'});}catch(_e){}}
 function cjRoute(c){var t=String((c&&c.route)||'').trim();if(!t)return '';var L=t.split(/\n/).slice(0,20);
   var h='<div style="margin-top:10px;padding:10px 12px;border-radius:var(--r-m);background:var(--tint);border:1px solid var(--border)"><div style="font-weight:700;margin-bottom:4px">🛣️ Route optique</div>';
   for(var n=0;n<L.length;n++){var l=L[n],p=l.indexOf(' : '),k=p>0?l.slice(0,p):'',v=p>0?l.slice(p+3):l;
+    if(/^PM$/i.test(k)&&/^[A-Z0-9][A-Z0-9_\-\/ ]{2,39}$/i.test(v)){h+='<div style="font-size:13px;line-height:1.4;margin-top:3px;display:flex;align-items:center;flex-wrap:wrap;gap:6px"><span style="color:var(--tx2)">PM :</span><b style="color:var(--tx)">'+esc(v)+'</b>'
+      +'<button type="button" class="chip" data-cjpm="'+esc(v)+'" style="padding:4px 10px;font-size:12px" aria-label="Itinéraire vers le PM '+esc(v)+'">📍 Itinéraire</button></div>';continue;}
     var col=/^(soudure|connecteur free)/i.test(k)?cjColore(v):null;
     h+='<div style="font-size:13px;line-height:1.4;margin-top:3px;overflow-wrap:anywhere'+(col&&col.tube&&col.fib?';display:flex;align-items:flex-start':'')+'">'+(col&&col.tube&&col.fib?cjCoupe(col.tube,col.fib)+'<span>':'')+'<span style="color:var(--tx2)">'+esc(k)+(k?' : ':'')+'</span><b style="color:var(--tx)">'+(col?col.h:esc(v))+'</b>'+(col&&col.tube&&col.fib?'</span>':'')+'</div>';}
   if(c.routeMaj)h+='<div class="note" style="margin-top:6px">Mise à jour : '+esc(c.routeMaj)+'</div>';return h+'</div>';}
@@ -1704,6 +1710,7 @@ function cjInstall(){if(!ACCT||!ACCT.me||!ACCT.me.equipe)return;if(document.getE
   document.getElementById('cj-q').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();cjChercher();}});
   var res=document.getElementById('cj-res');
   res.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cjcp]'):null;if(!b)return;cjCp(parseInt(b.getAttribute('data-cjcp'),10));});
+  res.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('[data-cjpm]'):null;if(b)cjVersPm(b.getAttribute('data-cjpm'));});
   res.addEventListener('keydown',function(ev){var t=ev.target;if(ev.key!=='Enter'||!t||!t.id||t.id.indexOf('cj-cp-')!==0)return;ev.preventDefault();cjCp(parseInt(t.id.slice(6),10));});}
 /* === v56/v57 : Décharge PTO (formulaire Free « pose PTO à un emplacement non recommandé ») ===
    Équipe seulement. Le technicien remplit, le client coche « Lu et approuvé » et signe du doigt.
@@ -1899,7 +1906,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='96';
+var APPV='97';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
