@@ -1635,10 +1635,19 @@ function cjAppel(body){body.c=ACCT.client_id;body.k=ACCT.cle;
   return fetchT(CJURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)},25000).then(function(r){return r.json().catch(function(){return {ok:false,message:RESEAU_MSG};});});}
 function cjTelHref(t){var d=String(t||'').replace(/\D/g,'');return (d.length>=9&&d.length<=15)?('tel:'+d):'';}
 /* v95 (Zo 25/10) : route optique envoyée par Meryem (fiche abonné → bot CR Adresse), affichée directement sur la fiche du client */
+/* v96 (Zo 25/10) : couleurs des tubes et fibres montrées en vrai (pastille + coupe tube/fibre) */
+var CJ_COUL={rouge:'#e53935',bleu:'#1e63d6',vert:'#2e9b47',jaune:'#f4d03f',violet:'#8e44ad',blanc:'#ffffff',orange:'#f39c12',gris:'#9e9e9e',marron:'#8d5524',noir:'#111111',turquoise:'#1abc9c',rose:'#f48fb1'};
+function cjCoul(m){m=String(m||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');if(CJ_COUL[m])return CJ_COUL[m];
+  var s=m.replace(/s$/,''),b=s.replace(/(ette|che|e)$/,function(x){return x==='ette'?'et':(x==='che'?'c':'');});return CJ_COUL[s]||CJ_COUL[b]||'';}
+function cjPastille(h){return '<span aria-hidden="true" style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+h+';border:1px solid rgba(127,127,127,.75);vertical-align:-1px;margin:0 4px 0 2px"></span>';}
+function cjCoupe(t,f){return '<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" style="vertical-align:-6px;margin-right:6px;flex:none"><circle cx="11" cy="11" r="10.2" fill="none" stroke="rgba(127,127,127,.7)" stroke-width=".8"/><circle cx="11" cy="11" r="7.6" fill="none" stroke="'+t+'" stroke-width="4"/><circle cx="11" cy="11" r="3.4" fill="'+f+'" stroke="rgba(127,127,127,.8)" stroke-width=".8"/></svg>';}
+function cjColore(v){var tube='',fib='';var h=esc(v).replace(/\b(tube|fibre)(\s*:?\s*)([A-Za-zÀ-ÿ]+)/gi,function(all,k,sp,c){var x=cjCoul(c);if(!x)return all;
+    if(/^t/i.test(k))tube=tube||x;else fib=fib||x;return k+sp+cjPastille(x)+c;});return {h:h,tube:tube,fib:fib};}
 function cjRoute(c){var t=String((c&&c.route)||'').trim();if(!t)return '';var L=t.split(/\n/).slice(0,20);
   var h='<div style="margin-top:10px;padding:10px 12px;border-radius:var(--r-m);background:var(--tint);border:1px solid var(--border)"><div style="font-weight:700;margin-bottom:4px">🛣️ Route optique</div>';
   for(var n=0;n<L.length;n++){var l=L[n],p=l.indexOf(' : '),k=p>0?l.slice(0,p):'',v=p>0?l.slice(p+3):l;
-    h+='<div style="font-size:13px;line-height:1.4;margin-top:3px;overflow-wrap:anywhere"><span style="color:var(--tx2)">'+esc(k)+(k?' : ':'')+'</span><b style="color:var(--tx)">'+esc(v)+'</b></div>';}
+    var col=/^(soudure|connecteur free)/i.test(k)?cjColore(v):null;
+    h+='<div style="font-size:13px;line-height:1.4;margin-top:3px;overflow-wrap:anywhere'+(col&&col.tube&&col.fib?';display:flex;align-items:flex-start':'')+'">'+(col&&col.tube&&col.fib?cjCoupe(col.tube,col.fib)+'<span>':'')+'<span style="color:var(--tx2)">'+esc(k)+(k?' : ':'')+'</span><b style="color:var(--tx)">'+(col?col.h:esc(v))+'</b>'+(col&&col.tube&&col.fib?'</span>':'')+'</div>';}
   if(c.routeMaj)h+='<div class="note" style="margin-top:6px">Mise à jour : '+esc(c.routeMaj)+'</div>';return h+'</div>';}
 function cjCarte(c,i){c=c||{};var h='<div class="card" style="padding:12px 14px;margin-top:10px"><div style="font-weight:700">'+esc(c.nom||'Nom non communiqué')+'</div>';
   if(c.cpRequis){return h+cjRoute(c)+'<div class="note" style="margin-top:8px;color:var(--tx)">🔒 Pour voir le numéro, tape le code postal de la commune du client.</div>'
@@ -1890,7 +1899,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='95';
+var APPV='96';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
