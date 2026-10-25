@@ -1937,7 +1937,9 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='99';
+var APPV='100';
+/* version affichée (Zo 25/10) : « Version 1.99 » au lieu de « v99 » — APPV reste le compteur interne des mises à jour */
+var APPVN='1.99';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
@@ -1960,7 +1962,7 @@ var APPV='99';
 /* marqueur de version discret en bas de l'accueil */
 (function(){
   var mk=function(){var h=document.getElementById('s-home');if(!h||document.getElementById('app-ver'))return;
-    var d=document.createElement('div');d.id='app-ver';d.className='note center';d.style.cssText='padding:14px 0 4px;opacity:.6';d.textContent='Crinstalle IA · v'+APPV;h.appendChild(d);};
+    var d=document.createElement('div');d.id='app-ver';d.className='note center';d.style.cssText='padding:14px 0 4px;opacity:.6';d.textContent='Crinstalle IA · version '+APPVN;h.appendChild(d);};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mk);else mk();
 })();
 
@@ -4662,7 +4664,7 @@ function v64DrBuild(){var d=document.getElementById('v64-dr');
   if(pa)h+=row('gift','Parrainage','Invite un technicien','parrain');
   var clair=document.documentElement.getAttribute('data-app')==='light';
   h+=grp('Réglages')+row('lang','Langue','','langue','<span class="v64-val">'+(LANG==='ar'?'العربية':'Français')+'</span>')+row('moon','Apparence','','theme','<span class="v64-val" id="v64-thv">'+(clair?'Clair':'Sombre')+'</span>');
-  h+='<div class="v64-foot">Crinstalle IA · v'+APPV+'</div>';
+  h+='<div class="v64-foot">Crinstalle IA · version '+APPVN+'</div>';
   document.getElementById('v64-ds').innerHTML=h;}
 function v64DrOpen(){if(!ACCT||V64.dr)return;if(V64.sheet)v64SheetClose();v64DrBuild();var d=document.getElementById('v64-dr');
   d.classList.add('v64-vis');void d.offsetWidth;
