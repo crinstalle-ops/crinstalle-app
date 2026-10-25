@@ -1634,8 +1634,14 @@ function cjMsg(t){var n=document.getElementById('cj-info');if(n)n.textContent=t|
 function cjAppel(body){body.c=ACCT.client_id;body.k=ACCT.cle;
   return fetchT(CJURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)},25000).then(function(r){return r.json().catch(function(){return {ok:false,message:RESEAU_MSG};});});}
 function cjTelHref(t){var d=String(t||'').replace(/\D/g,'');return (d.length>=9&&d.length<=15)?('tel:'+d):'';}
+/* v95 (Zo 25/10) : route optique envoyée par Meryem (fiche abonné → bot CR Adresse), affichée directement sur la fiche du client */
+function cjRoute(c){var t=String((c&&c.route)||'').trim();if(!t)return '';var L=t.split(/\n/).slice(0,20);
+  var h='<div style="margin-top:10px;padding:10px 12px;border-radius:var(--r-m);background:var(--tint);border:1px solid var(--border)"><div style="font-weight:700;margin-bottom:4px">🛣️ Route optique</div>';
+  for(var n=0;n<L.length;n++){var l=L[n],p=l.indexOf(' : '),k=p>0?l.slice(0,p):'',v=p>0?l.slice(p+3):l;
+    h+='<div style="font-size:13px;line-height:1.4;margin-top:3px;overflow-wrap:anywhere"><span style="color:var(--tx2)">'+esc(k)+(k?' : ':'')+'</span><b style="color:var(--tx)">'+esc(v)+'</b></div>';}
+  if(c.routeMaj)h+='<div class="note" style="margin-top:6px">Mise à jour : '+esc(c.routeMaj)+'</div>';return h+'</div>';}
 function cjCarte(c,i){c=c||{};var h='<div class="card" style="padding:12px 14px;margin-top:10px"><div style="font-weight:700">'+esc(c.nom||'Nom non communiqué')+'</div>';
-  if(c.cpRequis){return h+'<div class="note" style="margin-top:8px;color:var(--tx)">🔒 Pour voir le numéro, tape le code postal de la commune du client.</div>'
+  if(c.cpRequis){return h+cjRoute(c)+'<div class="note" style="margin-top:8px;color:var(--tx)">🔒 Pour voir le numéro, tape le code postal de la commune du client.</div>'
     +'<input type="text" id="cj-cp-'+i+'" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" enterkeyhint="done" placeholder="Code postal — ex. 84000" aria-label="Code postal de la commune du client" style="'+CJ_INPUT+';margin-top:8px;letter-spacing:2px">'
     +'<button class="btn" type="button" data-cjcp="'+i+'" style="width:100%;margin-top:8px">Valider et voir le numéro</button></div>';}
   var tels=Array.isArray(c.tels)?c.tels.slice(0,3):[];
@@ -1645,7 +1651,7 @@ function cjCarte(c,i){c=c||{};var h='<div class="card" style="padding:12px 14px;
   if(c.adresse){h+='<div class="note" style="margin-top:10px;color:var(--tx)">📍 '+esc(c.adresse)+'</div>'+(c.par?'<div class="note">Adresse ajoutée par '+esc(c.par)+'</div>':'')
     +'<a class="btn ghost" style="margin-top:8px;text-decoration:none;display:flex;align-items:center;justify-content:center" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(String(c.adresse).slice(0,200))+'&travelmode=driving">Itinéraire vers l’adresse</a>';}
   else if(c.cp){h+='<div class="note" style="margin-top:10px">📮 Code postal : '+esc(c.cp)+(c.par?' — ajouté par '+esc(c.par):'')+'</div>';}
-  return h+'</div>';}
+  return h+cjRoute(c)+'</div>';}
 function cjRendu(info){var r=document.getElementById('cj-res');if(!r)return;var h='';var cl=(CJ_RES&&Array.isArray(CJ_RES.clients))?CJ_RES.clients:[];
   for(var i=0;i<cl.length&&i<3;i++)h+=cjCarte(cl[i],i);r.innerHTML=h;cjMsg(info);}
 function cjChercher(){if(CJ_EC)return;var inp=document.getElementById('cj-q');var j=cjJeton(inp&&inp.value);
@@ -1884,7 +1890,7 @@ function dechOuvrir(id){if(!id)return;err('err-dech','');dechSortie('<div class=
     if(sh)sh.addEventListener('click',function(){try{navigator.share({files:[new File([DECH_OUT.blob],DECH_OUT.nom,{type:'application/pdf'})],title:'Décharge PTO — jeton '+d.jeton}).catch(function(){});}catch(_e){}});
     });
   }).catch(function(e){dechSortie('');err('err-dech',(e&&e.message)||RESEAU_MSG);});}
-var APPV='94';
+var APPV='95';
 (function(){
   var pr=null,startY=0,delta=0,armed=false;
   function ind(){if(!pr){pr=document.createElement('div');pr.id='ptr';pr.setAttribute('aria-hidden','true');pr.style.cssText='position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:60;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:transform .15s;color:var(--tx2);box-shadow:0 4px 14px rgba(0,0,0,.25)';pr.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';document.body.appendChild(pr);}return pr;}
